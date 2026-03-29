@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/aidun/tradelab/backend/internal/config"
 	httpapi "github.com/aidun/tradelab/backend/internal/http"
@@ -15,6 +16,7 @@ import (
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 	portfolioservice "github.com/aidun/tradelab/backend/internal/service/portfolio"
 	sessionservice "github.com/aidun/tradelab/backend/internal/service/session"
+	strategyservice "github.com/aidun/tradelab/backend/internal/service/strategy"
 	"github.com/aidun/tradelab/backend/internal/store/postgres"
 )
 
@@ -32,6 +34,7 @@ func main() {
 	marketRepository := postgres.NewMarketRepository(db)
 	balanceRepository := postgres.NewBalanceRepository(db)
 	portfolioRepository := postgres.NewPortfolioRepository(db)
+	strategyRepository := postgres.NewStrategyRepository(db)
 	sessionRepository := postgres.NewDemoSessionRepository(db)
 	appSessionRepository := postgres.NewAppSessionRepository(db)
 	registeredAccountRepository := postgres.NewRegisteredAccountRepository(db)
@@ -52,9 +55,14 @@ func main() {
 	historyService := historyservice.NewService(portfolioRepository, logging.NewJSONLogger("history_service"))
 	sessionService := sessionservice.NewService(sessionRepository, appSessionRepository, logging.NewJSONLogger("session_service"))
 	accountService := accountservice.NewService(registeredAccountRepository, clerkVerifier, logging.NewJSONLogger("account_service"))
+	strategyService := strategyservice.NewService(marketRepository, strategyRepository, marketService, portfolioService, orderService, logging.NewJSONLogger("strategy_service"))
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
-		Handler: httpapi.NewRouter(marketService, marketService, orderService, portfolioService, historyService, historyService, sessionService, accountService, logging.NewJSONLogger("http_api")),
+		Handler: httpapi.NewRouter(marketService, marketService, orderService, portfolioService, historyService, historyService, strategyService, sessionService, accountService, logging.NewJSONLogger("http_api")),
+	}
+
+	if cfg.StrategyEngineEnabled {
+		go runStrategyLoop(context.Background(), strategyService, cfg.StrategyEngineTick, logger)
 	}
 
 	logger.Info("backend listening", "operation", "startup.listen", "address", cfg.HTTPAddress)
@@ -62,5 +70,26 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("server terminated unexpectedly", "operation", "startup.serve", "error", err)
 		os.Exit(1)
+	}
+}
+
+func runStrategyLoop(ctx context.Context, strategies interface {
+	RunOnce(context.Context, int) error
+}, tick time.Duration, logger *slog.Logger) {
+	ticker := time.NewTicker(tick)
+	defer ticker.Stop()
+
+	logger.Info("strategy engine started", "operation", "strategy_engine.start", "tick", tick.String())
+
+	for {
+		if err := strategies.RunOnce(ctx, 25); err != nil {
+			logger.Error("strategy engine tick failed", "operation", "strategy_engine.tick", "error", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
 	}
 }

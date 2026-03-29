@@ -12,6 +12,7 @@ TradeLab currently consists of these runtime components:
 
 - `frontend`: Next.js web application served as the user-facing interface
 - `backend`: Go HTTP API that owns session handling, portfolio logic, order execution, and market-data access
+- `strategy engine`: in-process scheduler inside the backend that evaluates active strategy bundles
 - `postgres`: PostgreSQL database for persistent application state
 - `ingress`: routes `/` to the frontend and `/api` to the backend
 - `migration initContainer`: applies schema migrations before the backend starts
@@ -45,6 +46,8 @@ Important backend configuration includes:
 - `TRADESLAB_CLERK_ISSUER_URL`
 - `TRADESLAB_CLERK_JWKS_URL`
 - `TRADESLAB_AUTH_MOCK_MODE`
+- `STRATEGY_ENGINE_ENABLED`
+- `STRATEGY_ENGINE_TICK`
 
 TradeLab now treats external authentication as a separate trust boundary from application trading sessions. See [authentication-model.md](authentication-model.md) and [clerk-architecture.md](clerk-architecture.md).
 
@@ -66,6 +69,7 @@ Secret-bearing values should not be committed directly into base manifests.
 - database credentials and `DATABASE_URL` are the primary required runtime secrets today
 - Clerk publishable keys are frontend-safe, but Clerk secret material must remain server-side only
 - mock-auth flags are development and CI-only controls and must not be treated as production runtime settings
+- strategy-engine settings are operational configuration, not secrets
 
 ## Deployment flow
 
@@ -173,6 +177,8 @@ For a release-focused view of published artifacts and release meaning, see [rele
   Usually visible as failed pod startup, database auth errors, or unreachable upstreams.
 - `market-data upstream degradation`
   Backend may fall back to stale market data for a bounded period; after that, market-dependent actions can fail explicitly.
+- `strategy engine failure`
+  Usually visible first in backend logs as failed strategy evaluations or missing automated trades for active bundles.
 - `identity configuration failure`
   Usually visible as missing registered-account bootstrap, rejected Clerk bearer tokens, or an absent social-login surface when auth was expected.
 - `session security failure`
@@ -202,6 +208,7 @@ After deploy:
 - guest session creation works
 - registered-account bootstrap works when Clerk is configured
 - protected API access works for the intended identity mode
+- active strategies evaluate on the expected tick and produce activity when thresholds are met
 
 When triaging incidents:
 

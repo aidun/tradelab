@@ -49,6 +49,7 @@ function state(index) {
           id: "order-1",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          orderSource: "manual",
           side: "buy",
           baseQuantity: 74.62,
           quoteAmount: 50,
@@ -113,6 +114,8 @@ function state(index) {
           id: "order-3",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          orderSource: "strategy",
+          strategyID: "strategy-1",
           side: "sell",
           baseQuantity: 50,
           quoteAmount: 40,
@@ -142,6 +145,21 @@ function state(index) {
 
 async function installRoutes(page) {
   let orderStateIndex = 0;
+  let strategyState = {
+    id: "strategy-1",
+    walletID: "wallet-1",
+    marketSymbol: "XRP/USDT",
+    status: "active",
+    config: {
+      dipBuy: { enabled: true, dipPercent: 5, spendQuoteAmount: 100 },
+      takeProfit: { enabled: true, triggerPercent: 8 },
+      stopLoss: { enabled: true, triggerPercent: 3 }
+    },
+    referencePrice: 0.64,
+    lastDecision: "buy",
+    lastOutcome: "executed",
+    lastReason: "Dip-buy fired because XRP/USDT dropped below the configured threshold."
+  };
 
   await page.addInitScript(() => {
     window.localStorage.clear();
@@ -231,6 +249,12 @@ async function installRoutes(page) {
       const payload = request.postDataJSON() ?? {};
       if (payload.side === "sell") {
         orderStateIndex = 1;
+        strategyState = {
+          ...strategyState,
+          lastDecision: "sell",
+          lastOutcome: "executed",
+          lastReason: "Take-profit fired because XRP/USDT moved above the configured target."
+        };
       }
 
       await route.fulfill({
@@ -268,6 +292,15 @@ async function installRoutes(page) {
       return;
     }
 
+    if (url.includes("/api/v1/strategies")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ strategies: [strategyState] })
+      });
+      return;
+    }
+
     await route.fallback();
   });
 }
@@ -290,6 +323,8 @@ async function capture() {
   await page.goto(`${appBaseUrl}/markets/XRP%2FUSDT`);
   await page.getByText(/focused trading screen/i).waitFor();
   await page.screenshot({ path: path.join(docsScreenshotDir, "market-detail-page.png"), fullPage: true });
+
+  await page.screenshot({ path: path.join(docsScreenshotDir, "strategy-automation-active.png"), fullPage: true });
 
   await page.locator("input").nth(1).fill("50");
   await page.getByRole("button", { name: /run demo sell/i }).click();

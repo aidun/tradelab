@@ -62,6 +62,8 @@ type PlaceMarketOrderInput struct {
 	Side         domain.OrderSide
 	QuoteAmount  float64
 	BaseQuantity float64
+	OrderSource  domain.OrderSource
+	StrategyID   string
 }
 
 func (s *Service) PlaceMarketOrder(ctx context.Context, input PlaceMarketOrderInput) (domain.Order, error) {
@@ -136,6 +138,8 @@ func (s *Service) PlaceMarketOrder(ctx context.Context, input PlaceMarketOrderIn
 		WalletID:      input.WalletID,
 		MarketID:      market.ID,
 		MarketSymbol:  market.Symbol,
+		StrategyID:    input.StrategyID,
+		OrderSource:   normalizeOrderSource(input.OrderSource),
 		BaseAsset:     market.BaseAsset,
 		QuoteAsset:    market.QuoteAsset,
 		QuoteAmount:   input.QuoteAmount,
@@ -162,6 +166,15 @@ func (s *Service) PlaceMarketOrder(ctx context.Context, input PlaceMarketOrderIn
 
 	s.logInfo("place_market_order.success", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "order_id", createdOrder.ID, "executed_price", createdOrder.ExpectedPrice, "side", createdOrder.Side)
 	return createdOrder, nil
+}
+
+func normalizeOrderSource(source domain.OrderSource) domain.OrderSource {
+	switch source {
+	case domain.OrderSourceStrategy, domain.OrderSourceSystem:
+		return source
+	default:
+		return domain.OrderSourceManual
+	}
 }
 
 func (s *Service) logInfo(operation string, args ...any) {

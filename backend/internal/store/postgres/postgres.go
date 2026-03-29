@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -520,13 +521,7 @@ func (r *PortfolioRepository) ApplyMarketBuy(ctx context.Context, order domain.O
 		return domain.Order{}, err
 	}
 
-	if err := insertOrderAndActivity(ctx, tx, order, "Demo buy recorded", fmt.Sprintf(
-		"Bought %.4f %s at %.4f %s. Position size is now updating in the portfolio view.",
-		order.BaseQuantity,
-		order.BaseAsset,
-		order.ExpectedPrice,
-		order.QuoteAsset,
-	)); err != nil {
+	if err := insertOrderAndActivity(ctx, tx, order, defaultOrderTitle(order), defaultOrderMessage(order)); err != nil {
 		return domain.Order{}, err
 	}
 
@@ -577,13 +572,7 @@ func (r *PortfolioRepository) ApplyMarketSell(ctx context.Context, order domain.
 		return domain.Order{}, err
 	}
 
-	if err := insertOrderAndActivity(ctx, tx, order, "Demo sell recorded", fmt.Sprintf(
-		"Sold %.4f %s at %.4f %s. Review realized PnL in the updated portfolio and order history.",
-		order.BaseQuantity,
-		order.BaseAsset,
-		order.ExpectedPrice,
-		order.QuoteAsset,
-	)); err != nil {
+	if err := insertOrderAndActivity(ctx, tx, order, defaultOrderTitle(order), defaultOrderMessage(order)); err != nil {
 		return domain.Order{}, err
 	}
 
@@ -592,6 +581,58 @@ func (r *PortfolioRepository) ApplyMarketSell(ctx context.Context, order domain.
 	}
 
 	return order, nil
+}
+
+func defaultOrderTitle(order domain.Order) string {
+	switch order.OrderSource {
+	case domain.OrderSourceStrategy:
+		if order.Side == domain.OrderSideSell {
+			return "Strategy sell executed"
+		}
+		return "Strategy buy executed"
+	default:
+		if order.Side == domain.OrderSideSell {
+			return "Demo sell recorded"
+		}
+		return "Demo buy recorded"
+	}
+}
+
+func defaultOrderMessage(order domain.Order) string {
+	switch {
+	case order.OrderSource == domain.OrderSourceStrategy && order.Side == domain.OrderSideBuy:
+		return fmt.Sprintf(
+			"Strategy executed a buy for %.4f %s at %.4f %s.",
+			order.BaseQuantity,
+			order.BaseAsset,
+			order.ExpectedPrice,
+			order.QuoteAsset,
+		)
+	case order.OrderSource == domain.OrderSourceStrategy && order.Side == domain.OrderSideSell:
+		return fmt.Sprintf(
+			"Strategy executed a sell for %.4f %s at %.4f %s.",
+			order.BaseQuantity,
+			order.BaseAsset,
+			order.ExpectedPrice,
+			order.QuoteAsset,
+		)
+	case order.Side == domain.OrderSideSell:
+		return fmt.Sprintf(
+			"Sold %.4f %s at %.4f %s. Review realized PnL in the updated portfolio and order history.",
+			order.BaseQuantity,
+			order.BaseAsset,
+			order.ExpectedPrice,
+			order.QuoteAsset,
+		)
+	default:
+		return fmt.Sprintf(
+			"Bought %.4f %s at %.4f %s. Position size is now updating in the portfolio view.",
+			order.BaseQuantity,
+			order.BaseAsset,
+			order.ExpectedPrice,
+			order.QuoteAsset,
+		)
+	}
 }
 
 func (r *PortfolioRepository) GetSummary(ctx context.Context, walletID string) (domain.PortfolioSummary, error) {
@@ -634,6 +675,8 @@ func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string,
 			o.wallet_id,
 			o.market_id,
 			m.symbol,
+			COALESCE(o.strategy_id, ''),
+			o.order_source,
 			base_asset.symbol,
 			quote_asset.symbol,
 			COALESCE(o.requested_quote_amount, 0),
@@ -673,6 +716,8 @@ func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string,
 			&item.WalletID,
 			&item.MarketID,
 			&item.MarketSymbol,
+			&item.StrategyID,
+			&item.OrderSource,
 			&item.BaseAsset,
 			&item.QuoteAsset,
 			&item.QuoteAmount,
@@ -693,10 +738,12 @@ func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string,
 
 func (r *PortfolioRepository) ListActivityByWallet(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error) {
 	query := `
-		SELECT activity_logs.id, activity_logs.wallet_id, COALESCE(markets.symbol, ''), activity_logs.log_type, activity_logs.title, activity_logs.message, activity_logs.created_at
+		SELECT activity_logs.id, activity_logs.wallet_id, COALESCE(order_markets.symbol, strategy_markets.symbol, ''), activity_logs.log_type, activity_logs.title, activity_logs.message, activity_logs.created_at
 		FROM activity_logs
 		LEFT JOIN orders ON orders.id = activity_logs.order_id
-		LEFT JOIN markets ON markets.id = orders.market_id
+		LEFT JOIN markets order_markets ON order_markets.id = orders.market_id
+		LEFT JOIN strategies ON strategies.id = activity_logs.strategy_id
+		LEFT JOIN markets strategy_markets ON strategy_markets.id = strategies.market_id
 		WHERE wallet_id = $1
 		ORDER BY created_at DESC
 	`
@@ -737,6 +784,7 @@ func insertOrderAndActivity(ctx context.Context, tx *sql.Tx, order domain.Order,
 			user_id,
 			wallet_id,
 			market_id,
+			strategy_id,
 			order_source,
 			side,
 			order_type,
@@ -747,8 +795,8 @@ func insertOrderAndActivity(ctx context.Context, tx *sql.Tx, order domain.Order,
 			average_execution_price,
 			submitted_at,
 			executed_at
-		) VALUES ($1, $2, $3, $4, 'manual', $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, order.ID, order.UserID, order.WalletID, order.MarketID, order.Side, order.Type, order.Status, order.BaseQuantity, order.QuoteAmount, order.BaseQuantity, order.ExpectedPrice, order.CreatedAt, order.ExecutedAt); err != nil {
+		) VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+	`, order.ID, order.UserID, order.WalletID, order.MarketID, order.StrategyID, order.OrderSource, order.Side, order.Type, order.Status, order.BaseQuantity, order.QuoteAmount, order.BaseQuantity, order.ExpectedPrice, order.CreatedAt, order.ExecutedAt); err != nil {
 		return err
 	}
 
@@ -768,6 +816,270 @@ func insertOrderAndActivity(ctx context.Context, tx *sql.Tx, order domain.Order,
 	}
 
 	return nil
+}
+
+type StrategyRepository struct {
+	db *sql.DB
+}
+
+func NewStrategyRepository(db *sql.DB) *StrategyRepository {
+	return &StrategyRepository{db: db}
+}
+
+func (r *StrategyRepository) ListByWallet(ctx context.Context, walletID string, marketSymbol string) ([]domain.Strategy, error) {
+	query := `
+		SELECT s.id, s.user_id, s.wallet_id, s.market_id, m.symbol, s.status, s.config_json, s.reference_price,
+			s.last_run_at, COALESCE(s.last_decision, ''), COALESCE(s.last_outcome, ''), COALESCE(s.last_reason, ''),
+			s.created_at, s.updated_at
+		FROM strategies s
+		JOIN markets m ON m.id = s.market_id
+		WHERE s.wallet_id = $1
+	`
+	args := []any{walletID}
+	if marketSymbol != "" {
+		query += ` AND m.symbol = $2`
+		args = append(args, marketSymbol)
+	}
+	query += ` ORDER BY m.symbol ASC`
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Strategy
+	for rows.Next() {
+		item, err := scanStrategy(rows)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}
+
+func (r *StrategyRepository) UpsertForWalletMarket(ctx context.Context, strategy domain.Strategy) (domain.Strategy, error) {
+	configJSON, err := json.Marshal(strategy.Config)
+	if err != nil {
+		return domain.Strategy{}, err
+	}
+
+	var item domain.Strategy
+	err = r.db.QueryRowContext(ctx, `
+		INSERT INTO strategies (
+			id, user_id, wallet_id, market_id, status, config_json, reference_price,
+			last_decision, last_outcome, last_reason, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, '', '', '', NOW(), NOW())
+		ON CONFLICT (wallet_id, market_id)
+		DO UPDATE SET
+			status = EXCLUDED.status,
+			config_json = EXCLUDED.config_json,
+			updated_at = NOW()
+		RETURNING id, user_id, wallet_id, market_id, (SELECT symbol FROM markets WHERE id = strategies.market_id),
+			status, config_json, reference_price, last_run_at, COALESCE(last_decision, ''), COALESCE(last_outcome, ''),
+			COALESCE(last_reason, ''), created_at, updated_at
+	`, zeroIfEmpty(strategy.ID, newUUID()), strategy.UserID, strategy.WalletID, strategy.MarketID, strategy.Status, configJSON, strategy.ReferencePrice).Scan(
+		&item.ID,
+		&item.UserID,
+		&item.WalletID,
+		&item.MarketID,
+		&item.MarketSymbol,
+		&item.Status,
+		&configJSON,
+		&item.ReferencePrice,
+		&item.LastRunAt,
+		&item.LastDecision,
+		&item.LastOutcome,
+		&item.LastReason,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
+	if err != nil {
+		return domain.Strategy{}, err
+	}
+	if err := json.Unmarshal(configJSON, &item.Config); err != nil {
+		return domain.Strategy{}, err
+	}
+	return item, nil
+}
+
+func (r *StrategyRepository) GetByIDForWallet(ctx context.Context, walletID string, strategyID string) (domain.Strategy, error) {
+	row := r.db.QueryRowContext(ctx, `
+		SELECT s.id, s.user_id, s.wallet_id, s.market_id, m.symbol, s.status, s.config_json, s.reference_price,
+			s.last_run_at, COALESCE(s.last_decision, ''), COALESCE(s.last_outcome, ''), COALESCE(s.last_reason, ''),
+			s.created_at, s.updated_at
+		FROM strategies s
+		JOIN markets m ON m.id = s.market_id
+		WHERE s.wallet_id = $1 AND s.id = $2
+	`, walletID, strategyID)
+	return scanStrategy(row)
+}
+
+func (r *StrategyRepository) ClaimActiveStrategies(ctx context.Context, claimToken string, limit int, staleBefore time.Time) ([]domain.Strategy, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// Claiming happens in SQL so multiple API replicas can compete safely without double-evaluating the same bundle.
+	rows, err := r.db.QueryContext(ctx, `
+		WITH candidates AS (
+			SELECT s.id
+			FROM strategies s
+			WHERE s.status = $1
+			  AND (s.evaluation_claim_token IS NULL OR s.evaluation_claimed_at IS NULL OR s.evaluation_claimed_at < $2)
+			ORDER BY COALESCE(s.last_run_at, s.created_at) ASC
+			LIMIT $3
+			FOR UPDATE SKIP LOCKED
+		)
+		UPDATE strategies s
+		SET evaluation_claim_token = $4, evaluation_claimed_at = NOW()
+		FROM candidates
+		WHERE s.id = candidates.id
+		RETURNING s.id, s.user_id, s.wallet_id, s.market_id, (SELECT symbol FROM markets WHERE id = s.market_id), s.status, s.config_json, s.reference_price,
+			s.last_run_at, COALESCE(s.last_decision, ''), COALESCE(s.last_outcome, ''), COALESCE(s.last_reason, ''),
+			s.created_at, s.updated_at
+	`, domain.StrategyStatusActive, staleBefore, limit, claimToken)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Strategy
+	for rows.Next() {
+		item, err := scanStrategy(rows)
+		if err != nil {
+			return nil, err
+		}
+		item.EvaluationClaimToken = claimToken
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (r *StrategyRepository) RecordEvaluation(ctx context.Context, strategy domain.Strategy, run domain.StrategyRun, nextReferencePrice float64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := r.insertStrategyRun(ctx, tx, run); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE strategies
+		SET
+			reference_price = $1,
+			last_run_at = $2,
+			last_decision = $3,
+			last_outcome = $4,
+			last_reason = $5,
+			evaluation_claim_token = NULL,
+			evaluation_claimed_at = NULL,
+			updated_at = NOW()
+		WHERE id = $6 AND evaluation_claim_token = $7
+	`, nextReferencePrice, run.FinishedAt, run.Decision, run.Outcome, run.Reason, strategy.ID, strategy.EvaluationClaimToken); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *StrategyRepository) RecordEvaluationError(ctx context.Context, strategy domain.Strategy, run domain.StrategyRun) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := r.insertStrategyRun(ctx, tx, run); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE strategies
+		SET
+			last_run_at = $1,
+			last_decision = $2,
+			last_outcome = $3,
+			last_reason = $4,
+			evaluation_claim_token = NULL,
+			evaluation_claimed_at = NULL,
+			updated_at = NOW()
+		WHERE id = $5 AND evaluation_claim_token = $6
+	`, run.FinishedAt, run.Decision, run.Outcome, run.Reason, strategy.ID, strategy.EvaluationClaimToken); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO activity_logs (id, user_id, wallet_id, strategy_id, log_type, title, message, created_at)
+		VALUES ($1, $2, $3, $4, 'strategy', 'Strategy evaluation failed', $5, $6)
+	`, newUUID(), strategy.UserID, strategy.WalletID, strategy.ID, run.Reason, run.FinishedAt); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (r *StrategyRepository) RecordLifecycleActivity(ctx context.Context, strategy domain.Strategy, title string, message string) error {
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO activity_logs (id, user_id, wallet_id, strategy_id, log_type, title, message, created_at)
+		VALUES ($1, $2, $3, $4, 'strategy', $5, $6, NOW())
+	`, newUUID(), strategy.UserID, strategy.WalletID, strategy.ID, title, strings.TrimSpace(message))
+	return err
+}
+
+func (r *StrategyRepository) insertStrategyRun(ctx context.Context, tx *sql.Tx, run domain.StrategyRun) error {
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO strategy_runs (id, strategy_id, decision, outcome, reason, details_json, evaluation_duration_ms, started_at, finished_at)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7, $8, $9)
+	`, run.ID, run.StrategyID, run.Decision, run.Outcome, run.Reason, run.DetailsJSON, run.EvaluationDurationMS, run.StartedAt, run.FinishedAt)
+	return err
+}
+
+func scanStrategy(scanner interface {
+	Scan(dest ...any) error
+}) (domain.Strategy, error) {
+	var item domain.Strategy
+	var configJSON []byte
+	err := scanner.Scan(
+		&item.ID,
+		&item.UserID,
+		&item.WalletID,
+		&item.MarketID,
+		&item.MarketSymbol,
+		&item.Status,
+		&configJSON,
+		&item.ReferencePrice,
+		&item.LastRunAt,
+		&item.LastDecision,
+		&item.LastOutcome,
+		&item.LastReason,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
+	if err != nil {
+		return domain.Strategy{}, err
+	}
+	if len(configJSON) > 0 {
+		if err := json.Unmarshal(configJSON, &item.Config); err != nil {
+			return domain.Strategy{}, err
+		}
+	}
+	return item, nil
+}
+
+func zeroIfEmpty(value string, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
 }
 
 func newUUID() string {
