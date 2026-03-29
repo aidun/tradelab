@@ -9,3 +9,4 @@ backend/.cache/
 .env
 .env.local
 tmp/
+.tools/

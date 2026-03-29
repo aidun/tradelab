@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - backend-configmap.yaml
+  - frontend-configmap.yaml
+  - database-secret.yaml
+  - postgres-persistent-volume-claim.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
+  - backend-service.yaml
+  - backend-deployment.yaml
+  - frontend-service.yaml
+  - frontend-deployment.yaml
+  - ingress.yaml
+
+images:
+  - name: ghcr.io/aidun/tradelab-backend
+    newTag: latest
+  - name: ghcr.io/aidun/tradelab-frontend
+    newTag: latest

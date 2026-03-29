@@ -13,6 +13,7 @@ TradeLab is a multi-asset crypto paper-trading platform with automated strategy 
 
 - `frontend/` web application
 - `backend/` API, domain logic, repositories, migrations
+- `deploy/` Kubernetes deployment manifests and overlays
 - `docs/` product and architecture documentation
 
 ## Local development
@@ -42,6 +43,13 @@ go run ./cmd/migrate up
 ```bash
 cd frontend
 npm run dev
+```
+
+### Build container images locally
+
+```bash
+docker build -f backend/Dockerfile -t tradelab-backend:local .
+docker build -f frontend/Dockerfile -t tradelab-frontend:local .
 ```
 
 ## Testing
@@ -102,8 +110,22 @@ cd frontend
 npm run test:e2e
 ```
 
+## Kubernetes deployment
+
+TradeLab ships with a complete Kubernetes deployment under `deploy/kubernetes`.
+
+Quick start for the development overlay:
+
+```bash
+kubectl apply -k deploy/kubernetes/overlays/development
+```
+
+This deploys PostgreSQL, the Go backend, the Next.js frontend, and an ingress that routes `/api` to the backend and `/` to the frontend.
+
+Full deployment notes live in [docs/deployment.md](docs/deployment.md).
+
 ## Delivery automation
 
 - Pull requests are validated by GitHub Actions.
 - Successful PR checks can be auto-merged into `master`.
-- Every successful `master` run builds release artifacts and creates a GitHub Release.
+- Every successful `master` run builds release artifacts, publishes container images to GitHub Container Registry, and creates a GitHub Release.

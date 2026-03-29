@@ -58,10 +58,18 @@ export type ActivityLog = {
   createdAt: string;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+
+function apiUrl(path: string) {
+  if (API_BASE_URL === "") {
+    return path;
+  }
+
+  return `${API_BASE_URL}${path}`;
+}
 
 export async function fetchMarkets(): Promise<Market[]> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/markets`, { cache: "no-store" });
+  const response = await fetch(apiUrl("/api/v1/markets"), { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to load markets");
   }
@@ -71,7 +79,7 @@ export async function fetchMarkets(): Promise<Market[]> {
 }
 
 export async function fetchPortfolio(walletID: string): Promise<PortfolioSummary> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/portfolios/${walletID}`, {
+  const response = await fetch(apiUrl(`/api/v1/portfolios/${walletID}`), {
     cache: "no-store"
   });
 
@@ -84,7 +92,7 @@ export async function fetchPortfolio(walletID: string): Promise<PortfolioSummary
 }
 
 export async function fetchOrders(walletID: string): Promise<Order[]> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/orders?wallet_id=${walletID}`, {
+  const response = await fetch(apiUrl(`/api/v1/orders?wallet_id=${walletID}`), {
     cache: "no-store"
   });
   if (!response.ok) {
@@ -96,7 +104,7 @@ export async function fetchOrders(walletID: string): Promise<Order[]> {
 }
 
 export async function fetchActivity(walletID: string): Promise<ActivityLog[]> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/activity?wallet_id=${walletID}`, {
+  const response = await fetch(apiUrl(`/api/v1/activity?wallet_id=${walletID}`), {
     cache: "no-store"
   });
   if (!response.ok) {
@@ -114,7 +122,7 @@ export async function placeMarketBuy(input: {
   quoteAmount: number;
   expectedPrice: number;
 }) {
-  const response = await fetch(`${API_BASE_URL}/api/v1/orders`, {
+  const response = await fetch(apiUrl("/api/v1/orders"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
