@@ -2,15 +2,22 @@
 
 ## Purpose
 
-This document explains what a TradeLab release means and what gets produced when code reaches `master`.
+This document explains what a TradeLab release means, how it is triggered, and how production is promoted afterward.
 
 ## Release trigger
 
 TradeLab releases are driven by the GitHub workflow chain:
 
-`pull request -> CI -> auto-merge -> master -> release`
+`pull request -> CI -> auto-merge -> master -> manual release workflow`
 
-The release workflow runs after a pull request into `master` is merged, or manually through workflow dispatch.
+The release workflow is intentionally manual and is triggered through GitHub Actions `workflow_dispatch`.
+
+Recommended operator flow:
+
+1. merge reviewed work into `master`
+2. trigger the `Release` workflow from `master`
+3. confirm the GitHub Release and immutable images were published
+4. trigger `Promote Production` when production should move to the newest official release
 
 ## Release stages
 
@@ -41,13 +48,19 @@ TradeLab publishes:
 
 Release-ready deployment should prefer the immutable tag or the packaged manifest artifact.
 
+## Environment policy
+
+- `tradelab-dev` always follows `master`
+- `tradelab-prod` is promoted only to an official GitHub release tag
+- production promotion is handled by the `Promote Production` workflow, which updates the Argo CD production application to the selected or latest published release
+
 ## What a release signals
 
 A release means:
 
 - the documented CI checks passed
 - build and packaging steps completed
-- release artifacts were created from the merged `master` state
+- release artifacts were created from the selected `master` ref and published as an official immutable release
 
 A release does not mean:
 

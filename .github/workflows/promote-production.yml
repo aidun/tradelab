@@ -1,0 +1,82 @@
+name: Promote Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional release tag to deploy. Leave empty to use the latest published GitHub release.
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-release:
+    name: Resolve release tag
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+
+    steps:
+      - name: Resolve release tag
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ inputs.release_tag }}"
+          if [ -z "$tag" ]; then
+            tag="$(gh release view --json tagName --jq '.tagName')"
+          else
+            gh release view "$tag" --json tagName --jq '.tagName' >/dev/null
+          fi
+          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
+
+  promote-production:
+    name: Update production Argo target
+    needs:
+      - resolve-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Update production application manifests
+        shell: python
+        env:
+          RELEASE_TAG: ${{ needs.resolve-release.outputs.release_tag }}
+        run: |
+          from pathlib import Path
+          import os
+
+          release_tag = os.environ["RELEASE_TAG"]
+          prod_file = Path("deploy/infrastructure/applications/tradelab-prod.yaml")
+          text = prod_file.read_text(encoding="utf-8")
+          lines = []
+          for line in text.splitlines():
+            if line.strip().startswith("targetRevision:"):
+              lines.append(f"    targetRevision: {release_tag}")
+            else:
+              lines.append(line)
+          prod_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          kustomization = Path("deploy/infrastructure/applications/kustomization.yaml")
+          kustomization_text = kustomization.read_text(encoding="utf-8")
+          if "  - tradelab-prod.yaml\n" not in kustomization_text:
+            kustomization_text += "  - tradelab-prod.yaml\n"
+          kustomization.write_text(kustomization_text, encoding="utf-8")
+
+      - name: Commit promotion change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/infrastructure/applications/tradelab-prod.yaml deploy/infrastructure/applications/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "Production already points at the requested release tag."
+            exit 0
+          fi
+          git commit -m "Promote production to ${{ needs.resolve-release.outputs.release_tag }}"
+          git push origin HEAD:master

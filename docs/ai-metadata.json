@@ -56,7 +56,8 @@
     "market-data fetch with bounded stale fallback",
     "structured backend request and service logging",
     "PR-first CI validation",
-    "master-triggered release automation",
+    "manual GitHub release execution from master",
+    "manual production promotion to the latest official release tag",
     "k3s platform bootstrap with Argo CD app-of-apps",
     "repo-managed MetalLB and Traefik platform synchronization",
     "immutable release manifest rendering"
@@ -164,8 +165,8 @@
       },
       {
         "workflow": "Release",
-        "trigger": ["pull_request_target:closed on master", "workflow_dispatch"],
-        "conditions": ["pull request was merged when triggered from pull_request_target"],
+        "trigger": ["workflow_dispatch"],
+        "conditions": ["operator starts the workflow from master or another explicitly selected ref"],
         "jobs_order": [
           "Release metadata",
           "Verify backend and Verify frontend",
@@ -173,6 +174,14 @@
           "Package Kubernetes manifests",
           "Create GitHub release"
         ]
+      },
+      {
+        "workflow": "Promote Production",
+        "trigger": ["workflow_dispatch"],
+        "conditions": [
+          "requested release tag exists as an official GitHub release or the latest release is resolved automatically"
+        ],
+        "action": "Update the production Argo CD application to the selected official release tag on master"
       }
     ],
     "observability": [
@@ -218,7 +227,11 @@
       ],
       "prepared_next_step": [
         "deploy/infrastructure/applications/tradelab-prod.yaml"
-      ]
+      ],
+      "environment_revision_policy": {
+        "development": "track master",
+        "production": "track a promoted official release tag"
+      }
     }
   },
   "user_workflows": [

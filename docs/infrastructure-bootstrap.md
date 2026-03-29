@@ -69,6 +69,8 @@ The root application then manages:
 3. Traefik
 4. `tradelab-dev`
 
+`tradelab-prod` is prepared in the repo but is added to the root application set only when the manual production-promotion workflow enables it for the first time.
+
 ## Argo CD model
 
 TradeLab uses an `App of Apps` layout.
@@ -116,4 +118,4 @@ After bootstrap, confirm:
 
 ## Next step
 
-Once this platform layer is healthy, the next TradeLab step is to create an Argo CD application for `deploy/kubernetes/overlays/development` and let the application release ride on top of the managed ingress and load-balancer foundation.
+Once this platform layer is healthy, the next TradeLab step is to let `tradelab-dev` follow `master`, trigger manual releases from GitHub Actions, and use the production-promotion workflow to add or advance `tradelab-prod` to an official release tag.

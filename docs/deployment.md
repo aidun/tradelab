@@ -190,6 +190,12 @@ The production overlay is prepared for these IP-based entrypoints:
 
 As with development, the `/tradelab` production entrypoint is implemented through a Traefik strip-prefix middleware and lands on the same canonical application as `/`.
 
+In the GitOps operating model:
+
+- `tradelab-dev` follows `master`
+- `tradelab-prod` follows the release tag selected by the `Promote Production` workflow
+- the first production promotion also adds `tradelab-prod` to the Argo CD root application set
+
 If you want generated first-run credentials, apply the default production overlay:
 
 ```bash
