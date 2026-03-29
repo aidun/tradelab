@@ -161,6 +161,7 @@ TradeLab currently follows a PR-first workflow:
 - CI must pass before merge
 - merges are expected to remain reviewable and reasonably scoped
 - `master` is the integration branch for development and release preparation
+- if `master` moves while a PR is open, the PR branch must be rebased or otherwise updated to the current `master` state before final merge or auto-merge
 - official releases are triggered manually from GitHub Actions
 - production promotion is a separate manual workflow that moves Argo CD to an official release tag
 
@@ -190,6 +191,8 @@ The CI workflow runs these jobs in parallel:
 ### Auto Merge PR
 
 When `CI` finishes successfully for a pull request targeting `master`, the auto-merge workflow performs a `squash` merge.
+
+If `master` advanced after the PR branch was created, refresh the PR branch first so the final merge happens against the current integration state instead of an outdated head.
 
 ### Release
 
