@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security reports
+    url: https://github.com/aidun/tradelab/security
+    about: Please report sensitive vulnerabilities privately instead of opening a public issue.
+  - name: Project support guidance
+    url: https://github.com/aidun/tradelab/blob/master/SUPPORT.md
+    about: Review support boundaries and documentation entry points before opening a request.

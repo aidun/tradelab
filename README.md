@@ -1,64 +1,113 @@
 # TradeLab
 
-TradeLab is a multi-asset crypto paper-trading platform for demo execution, strategy experimentation, and trading workflow validation. XRP is the reference market for the first experience, but the platform is intentionally built for multiple assets.
+[![CI](https://github.com/aidun/tradelab/actions/workflows/ci.yml/badge.svg)](https://github.com/aidun/tradelab/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/aidun/tradelab?display_name=tag)](https://github.com/aidun/tradelab/releases)
+[![License](https://img.shields.io/github/license/aidun/tradelab)](LICENSE)
+
+TradeLab is a multi-asset crypto paper-trading platform for demo execution, strategy experimentation, and trading workflow validation. The project is being developed as a product-grade sandbox with clear engineering standards, reproducible releases, and a public roadmap.
 
 > [!IMPORTANT]
-> This repository includes AI-assisted code and documentation. TradeLab is an educational and simulation-oriented software project. It does not provide financial advice, investment recommendations, or trading guarantees, and it must not be treated as a substitute for independent financial decision-making.
+> TradeLab is a demo-only software product. It does not provide financial advice, investment recommendations, or live trading guarantees. This repository also includes AI-assisted code and documentation.
 
-## Product overview
+## Why TradeLab exists
 
-TradeLab is designed to help users:
+TradeLab is designed to make trading-system experimentation easier to understand and safer to validate.
 
-- explore crypto markets with virtual balances
-- test execution and portfolio flows without risking real funds
-- understand automated strategy behavior in a transparent UI
-- evolve toward a production-grade trading sandbox with strong testing and operational discipline
+It helps teams and individual builders:
 
-The current system is still a demo environment. It is not a live brokerage, not a custody product, and not a managed investment service.
+- simulate market actions with virtual balances
+- validate execution and portfolio flows before live integrations exist
+- inspect trading outcomes through a transparent UI and auditable backend behavior
+- evolve toward a production-grade product with strong testing, delivery, and operational discipline
 
-## Current capabilities
+## Current product status
 
-- multi-asset market list with XRP as the default showcase market
-- demo-session based trading flow with isolated demo wallets
+- `Stage`: active demo sandbox
+- `Reference market`: `XRP/USDT`
+- `Scope`: paper trading, dashboard UX, portfolio tracking, release automation
+- `Not included`: live trading, custody, exchange account linking, financial advice
+
+## Core capabilities
+
+- multi-asset market list with `XRP/USDT` as the default reference flow
+- demo-session based trading with isolated wallet state
 - server-authoritative market-buy execution in the Go backend
-- portfolio, balances, orders, and activity history
-- market candle rendering with cached market-data fallback behavior
-- Kubernetes deployment assets and release automation
+- portfolio, balances, orders, positions, and activity history
+- market candle rendering with bounded stale-feed fallback behavior
+- Kubernetes deployment assets, CI validation, and release automation
 
-## Quick links
+## Product walkthrough
 
-- Users and first-time readers:
-  [README](README.md),
-  [user-guide.md](docs/user-guide.md),
-  [PRD.md](docs/PRD.md)
-- Operators:
-  [system-operations.md](docs/system-operations.md),
-  [deployment.md](docs/deployment.md)
-- Developers:
-  [developer-guide.md](docs/developer-guide.md),
-  [data-model.md](docs/data-model.md)
-- AI tooling / structured metadata:
-  [ai-metadata.json](docs/ai-metadata.json)
+TradeLab currently supports a compact but realistic user journey:
 
-## Repository layout
+1. open the app and create a demo session automatically
+2. inspect the default market and feed state
+3. switch intervals or markets without wiping the portfolio panels
+4. execute a demo market buy
+5. review balances, positions, orders, and activity in one screen
 
-- `frontend/` web application
-- `backend/` API, domain logic, repositories, and migrations
-- `deploy/` Kubernetes manifests and release-render helpers
-- `docs/` product, operational, developer, and machine-readable documentation
+Visual walkthrough:
 
-## User workflows
+![Dashboard overview](docs/screenshots/dashboard-overview.png)
+![Stale feed state](docs/screenshots/chart-stale-feed.png)
+![Demo buy success](docs/screenshots/demo-buy-success.png)
 
-TradeLab currently supports a compact end-user flow:
+The full user-facing walkthrough lives in [docs/user-guide.md](docs/user-guide.md).
 
-1. open the app and let it create a demo session
-2. inspect the default `XRP/USDT` reference market
-3. switch intervals or markets while keeping the portfolio panels visible
-4. place a demo market buy
-5. review balances, positions, orders, and activity
+## Quality and delivery
 
-The full end-user walkthrough with screenshots is available here:
-[user-guide.md](docs/user-guide.md)
+TradeLab is maintained with a product-style engineering workflow:
+
+- backend tests via `go test ./...`
+- frontend unit tests via Vitest
+- frontend end-to-end coverage via Playwright
+- container build validation for backend and frontend
+- Kubernetes manifest rendering validation
+- automated PR validation, squash merges, and release automation
+
+For the exact PR -> CI -> merge -> release sequence, see:
+
+- [docs/system-operations.md](docs/system-operations.md)
+- [docs/release-process.md](docs/release-process.md)
+
+## Public roadmap
+
+TradeLab is intentionally developed in the open with a curated product roadmap.
+
+- roadmap:
+  [docs/roadmap.md](docs/roadmap.md)
+- release process:
+  [docs/release-process.md](docs/release-process.md)
+- GitHub rollout checklist:
+  [docs/github-rollout.md](docs/github-rollout.md)
+
+## Documentation index
+
+- users:
+  [docs/user-guide.md](docs/user-guide.md)
+- product and planning:
+  [docs/PRD.md](docs/PRD.md),
+  [docs/roadmap.md](docs/roadmap.md)
+- developers:
+  [docs/developer-guide.md](docs/developer-guide.md),
+  [docs/data-model.md](docs/data-model.md)
+- operators:
+  [docs/system-operations.md](docs/system-operations.md),
+  [docs/deployment.md](docs/deployment.md),
+  [docs/release-process.md](docs/release-process.md)
+- machine-readable metadata:
+  [docs/ai-metadata.json](docs/ai-metadata.json)
+
+## Project standards
+
+- contributing guide:
+  [CONTRIBUTING.md](CONTRIBUTING.md)
+- security policy:
+  [SECURITY.md](SECURITY.md)
+- code of conduct:
+  [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- support guidance:
+  [SUPPORT.md](SUPPORT.md)
 
 ## Local development
 
@@ -76,8 +125,7 @@ Only set parameters if you are deviating from the defaults:
 | `TRADESLAB_API_PROXY_TARGET` | before frontend startup if the backend is not running on `http://localhost:8080` | `http://localhost:8080` |
 | `NEXT_PUBLIC_API_BASE_URL` | before frontend startup only if the browser should call another API origin directly | empty |
 
-For the full parameter matrix, including Kubernetes development and production values, see:
-[deployment.md](docs/deployment.md)
+For the full parameter matrix, including Kubernetes development and production values, see [docs/deployment.md](docs/deployment.md).
 
 ### Start PostgreSQL
 
@@ -115,73 +163,19 @@ cd backend
 go test ./...
 ```
 
-### Frontend unit tests
+### Frontend
 
 ```bash
 cd frontend
 npm run test
-```
-
-### Frontend end-to-end tests
-
-```bash
-cd frontend
+npm run build
 npm run test:e2e
 ```
 
-## Sample API flow
+## Repository layout
 
-Create a demo session:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/sessions/demo
-```
-
-Use the returned bearer token to access protected routes:
-
-```bash
-curl http://localhost:8080/api/v1/markets
-```
-
-```bash
-curl "http://localhost:8080/api/v1/markets/XRP%2FUSDT/candles?interval=1h&limit=48"
-```
-
-Use the `wallet_id` returned by the demo session for portfolio access:
-
-```bash
-curl http://localhost:8080/api/v1/portfolios/<wallet-id> \
-  -H "Authorization: Bearer <demo-token>"
-```
-
-```bash
-curl http://localhost:8080/api/v1/orders \
-  -H "Authorization: Bearer <demo-token>"
-```
-
-```bash
-curl -X POST http://localhost:8080/api/v1/orders \
-  -H "Authorization: Bearer <demo-token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "market_symbol": "XRP/USDT",
-    "quote_amount": 50
-  }'
-```
-
-## Deployment and delivery
-
-TradeLab ships with Kubernetes deployment assets, immutable release-manifest rendering, GitHub Actions CI, and GitHub release automation.
-
-- Deployment quick start:
-  [deployment.md](docs/deployment.md)
-- Runtime and operations guide:
-  [system-operations.md](docs/system-operations.md)
-- Contributor workflow:
-  [developer-guide.md](docs/developer-guide.md)
-
-## Delivery automation
-
-- pull requests are validated by GitHub Actions
-- successful PR checks can be auto-merged into `master`
-- successful `master` runs publish release artifacts, container images, and a GitHub Release
+- `frontend/`: web application
+- `backend/`: API, domain logic, repositories, and migrations
+- `deploy/`: Kubernetes manifests and release-render helpers
+- `docs/`: product, operational, contributor, and machine-readable documentation
+- `.github/`: workflow automation and GitHub contribution templates

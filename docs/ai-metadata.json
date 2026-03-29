@@ -5,7 +5,8 @@
     "reference_market": "XRP/USDT",
     "status": "demo-only",
     "financial_advice": false,
-    "ai_assisted_repository": true
+    "ai_assisted_repository": true,
+    "github_positioning": "product-first serious startup repository"
   },
   "stack": {
     "frontend": ["Next.js", "TypeScript", "Tailwind CSS"],
@@ -42,10 +43,13 @@
     "readme": "README.md",
     "user_guide": "docs/user-guide.md",
     "product": "docs/PRD.md",
+    "roadmap": "docs/roadmap.md",
     "data_model": "docs/data-model.md",
     "deployment": "docs/deployment.md",
     "system_operations": "docs/system-operations.md",
-    "developer_guide": "docs/developer-guide.md"
+    "developer_guide": "docs/developer-guide.md",
+    "release_process": "docs/release-process.md",
+    "github_rollout": "docs/github-rollout.md"
   },
   "constraints": {
     "code_language": "English",
@@ -144,7 +148,32 @@
   ],
   "documentation_assets": {
     "screenshots_directory": "docs/screenshots/",
-    "screenshot_generation": "frontend/scripts/capture-doc-screenshots.mjs"
+    "screenshot_generation": "frontend/scripts/capture-doc-screenshots.mjs",
+    "social_preview_source": "docs/assets/github-social-preview.svg"
+  },
+  "community_health": {
+    "contributing": "CONTRIBUTING.md",
+    "security": "SECURITY.md",
+    "code_of_conduct": "CODE_OF_CONDUCT.md",
+    "support": "SUPPORT.md",
+    "codeowners": "CODEOWNERS",
+    "pull_request_template": ".github/pull_request_template.md",
+    "issue_templates": [
+      ".github/ISSUE_TEMPLATE/bug_report.yml",
+      ".github/ISSUE_TEMPLATE/feature_request.yml",
+      ".github/ISSUE_TEMPLATE/documentation.yml",
+      ".github/ISSUE_TEMPLATE/config.yml"
+    ]
+  },
+  "public_repo_standards": {
+    "contribution_expectations": [
+      "Behavior changes should include tests when practical.",
+      "Documentation should stay aligned with product and process changes.",
+      "docs/ai-metadata.json should be updated when public repository structure changes.",
+      "Security issues should not be reported through public issues."
+    ],
+    "roadmap_visibility": "public high-level roadmap",
+    "merge_model": "pull request review plus squash merge to master"
   },
   "configuration": {
     "local_backend_env": [
@@ -169,5 +198,28 @@
       "DATABASE_URL"
     ],
     "parameter_reference_doc": "docs/deployment.md"
+  },
+  "github_rollout": {
+    "manual_settings_doc": "docs/github-rollout.md",
+    "recommended_topics": [
+      "go",
+      "nextjs",
+      "paper-trading",
+      "kubernetes",
+      "postgres",
+      "trading-sandbox"
+    ],
+    "recommended_labels": [
+      "type: feature",
+      "type: bug",
+      "type: docs",
+      "type: security",
+      "area: frontend",
+      "area: backend",
+      "area: platform",
+      "status: planned",
+      "status: in progress",
+      "status: blocked"
+    ]
   }
 }

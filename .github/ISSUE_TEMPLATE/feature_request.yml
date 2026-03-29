@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a product or engineering improvement.
+title: "[Feature]: "
+labels:
+  - "type: feature"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for product-facing or engineering-facing improvements that fit the direction of TradeLab.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What problem should this solve?
+      placeholder: The current experience makes it hard to ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should the product or system do?
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: Why this matters
+      description: What user, operator, or engineering value does this add?
+    validations:
+      required: true
+  - type: textarea
+    id: considerations
+    attributes:
+      label: Constraints or related context
+      description: Dependencies, rollout concerns, or related issues.
+    validations:
+      required: false

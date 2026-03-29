@@ -143,6 +143,8 @@ This means the effective repository delivery path is:
 
 `pull request -> CI -> auto-merge into master -> release verification/build/publish/package -> GitHub release`
 
+For a release-focused view of published artifacts and release meaning, see [release-process.md](release-process.md).
+
 ## Health and failure surfaces
 
 ### First places to check
@@ -189,3 +191,12 @@ When triaging incidents:
 - identify whether the failure is build/release, deployment/runtime, or upstream market-data related
 - verify the most recent successful release and manifest tag
 - confirm whether stale market-data fallback is masking or delaying a harder upstream failure
+
+## GitHub-facing operator notes
+
+The public repository surface is part of the operating model for TradeLab. Keep these aligned with the current product state:
+
+- README positioning and roadmap links
+- support, contributing, and security guidance
+- release-process documentation
+- GitHub repository settings captured in [github-rollout.md](github-rollout.md)

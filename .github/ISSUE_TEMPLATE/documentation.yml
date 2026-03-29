@@ -1,0 +1,28 @@
+name: Documentation improvement
+description: Report a documentation gap, inconsistency, or improvement opportunity.
+title: "[Docs]: "
+labels:
+  - "type: docs"
+body:
+  - type: textarea
+    id: affected_doc
+    attributes:
+      label: Affected documentation
+      description: Which page or document needs improvement?
+      placeholder: README.md or docs/deployment.md
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is missing or unclear?
+      description: Describe the gap, inconsistency, or confusion.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: What would make the documentation clearer or more useful?
+    validations:
+      required: false
