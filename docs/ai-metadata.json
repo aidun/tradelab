@@ -324,6 +324,27 @@
     "roadmap_visibility": "public high-level roadmap",
     "merge_model": "pull request review plus squash merge to master"
   },
+  "default_working_conventions": {
+    "ticket_first_policy": {
+      "rule": "When work is not already covered by a concrete issue, create one before implementation.",
+      "preferred_sources": [
+        "existing GitHub issue",
+        "new GitHub issue created before code or documentation changes"
+      ]
+    },
+    "pr_branch_currency_policy": {
+      "rule": "If master advances while a pull request is open, refresh the PR branch to the current master state before final merge or auto-merge."
+    },
+    "change_set_completion_policy": {
+      "rule": "Completed change sets should be pushed promptly and attached to an updated or newly created pull request."
+    },
+    "followup_artifact_policy": {
+      "rule": "When a change affects behavior, UI, delivery, or repository process, review and update the corresponding tests, logging, documentation, workflows, and docs/ai-metadata.json."
+    },
+    "reproducibility_policy": {
+      "rule": "Prefer repository-tracked, reproducible fixes through code, manifests, workflows, and documentation over one-off manual cluster or environment changes."
+    }
+  },
   "configuration": {
     "local_backend_env": [
       "HTTP_ADDRESS",
