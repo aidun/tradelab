@@ -281,6 +281,7 @@ export function MarketDashboard() {
       return;
     }
 
+    // Chart refreshes stay isolated so interval or pair switches do not blank portfolio and history panels.
     startTransition(() => {
       loadChartData().catch((loadError: Error) => {
         if (!cancelled) {
@@ -312,6 +313,7 @@ export function MarketDashboard() {
         quoteAmount: Number(quoteAmount)
       });
 
+      // Successful orders need a full data refresh because balances, positions, orders, and chart-linked price hints all change together.
       await Promise.all([loadCoreData(session), loadChartData()]);
       setSuccess(`Demo buy executed for ${selectedMarket}.`);
     } catch (submitError) {

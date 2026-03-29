@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
+	"github.com/aidun/tradelab/backend/internal/logging"
 )
 
 func TestPlaceMarketBuyReturnsErrorForZeroQuoteAmount(t *testing.T) {
@@ -43,6 +44,7 @@ func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 		},
 		fakePortfolioRepository{},
 		fakePriceProvider{price: 0.65},
+		logging.NewDiscardLogger("order_service_test"),
 	)
 
 	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
@@ -78,6 +80,7 @@ func TestPlaceMarketBuyCreatesFilledOrder(t *testing.T) {
 		},
 		fakePortfolioRepository{},
 		fakePriceProvider{price: 0.67},
+		logging.NewDiscardLogger("order_service_test"),
 	)
 	service.clock = fakeClock{now: now}
 
@@ -127,6 +130,7 @@ func TestPlaceMarketBuyReturnsErrorWhenPriceProviderHasNoPrice(t *testing.T) {
 		},
 		fakePortfolioRepository{},
 		fakePriceProvider{price: 0},
+		logging.NewDiscardLogger("order_service_test"),
 	)
 
 	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
@@ -137,6 +141,72 @@ func TestPlaceMarketBuyReturnsErrorWhenPriceProviderHasNoPrice(t *testing.T) {
 	})
 	if !errors.Is(err, ErrCurrentPriceUnavailable) {
 		t.Fatalf("expected ErrCurrentPriceUnavailable, got %v", err)
+	}
+}
+
+func TestPlaceMarketBuyReturnsErrorWhenPriceProviderFails(t *testing.T) {
+	service := NewService(
+		fakeMarketRepository{
+			market: domain.Market{
+				ID:          "market-1",
+				Symbol:      "XRP/USDT",
+				BaseAsset:   "XRP",
+				QuoteAsset:  "USDT",
+				MinNotional: 10,
+			},
+		},
+		fakeBalanceRepository{
+			balance: domain.Balance{
+				AssetSymbol: "USDT",
+				Available:   500,
+			},
+		},
+		fakePortfolioRepository{},
+		fakePriceProvider{err: errors.New("upstream failed")},
+		logging.NewDiscardLogger("order_service_test"),
+	)
+
+	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+		UserID:       "user-1",
+		WalletID:     "wallet-1",
+		MarketSymbol: "XRP/USDT",
+		QuoteAmount:  100,
+	})
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+}
+
+func TestPlaceMarketBuyReturnsErrorWhenBelowMarketMinimum(t *testing.T) {
+	service := NewService(
+		fakeMarketRepository{
+			market: domain.Market{
+				ID:          "market-1",
+				Symbol:      "XRP/USDT",
+				BaseAsset:   "XRP",
+				QuoteAsset:  "USDT",
+				MinNotional: 10,
+			},
+		},
+		fakeBalanceRepository{
+			balance: domain.Balance{
+				AssetSymbol: "USDT",
+				Available:   500,
+			},
+		},
+		fakePortfolioRepository{},
+		fakePriceProvider{price: 0.67},
+		logging.NewDiscardLogger("order_service_test"),
+	)
+
+	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+		UserID:       "user-1",
+		WalletID:     "wallet-1",
+		MarketSymbol: "XRP/USDT",
+		QuoteAmount:  5,
+	})
+	if err == nil {
+		t.Fatal("expected an error, got nil")
 	}
 }
 

@@ -33,6 +33,7 @@
     "authenticated paper-trading API access",
     "server-authoritative market buy execution",
     "market-data fetch with bounded stale fallback",
+    "structured backend request and service logging",
     "PR-first CI validation",
     "master-triggered release automation",
     "immutable release manifest rendering"
@@ -51,7 +52,13 @@
     "delivery_model": "Feature branches -> PR CI -> merge to master -> release",
     "merge_strategy": "squash merge",
     "demo_only": true,
-    "live_trading": false
+    "live_trading": false,
+    "maintenance_expectations": [
+      "Keep tests aligned with behavior changes.",
+      "Adjust structured logging when backend control flow changes.",
+      "Update documentation and docs/ai-metadata.json when repository structure or workflows materially change.",
+      "Update GitHub Actions when quality gates or release flow need to evolve."
+    ]
   },
   "disclaimers": {
     "financial": "TradeLab does not provide financial advice or investment recommendations.",
@@ -71,5 +78,22 @@
       "POST /api/v1/orders"
     ],
     "auth_model": "Bearer token from demo session"
+  },
+  "quality_gates": {
+    "ci_jobs": [
+      "Backend tests",
+      "Frontend unit tests",
+      "Frontend build",
+      "Frontend E2E tests",
+      "Backend container build",
+      "Frontend container build",
+      "Kubernetes manifests",
+      "Metadata validation"
+    ],
+    "observability": [
+      "Structured JSON logs via log/slog",
+      "Request lifecycle logging in the HTTP layer",
+      "Service-level logging for sessions, market data, orders, portfolio, and history"
+    ]
   }
 }

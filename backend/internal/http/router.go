@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
@@ -43,7 +45,7 @@ type DemoSessionManager interface {
 	Authenticate(ctx context.Context, token string) (domain.DemoSession, error)
 }
 
-func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, sessions DemoSessionManager) http.Handler {
+func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, sessions DemoSessionManager, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -56,6 +58,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	mux.HandleFunc("GET /api/v1/markets", func(w http.ResponseWriter, r *http.Request) {
 		items, err := markets.List(r.Context())
 		if err != nil {
+			logError(logger, "markets.list_failed", err, "path", r.URL.Path)
 			writeError(w, http.StatusInternalServerError, "failed to load markets")
 			return
 		}
@@ -88,6 +91,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			parseBoundedLimit(r.URL.Query().Get("limit"), 48, 1, 200),
 		)
 		if err != nil {
+			logError(logger, "markets.candles_failed", err, "path", r.URL.Path, "market_symbol", marketSymbol)
 			writeError(w, http.StatusInternalServerError, "failed to load candles")
 			return
 		}
@@ -101,6 +105,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	mux.HandleFunc("POST /api/v1/sessions/demo", func(w http.ResponseWriter, r *http.Request) {
 		demoSession, err := sessions.CreateDemoSession(r.Context())
 		if err != nil {
+			logError(logger, "sessions.demo_create_failed", err, "path", r.URL.Path)
 			writeError(w, http.StatusInternalServerError, "failed to create demo session")
 			return
 		}
@@ -117,7 +122,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("GET /api/v1/portfolios/", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions)
+		demoSession, ok := requireSession(w, r, sessions, logger)
 		if !ok {
 			return
 		}
@@ -135,6 +140,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 
 		summary, err := portfolios.GetSummary(r.Context(), walletID)
 		if err != nil {
+			logError(logger, "portfolios.summary_failed", err, "wallet_id", walletID)
 			writeError(w, http.StatusInternalServerError, "failed to load portfolio")
 			return
 		}
@@ -143,13 +149,14 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("GET /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions)
+		demoSession, ok := requireSession(w, r, sessions, logger)
 		if !ok {
 			return
 		}
 
 		items, err := orderHistory.ListOrders(r.Context(), demoSession.WalletID, parseLimit(r.URL.Query().Get("limit")))
 		if err != nil {
+			logError(logger, "orders.history_failed", err, "wallet_id", demoSession.WalletID)
 			writeError(w, http.StatusInternalServerError, "failed to load orders")
 			return
 		}
@@ -158,13 +165,14 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("GET /api/v1/activity", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions)
+		demoSession, ok := requireSession(w, r, sessions, logger)
 		if !ok {
 			return
 		}
 
 		items, err := activityHistory.ListActivity(r.Context(), demoSession.WalletID, parseLimit(r.URL.Query().Get("limit")))
 		if err != nil {
+			logError(logger, "activity.history_failed", err, "wallet_id", demoSession.WalletID)
 			writeError(w, http.StatusInternalServerError, "failed to load activity")
 			return
 		}
@@ -173,7 +181,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("POST /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions)
+		demoSession, ok := requireSession(w, r, sessions, logger)
 		if !ok {
 			return
 		}
@@ -184,10 +192,12 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			logInfo(logger, "orders.create_invalid_payload", "path", r.URL.Path)
 			writeError(w, http.StatusBadRequest, "invalid JSON payload")
 			return
 		}
 
+		logInfo(logger, "orders.create_attempt", "wallet_id", demoSession.WalletID, "market_symbol", payload.MarketSymbol, "quote_amount", payload.QuoteAmount)
 		order, err := orders.PlaceMarketBuy(r.Context(), orderservice.PlaceMarketBuyInput{
 			UserID:       demoSession.UserID,
 			WalletID:     demoSession.WalletID,
@@ -204,19 +214,22 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 				statusCode = http.StatusUnprocessableEntity
 			}
 
+			logError(logger, "orders.create_failed", err, "wallet_id", demoSession.WalletID, "market_symbol", payload.MarketSymbol, "status_code", statusCode)
 			writeError(w, statusCode, err.Error())
 			return
 		}
 
+		logInfo(logger, "orders.create_success", "wallet_id", demoSession.WalletID, "market_symbol", order.MarketSymbol, "order_id", order.ID)
 		writeJSON(w, http.StatusCreated, map[string]any{"order": order})
 	})
 
-	return mux
+	return loggingMiddleware(logger, mux)
 }
 
-func requireSession(w http.ResponseWriter, r *http.Request, sessions DemoSessionManager) (domain.DemoSession, bool) {
+func requireSession(w http.ResponseWriter, r *http.Request, sessions DemoSessionManager, logger *slog.Logger) (domain.DemoSession, bool) {
 	token, ok := bearerToken(r.Header.Get("Authorization"))
 	if !ok {
+		logInfo(logger, "auth.missing_bearer_token", "path", r.URL.Path)
 		writeError(w, http.StatusUnauthorized, "missing bearer token")
 		return domain.DemoSession{}, false
 	}
@@ -227,6 +240,7 @@ func requireSession(w http.ResponseWriter, r *http.Request, sessions DemoSession
 		if !errors.Is(err, sessionservice.ErrInvalidSession) {
 			statusCode = http.StatusInternalServerError
 		}
+		logError(logger, "auth.invalid_session", err, "path", r.URL.Path, "status_code", statusCode)
 		writeError(w, statusCode, "invalid session token")
 		return domain.DemoSession{}, false
 	}
@@ -271,4 +285,53 @@ func writeJSON(w http.ResponseWriter, statusCode int, payload any) {
 
 func writeError(w http.ResponseWriter, statusCode int, message string) {
 	writeJSON(w, statusCode, map[string]string{"error": message})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (r *statusRecorder) WriteHeader(statusCode int) {
+	r.statusCode = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
+}
+
+func loggingMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
+	if logger == nil {
+		return next
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		recorder := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+
+		// Request logs are the shared operational breadcrumb for route handlers and auth failures.
+		logger.Info("request.started", "operation", "request.started", "method", r.Method, "path", r.URL.Path)
+		next.ServeHTTP(recorder, r)
+		logger.Info(
+			"request.completed",
+			"operation", "request.completed",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status_code", recorder.statusCode,
+			"duration_ms", time.Since(start).Milliseconds(),
+		)
+	})
+}
+
+func logInfo(logger *slog.Logger, operation string, args ...any) {
+	if logger == nil {
+		return
+	}
+
+	logger.Info(operation, append([]any{"operation", operation}, args...)...)
+}
+
+func logError(logger *slog.Logger, operation string, err error, args ...any) {
+	if logger == nil {
+		return
+	}
+
+	logger.Error(operation, append([]any{"operation", operation, "error", err}, args...)...)
 }
