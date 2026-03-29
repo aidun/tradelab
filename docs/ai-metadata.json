@@ -87,7 +87,7 @@
   "constraints": {
     "code_language": "English",
     "chat_language": "German",
-    "delivery_model": "Feature branches -> PR CI -> keep PR branches current with master before merge -> merge to master -> publish master images for dev -> release",
+    "delivery_model": "Feature branches -> PR CI -> merge to master -> publish master images for dev -> release",
     "merge_strategy": "squash merge",
     "demo_only": true,
     "live_trading": false,
@@ -166,6 +166,17 @@
           ],
           "action": "Squash merge pull request into master"
         },
+      {
+        "workflow": "Publish Master Images",
+        "trigger": ["push:master"],
+        "conditions": [
+          "skip commits that only update deploy/infrastructure/applications/tradelab-dev.yaml"
+        ],
+        "jobs_order": [
+          "Build and publish backend/frontend master images",
+          "Update tradelab-dev Argo application to source commit SHA plus matching immutable master image tags"
+        ]
+      },
       {
         "workflow": "Publish Master Images",
         "trigger": ["push:master"],
