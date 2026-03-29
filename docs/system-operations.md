@@ -4,6 +4,8 @@
 
 This document explains how TradeLab is operated as a running system: which components exist, how they are configured, how releases move through the system, and what an operator should check first when something goes wrong.
 
+For audience-specific first setup and smoke validation, see [getting-started.md](getting-started.md) and [installation-validation.md](installation-validation.md).
+
 ## Runtime topology
 
 TradeLab currently consists of these runtime components:

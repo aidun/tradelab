@@ -54,6 +54,8 @@ Visual walkthrough:
 
 The full user-facing walkthrough lives in [docs/user-guide.md](docs/user-guide.md).
 
+For setup and first successful run guidance by audience, start with [docs/getting-started.md](docs/getting-started.md).
+
 ## Quality and delivery
 
 TradeLab is maintained with a product-style engineering workflow:
@@ -84,7 +86,9 @@ TradeLab is intentionally developed in the open with a curated product roadmap.
 ## Documentation index
 
 - users:
-  [docs/user-guide.md](docs/user-guide.md)
+  [docs/getting-started.md](docs/getting-started.md),
+  [docs/user-guide.md](docs/user-guide.md),
+  [docs/onboarding-requirements.md](docs/onboarding-requirements.md)
 - product and planning:
   [docs/PRD.md](docs/PRD.md),
   [docs/roadmap.md](docs/roadmap.md)
@@ -94,6 +98,7 @@ TradeLab is intentionally developed in the open with a curated product roadmap.
 - operators:
   [docs/system-operations.md](docs/system-operations.md),
   [docs/deployment.md](docs/deployment.md),
+  [docs/installation-validation.md](docs/installation-validation.md),
   [docs/release-process.md](docs/release-process.md)
 - machine-readable metadata:
   [docs/ai-metadata.json](docs/ai-metadata.json)
@@ -127,17 +132,12 @@ Only set parameters if you are deviating from the defaults:
 
 For the full parameter matrix, including Kubernetes development and production values, see [docs/deployment.md](docs/deployment.md).
 
+For the full first-run path and acceptance checklist, see [docs/getting-started.md](docs/getting-started.md) and [docs/installation-validation.md](docs/installation-validation.md).
+
 ### Start PostgreSQL
 
 ```bash
 docker compose up -d postgres
-```
-
-### Run the backend
-
-```bash
-cd backend
-go run ./cmd/api
 ```
 
 ### Apply database migrations
@@ -145,6 +145,13 @@ go run ./cmd/api
 ```bash
 cd backend
 go run ./cmd/migrate up
+```
+
+### Run the backend
+
+```bash
+cd backend
+go run ./cmd/api
 ```
 
 ### Run the frontend
