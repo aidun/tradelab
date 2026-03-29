@@ -1,7 +1,7 @@
 CREATE TABLE strategies (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    wallet_id TEXT NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
     market_id UUID NOT NULL REFERENCES markets(id) ON DELETE CASCADE,
     status TEXT NOT NULL,
     config_json JSONB NOT NULL,
@@ -21,8 +21,8 @@ CREATE INDEX idx_strategies_wallet_status ON strategies(wallet_id, status);
 CREATE INDEX idx_strategies_claim ON strategies(status, evaluation_claimed_at);
 
 CREATE TABLE strategy_runs (
-    id TEXT PRIMARY KEY,
-    strategy_id TEXT NOT NULL REFERENCES strategies(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY,
+    strategy_id UUID NOT NULL REFERENCES strategies(id) ON DELETE CASCADE,
     decision TEXT NOT NULL,
     outcome TEXT NOT NULL,
     reason TEXT NOT NULL,

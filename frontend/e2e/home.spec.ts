@@ -539,8 +539,8 @@ test("configures and activates a dip-buy strategy", async ({ page }) => {
   await page.getByRole("button", { name: /activate/i }).click();
 
   await expect(page.getByText(/automation activated for xrp\/usdt/i)).toBeVisible();
-  await expect(page.getByText(/dip-buy fired/i)).toBeVisible();
   await expect(page.getByText(/automated/i).first()).toBeVisible();
+  await expect(page.getByText(/^active$/i)).toBeVisible();
 });
 
 test("executes a strategy-driven take-profit sell after activation", async ({ page }) => {

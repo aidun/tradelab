@@ -1,7 +1,7 @@
 CREATE TABLE app_sessions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    wallet_id TEXT NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
     principal_kind TEXT NOT NULL,
     token_hash TEXT NOT NULL UNIQUE,
     idle_expires_at TIMESTAMPTZ NOT NULL,
