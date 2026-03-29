@@ -10,3 +10,4 @@ backend/.cache/
 .env.local
 tmp/
 .tools/
+deploy/kubernetes/overlays/development/.env.database

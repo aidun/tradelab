@@ -6,6 +6,7 @@ namespace: tradelab
 resources:
   - ../../base
   - namespace.yaml
+  - external-secret.yaml
 
 patches:
   - path: patch-backend-deployment.yaml

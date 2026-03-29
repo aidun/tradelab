@@ -40,9 +40,15 @@ The development overlay uses:
 
 - namespace: `tradelab-dev`
 - host: `tradelab.localtest.me`
-- database password: `tradelab`
+- a local `.env.database` file that is generated outside Git
 
-Apply it with:
+Create the development secret input once:
+
+```bash
+cp deploy/kubernetes/overlays/development/.env.database.example deploy/kubernetes/overlays/development/.env.database
+```
+
+Then apply it:
 
 ```bash
 kubectl apply -k deploy/kubernetes/overlays/development
@@ -52,10 +58,15 @@ If you are testing locally with an ingress controller, map `tradelab.localtest.m
 
 ## Production deployment
 
-Before applying the production overlay, replace the placeholder database password and ingress host values:
+The production overlay expects an `External Secrets Operator` installation and a `ClusterSecretStore`
+named `tradelab-secrets`. The committed manifest maps the Kubernetes secret `tradelab-database` from
+the external secret key `tradelab/production/database`.
 
-- `deploy/kubernetes/base/database-secret.yaml`
-- `deploy/kubernetes/overlays/production/patch-ingress.yaml`
+Before applying the production overlay:
+
+- make sure the external secret store exposes `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL`
+- update `deploy/kubernetes/overlays/production/external-secret.yaml` if your secret paths differ
+- replace the ingress host values in `deploy/kubernetes/overlays/production/patch-ingress.yaml`
 
 Then deploy:
 

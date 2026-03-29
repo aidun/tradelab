@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - backend-configmap.yaml
   - frontend-configmap.yaml
-  - database-secret.yaml
   - postgres-persistent-volume-claim.yaml
   - postgres-service.yaml
   - postgres-statefulset.yaml
