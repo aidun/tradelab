@@ -1,0 +1,134 @@
+# System Operations
+
+## Purpose
+
+This document explains how TradeLab is operated as a running system: which components exist, how they are configured, how releases move through the system, and what an operator should check first when something goes wrong.
+
+## Runtime topology
+
+TradeLab currently consists of these runtime components:
+
+- `frontend`: Next.js web application served as the user-facing interface
+- `backend`: Go HTTP API that owns session handling, portfolio logic, order execution, and market-data access
+- `postgres`: PostgreSQL database for persistent application state
+- `ingress`: routes `/` to the frontend and `/api` to the backend
+- `migration initContainer`: applies schema migrations before the backend starts
+- `GitHub Actions + GHCR`: build, verify, publish, and package release artifacts
+
+## Environments
+
+### Development
+
+- Kubernetes namespace: `tradelab-dev`
+- image tags: `latest`
+- database secret source: local ignored `.env.database`
+- intended for fast local or shared-dev iteration
+
+### Production
+
+- Kubernetes namespace: `tradelab`
+- image tags in release manifests: immutable release tag such as `v0.1.<run-number>`
+- database secret source: external secrets integration
+- intended for controlled deployment via packaged release manifests
+
+## Configuration and secrets
+
+### Backend
+
+Important backend configuration includes:
+
+- `HTTP_ADDRESS`
+- `DATABASE_URL`
+- `MARKET_DATA_BASE_URL`
+
+### Frontend
+
+Important frontend configuration includes:
+
+- `NEXT_PUBLIC_API_BASE_URL`
+- any same-origin or proxy alignment needed for local/runtime routing
+
+### Secrets
+
+Secret-bearing values should not be committed directly into base manifests.
+
+- development secrets come from `deploy/kubernetes/overlays/development/.env.database`
+- production secrets come from the configured external secret store
+- database credentials and `DATABASE_URL` are the primary required runtime secrets today
+
+## Deployment flow
+
+### Development deploy
+
+1. Create `deploy/kubernetes/overlays/development/.env.database`.
+2. Render or apply the development overlay.
+3. Verify ingress, backend health, and frontend availability.
+
+### Production deploy
+
+1. Ensure the external secret store is populated.
+2. Ensure the release workflow has produced immutable images and a packaged manifest artifact.
+3. Render the release manifest with `deploy/kubernetes/render-release-manifests.sh` or use the packaged release artifact.
+4. Apply the manifest.
+5. Verify backend health, frontend reachability, and database connectivity.
+
+## Release model
+
+TradeLab uses a PR-first delivery model:
+
+1. Feature work lands through pull requests.
+2. CI validates backend tests, frontend tests, frontend build, container builds, and Kubernetes rendering.
+3. A successful merge into `master` triggers the release workflow.
+4. The release workflow:
+   - verifies backend and frontend again
+   - builds release artifacts
+   - publishes GHCR images
+   - renders immutable Kubernetes release manifests
+   - creates a GitHub Release
+
+## Health and failure surfaces
+
+### First places to check
+
+- backend `/healthz` for application readiness
+- GitHub Actions logs for CI, release, or packaging failures
+- Kubernetes pod status for migration, backend, frontend, and database pods
+- ingress routing if the UI is up but API requests fail
+
+### Common failure classes
+
+- `database startup or migration failure`
+  Usually visible first in the migration initContainer or backend pod startup.
+- `secret/configuration failure`
+  Usually visible as failed pod startup, database auth errors, or unreachable upstreams.
+- `market-data upstream degradation`
+  Backend may fall back to stale market data for a bounded period; after that, market-dependent actions can fail explicitly.
+- `release packaging failure`
+  Usually visible in GitHub Actions during image publication or manifest rendering.
+
+## Rollback expectations
+
+- application rollback should be driven by reapplying a previously released immutable manifest or deploying an older release artifact
+- database rollback is not automatic and must be evaluated separately from application rollback
+- if a release introduces runtime regressions without schema incompatibility, the preferred rollback path is a prior release manifest and image set
+
+## Operator checklist
+
+Before deploy:
+
+- secret sources are available
+- release artifacts or render inputs are correct
+- ingress host values are correct for the target environment
+
+After deploy:
+
+- backend `/healthz` responds
+- frontend loads and can reach `/api`
+- database-backed routes respond successfully
+- session creation and protected API access work
+
+When triaging incidents:
+
+- identify whether the failure is build/release, deployment/runtime, or upstream market-data related
+- verify the most recent successful release and manifest tag
+- confirm whether stale market-data fallback is masking or delaying a harder upstream failure

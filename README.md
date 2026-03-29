@@ -1,20 +1,50 @@
 # TradeLab
 
-TradeLab is a multi-asset crypto paper-trading platform with automated strategy support, backtesting, and a polished web experience. XRP is the reference market for the first user flows, but the platform is designed for multiple assets from day one.
+TradeLab is a multi-asset crypto paper-trading platform for demo execution, strategy experimentation, and trading workflow validation. XRP is the reference market for the first experience, but the platform is intentionally built for multiple assets.
 
-## Stack
+> [!IMPORTANT]
+> This repository includes AI-assisted code and documentation. TradeLab is an educational and simulation-oriented software project. It does not provide financial advice, investment recommendations, or trading guarantees, and it must not be treated as a substitute for independent financial decision-making.
 
-- Frontend: Next.js, TypeScript, Tailwind CSS
-- Backend: Go
-- Database: PostgreSQL
-- Testing: Go test, Vitest, React Testing Library, Playwright
+## Product overview
+
+TradeLab is designed to help users:
+
+- explore crypto markets with virtual balances
+- test execution and portfolio flows without risking real funds
+- understand automated strategy behavior in a transparent UI
+- evolve toward a production-grade trading sandbox with strong testing and operational discipline
+
+The current system is still a demo environment. It is not a live brokerage, not a custody product, and not a managed investment service.
+
+## Current capabilities
+
+- multi-asset market list with XRP as the default showcase market
+- demo-session based trading flow with isolated demo wallets
+- server-authoritative market-buy execution in the Go backend
+- portfolio, balances, orders, and activity history
+- market candle rendering with cached market-data fallback behavior
+- Kubernetes deployment assets and release automation
+
+## Quick links
+
+- Users and first-time readers:
+  [README](README.md),
+  [PRD.md](docs/PRD.md)
+- Operators:
+  [system-operations.md](docs/system-operations.md),
+  [deployment.md](docs/deployment.md)
+- Developers:
+  [developer-guide.md](docs/developer-guide.md),
+  [data-model.md](docs/data-model.md)
+- AI tooling / structured metadata:
+  [ai-metadata.json](docs/ai-metadata.json)
 
 ## Repository layout
 
 - `frontend/` web application
-- `backend/` API, domain logic, repositories, migrations
-- `deploy/` Kubernetes deployment manifests and overlays
-- `docs/` product and architecture documentation
+- `backend/` API, domain logic, repositories, and migrations
+- `deploy/` Kubernetes manifests and release-render helpers
+- `docs/` product, operational, developer, and machine-readable documentation
 
 ## Local development
 
@@ -45,13 +75,6 @@ cd frontend
 npm run dev
 ```
 
-### Build container images locally
-
-```bash
-docker build -f backend/Dockerfile -t tradelab-backend:local .
-docker build -f frontend/Dockerfile -t tradelab-frontend:local .
-```
-
 ## Testing
 
 ### Backend
@@ -59,41 +82,6 @@ docker build -f frontend/Dockerfile -t tradelab-frontend:local .
 ```bash
 cd backend
 go test ./...
-```
-
-### Demo seed identifiers
-
-- Demo user ID: `cfbf7c8f-eaf9-47fa-8674-2a29fed1fcc9`
-- Demo wallet ID: `1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c`
-
-### Sample API calls
-
-```bash
-curl http://localhost:8080/api/v1/markets
-```
-
-```bash
-curl http://localhost:8080/api/v1/portfolios/1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c
-```
-
-```bash
-curl "http://localhost:8080/api/v1/orders?wallet_id=1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c"
-```
-
-```bash
-curl "http://localhost:8080/api/v1/activity?wallet_id=1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c"
-```
-
-```bash
-curl -X POST http://localhost:8080/api/v1/orders \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "cfbf7c8f-eaf9-47fa-8674-2a29fed1fcc9",
-    "wallet_id": "1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c",
-    "market_symbol": "XRP/USDT",
-    "quote_amount": 50,
-    "expected_price": 0.67
-  }'
 ```
 
 ### Frontend unit tests
@@ -110,22 +98,59 @@ cd frontend
 npm run test:e2e
 ```
 
-## Kubernetes deployment
+## Sample API flow
 
-TradeLab ships with a complete Kubernetes deployment under `deploy/kubernetes`.
-
-Quick start for the development overlay:
+Create a demo session:
 
 ```bash
-kubectl apply -k deploy/kubernetes/overlays/development
+curl -X POST http://localhost:8080/api/v1/sessions/demo
 ```
 
-This deploys PostgreSQL, the Go backend, the Next.js frontend, and an ingress that routes `/api` to the backend and `/` to the frontend.
+Use the returned bearer token to access protected routes:
 
-Full deployment notes live in [docs/deployment.md](docs/deployment.md).
+```bash
+curl http://localhost:8080/api/v1/markets
+```
+
+```bash
+curl "http://localhost:8080/api/v1/markets/XRP%2FUSDT/candles?interval=1h&limit=48"
+```
+
+Use the `wallet_id` returned by the demo session for portfolio access:
+
+```bash
+curl http://localhost:8080/api/v1/portfolios/<wallet-id> \
+  -H "Authorization: Bearer <demo-token>"
+```
+
+```bash
+curl http://localhost:8080/api/v1/orders \
+  -H "Authorization: Bearer <demo-token>"
+```
+
+```bash
+curl -X POST http://localhost:8080/api/v1/orders \
+  -H "Authorization: Bearer <demo-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_symbol": "XRP/USDT",
+    "quote_amount": 50
+  }'
+```
+
+## Deployment and delivery
+
+TradeLab ships with Kubernetes deployment assets, immutable release-manifest rendering, GitHub Actions CI, and GitHub release automation.
+
+- Deployment quick start:
+  [deployment.md](docs/deployment.md)
+- Runtime and operations guide:
+  [system-operations.md](docs/system-operations.md)
+- Contributor workflow:
+  [developer-guide.md](docs/developer-guide.md)
 
 ## Delivery automation
 
-- Pull requests are validated by GitHub Actions.
-- Successful PR checks can be auto-merged into `master`.
-- Every successful `master` run builds release artifacts, publishes container images to GitHub Container Registry, and creates a GitHub Release.
+- pull requests are validated by GitHub Actions
+- successful PR checks can be auto-merged into `master`
+- successful `master` runs publish release artifacts, container images, and a GitHub Release

@@ -2,6 +2,8 @@
 
 TradeLab ships with a Kubernetes deployment layout under `deploy/kubernetes` and publishes ready-to-run container images to GitHub Container Registry on every successful `master` release.
 
+For the broader runtime model and operator workflow, see [system-operations.md](system-operations.md). For contributor workflow and local setup, see [developer-guide.md](developer-guide.md).
+
 ## What gets deployed
 
 - `PostgreSQL` as a `StatefulSet` with a persistent volume claim

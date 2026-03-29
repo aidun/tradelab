@@ -1,0 +1,75 @@
+{
+  "project": {
+    "name": "TradeLab",
+    "summary": "TradeLab is a multi-asset crypto paper-trading platform for demo execution, strategy experimentation, and trading workflow validation.",
+    "reference_market": "XRP/USDT",
+    "status": "demo-only",
+    "financial_advice": false,
+    "ai_assisted_repository": true
+  },
+  "stack": {
+    "frontend": ["Next.js", "TypeScript", "Tailwind CSS"],
+    "backend": ["Go"],
+    "database": ["PostgreSQL"],
+    "testing": ["go test", "Vitest", "React Testing Library", "Playwright"],
+    "deployment": ["Kubernetes", "GitHub Actions", "GitHub Container Registry"]
+  },
+  "directories": {
+    "frontend": "frontend/",
+    "backend": "backend/",
+    "deploy": "deploy/",
+    "docs": "docs/"
+  },
+  "runtime_components": [
+    "frontend web application",
+    "backend API",
+    "postgres database",
+    "ingress routing",
+    "migration init container",
+    "GitHub release and image publication pipeline"
+  ],
+  "key_workflows": [
+    "demo session creation",
+    "authenticated paper-trading API access",
+    "server-authoritative market buy execution",
+    "market-data fetch with bounded stale fallback",
+    "PR-first CI validation",
+    "master-triggered release automation",
+    "immutable release manifest rendering"
+  ],
+  "documentation": {
+    "readme": "README.md",
+    "product": "docs/PRD.md",
+    "data_model": "docs/data-model.md",
+    "deployment": "docs/deployment.md",
+    "system_operations": "docs/system-operations.md",
+    "developer_guide": "docs/developer-guide.md"
+  },
+  "constraints": {
+    "code_language": "English",
+    "chat_language": "German",
+    "delivery_model": "Feature branches -> PR CI -> merge to master -> release",
+    "merge_strategy": "squash merge",
+    "demo_only": true,
+    "live_trading": false
+  },
+  "disclaimers": {
+    "financial": "TradeLab does not provide financial advice or investment recommendations.",
+    "ai_assistance": "The repository includes AI-assisted code and documentation."
+  },
+  "api_highlights": {
+    "public_routes": [
+      "GET /healthz",
+      "GET /api/v1/markets",
+      "GET /api/v1/markets/{symbol}/candles",
+      "POST /api/v1/sessions/demo"
+    ],
+    "protected_routes": [
+      "GET /api/v1/portfolios/{walletID}",
+      "GET /api/v1/orders",
+      "GET /api/v1/activity",
+      "POST /api/v1/orders"
+    ],
+    "auth_model": "Bearer token from demo session"
+  }
+}
