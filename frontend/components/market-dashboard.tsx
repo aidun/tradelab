@@ -1,7 +1,17 @@
 "use client";
 
 import React, { startTransition, useEffect, useState } from "react";
-import { fetchMarkets, fetchPortfolio, placeMarketBuy, type Market, type PortfolioSummary } from "@/lib/api";
+import {
+  fetchActivity,
+  fetchMarkets,
+  fetchOrders,
+  fetchPortfolio,
+  placeMarketBuy,
+  type ActivityLog,
+  type Market,
+  type Order,
+  type PortfolioSummary
+} from "@/lib/api";
 
 const DEMO_USER_ID = "cfbf7c8f-eaf9-47fa-8674-2a29fed1fcc9";
 const DEMO_WALLET_ID = "1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c";
@@ -23,6 +33,8 @@ function formatNumber(value: number) {
 export function MarketDashboard() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [activity, setActivity] = useState<ActivityLog[]>([]);
   const [selectedMarket, setSelectedMarket] = useState("XRP/USDT");
   const [quoteAmount, setQuoteAmount] = useState("50");
   const [expectedPrice, setExpectedPrice] = useState("0.67");
@@ -34,13 +46,17 @@ export function MarketDashboard() {
   async function loadData() {
     setError(null);
 
-    const [marketList, portfolioSummary] = await Promise.all([
+    const [marketList, portfolioSummary, orderHistory, activityHistory] = await Promise.all([
       fetchMarkets(),
-      fetchPortfolio(DEMO_WALLET_ID)
+      fetchPortfolio(DEMO_WALLET_ID),
+      fetchOrders(DEMO_WALLET_ID),
+      fetchActivity(DEMO_WALLET_ID)
     ]);
 
     setMarkets(marketList);
     setPortfolio(portfolioSummary);
+    setOrders(orderHistory);
+    setActivity(activityHistory);
   }
 
   useEffect(() => {
@@ -104,7 +120,8 @@ export function MarketDashboard() {
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--muted)]">
                 Markets and portfolio state are now loaded from the Go API. Every demo buy updates the
-                wallet and the open position model behind the scenes.
+                wallet, writes an order record, and emits an activity trail that stays visible in the
+                dashboard.
               </p>
             </div>
 
@@ -232,7 +249,7 @@ export function MarketDashboard() {
             </section>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="mt-6 grid gap-6 xl:grid-cols-2">
             <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">
               <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
                 Balances
@@ -265,16 +282,73 @@ export function MarketDashboard() {
                     >
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-lg font-semibold">{position.marketSymbol}</span>
-                        <span className="text-sm text-[var(--accent)]">{formatCurrency(position.positionValue)}</span>
+                        <span className="text-sm text-[var(--accent)]">
+                          {formatCurrency(position.positionValue)}
+                        </span>
                       </div>
                       <p className="mt-2 text-sm text-[var(--muted)]">
-                        Qty {formatNumber(position.entryQuantity)} at avg {formatCurrency(position.entryPriceAvg)}
+                        Qty {formatNumber(position.entryQuantity)} at avg{" "}
+                        {formatCurrency(position.entryPriceAvg)}
                       </p>
                     </div>
                   ))
                 ) : (
                   <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">
                     No open positions yet. Execute the first XRP or BTC demo buy to populate this view.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">
+              <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                Recent orders
+              </p>
+              <div className="mt-5 grid gap-3">
+                {orders.length ? (
+                  orders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-lg font-semibold">{order.marketSymbol}</span>
+                        <span className="text-sm uppercase text-[var(--accent)]">{order.status}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-[var(--muted)]">
+                        Quote {formatCurrency(order.quoteAmount)} at {formatCurrency(order.expectedPrice)}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">
+                    No orders yet. The next demo buy will appear here immediately.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">
+              <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                Activity log
+              </p>
+              <div className="mt-5 grid gap-3">
+                {activity.length ? (
+                  activity.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-lg font-semibold">{item.title}</span>
+                        <span className="text-sm uppercase text-[var(--accent-hot)]">{item.logType}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-[var(--muted)]">{item.message}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">
+                    Activity will populate as soon as demo orders and bot actions start flowing.
                   </div>
                 )}
               </div>

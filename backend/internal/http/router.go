@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
@@ -23,7 +24,15 @@ type PortfolioGetter interface {
 	GetSummary(ctx context.Context, walletID string) (domain.PortfolioSummary, error)
 }
 
-func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGetter) http.Handler {
+type OrderHistoryLister interface {
+	ListOrders(ctx context.Context, walletID string, limit int) ([]domain.Order, error)
+}
+
+type ActivityHistoryLister interface {
+	ListActivity(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)
+}
+
+func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -40,9 +49,7 @@ func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGet
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]any{
-			"markets": items,
-		})
+		writeJSON(w, http.StatusOK, map[string]any{"markets": items})
 	})
 
 	mux.HandleFunc("GET /api/v1/portfolios/", func(w http.ResponseWriter, r *http.Request) {
@@ -58,9 +65,39 @@ func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGet
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]any{
-			"portfolio": summary,
-		})
+		writeJSON(w, http.StatusOK, map[string]any{"portfolio": summary})
+	})
+
+	mux.HandleFunc("GET /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
+		walletID := r.URL.Query().Get("wallet_id")
+		if walletID == "" {
+			writeError(w, http.StatusBadRequest, "wallet_id is required")
+			return
+		}
+
+		items, err := orderHistory.ListOrders(r.Context(), walletID, parseLimit(r.URL.Query().Get("limit")))
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load orders")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{"orders": items})
+	})
+
+	mux.HandleFunc("GET /api/v1/activity", func(w http.ResponseWriter, r *http.Request) {
+		walletID := r.URL.Query().Get("wallet_id")
+		if walletID == "" {
+			writeError(w, http.StatusBadRequest, "wallet_id is required")
+			return
+		}
+
+		items, err := activityHistory.ListActivity(r.Context(), walletID, parseLimit(r.URL.Query().Get("limit")))
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load activity")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{"activity": items})
 	})
 
 	mux.HandleFunc("POST /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
@@ -98,12 +135,21 @@ func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGet
 			return
 		}
 
-		writeJSON(w, http.StatusCreated, map[string]any{
-			"order": order,
-		})
+		writeJSON(w, http.StatusCreated, map[string]any{"order": order})
 	})
 
 	return mux
+}
+
+func parseLimit(raw string) int {
+	if raw == "" {
+		return 10
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 || limit > 100 {
+		return 10
+	}
+	return limit
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, payload any) {
@@ -113,7 +159,5 @@ func writeJSON(w http.ResponseWriter, statusCode int, payload any) {
 }
 
 func writeError(w http.ResponseWriter, statusCode int, message string) {
-	writeJSON(w, statusCode, map[string]string{
-		"error": message,
-	})
+	writeJSON(w, statusCode, map[string]string{"error": message})
 }

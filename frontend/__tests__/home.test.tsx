@@ -26,6 +26,45 @@ describe("Hero", () => {
         );
       }
 
+      if (url.includes("/api/v1/orders")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              orders: [
+                {
+                  id: "order-1",
+                  walletID: "wallet-1",
+                  marketSymbol: "XRP/USDT",
+                  quoteAmount: 50,
+                  expectedPrice: 0.67,
+                  status: "filled",
+                  createdAt: "2026-03-29T12:00:00Z"
+                }
+              ]
+            })
+          )
+        );
+      }
+
+      if (url.includes("/api/v1/activity")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              activity: [
+                {
+                  id: "log-1",
+                  walletID: "wallet-1",
+                  logType: "trade",
+                  title: "Demo buy recorded",
+                  message: "A demo market buy was created for XRP/USDT.",
+                  createdAt: "2026-03-29T12:01:00Z"
+                }
+              ]
+            })
+          )
+        );
+      }
+
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -63,5 +102,6 @@ describe("Hero", () => {
     });
 
     expect(screen.getByText(/run demo buy/i)).toBeInTheDocument();
+    expect(screen.getByText(/demo buy recorded/i)).toBeInTheDocument();
   });
 });

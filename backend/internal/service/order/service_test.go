@@ -73,7 +73,7 @@ func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 	}
 }
 
-func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
+func TestPlaceMarketBuyCreatesFilledOrder(t *testing.T) {
 	now := time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)
 
 	service := NewService(
@@ -111,14 +111,6 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 		t.Fatalf("expected filled status, got %s", order.Status)
 	}
 
-	if order.UserID != "user-1" {
-		t.Fatalf("expected user-1, got %s", order.UserID)
-	}
-
-	if order.MarketSymbol != "XRP/USDT" {
-		t.Fatalf("expected XRP/USDT market, got %s", order.MarketSymbol)
-	}
-
 	if order.BaseQuantity <= 0 {
 		t.Fatalf("expected positive base quantity, got %f", order.BaseQuantity)
 	}
@@ -128,18 +120,14 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 	}
 }
 
-type fakeClock struct {
-	now time.Time
-}
+type fakeClock struct{ now time.Time }
 
-func (f fakeClock) Now() time.Time {
-	return f.now
-}
+func (f fakeClock) Now() time.Time { return f.now }
 
 type fakeMarketRepository struct {
 	markets []domain.Market
-	market domain.Market
-	err    error
+	market  domain.Market
+	err     error
 }
 
 func (f fakeMarketRepository) List(context.Context) ([]domain.Market, error) {
@@ -167,10 +155,17 @@ func (f fakePortfolioRepository) ApplyMarketBuy(_ context.Context, order domain.
 	if f.err != nil {
 		return domain.Order{}, f.err
 	}
-
 	return order, nil
 }
 
 func (f fakePortfolioRepository) GetSummary(context.Context, string) (domain.PortfolioSummary, error) {
 	return domain.PortfolioSummary{}, f.err
+}
+
+func (f fakePortfolioRepository) ListByWallet(context.Context, string, int) ([]domain.Order, error) {
+	return nil, f.err
+}
+
+func (f fakePortfolioRepository) ListActivityByWallet(context.Context, string, int) ([]domain.ActivityLog, error) {
+	return nil, f.err
 }

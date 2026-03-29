@@ -6,6 +6,7 @@ import (
 
 	"github.com/aidun/tradelab/backend/internal/config"
 	httpapi "github.com/aidun/tradelab/backend/internal/http"
+	historyservice "github.com/aidun/tradelab/backend/internal/service/history"
 	marketservice "github.com/aidun/tradelab/backend/internal/service/market"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 	portfolioservice "github.com/aidun/tradelab/backend/internal/service/portfolio"
@@ -28,10 +29,10 @@ func main() {
 	marketService := marketservice.NewService(marketRepository)
 	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository)
 	portfolioService := portfolioservice.NewService(portfolioRepository)
-
+	historyService := historyservice.NewService(portfolioRepository)
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
-		Handler: httpapi.NewRouter(marketService, orderService, portfolioService),
+		Handler: httpapi.NewRouter(marketService, orderService, portfolioService, historyService, historyService),
 	}
 
 	log.Printf("TradeLab backend listening on %s", cfg.HTTPAddress)

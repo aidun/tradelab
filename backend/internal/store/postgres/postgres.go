@@ -37,13 +37,11 @@ func (r *MarketRepository) List(ctx context.Context) ([]domain.Market, error) {
 	defer rows.Close()
 
 	var markets []domain.Market
-
 	for rows.Next() {
 		var item domain.Market
 		if err := rows.Scan(&item.ID, &item.Symbol, &item.BaseAsset, &item.QuoteAsset, &item.MinNotional, &item.Exchange); err != nil {
 			return nil, err
 		}
-
 		markets = append(markets, item)
 	}
 
@@ -172,6 +170,21 @@ func (r *PortfolioRepository) ApplyMarketBuy(ctx context.Context, order domain.O
 		return domain.Order{}, err
 	}
 
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO activity_logs (
+			id,
+			user_id,
+			wallet_id,
+			order_id,
+			log_type,
+			title,
+			message,
+			created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, order.ID, order.UserID, order.WalletID, order.ID, "trade", "Demo buy recorded", "A demo market buy was created for "+order.MarketSymbol+".", order.CreatedAt); err != nil {
+		return domain.Order{}, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return domain.Order{}, err
 	}
@@ -201,12 +214,10 @@ func (r *PortfolioRepository) GetSummary(ctx context.Context, walletID string) (
 		if err := rows.Scan(&balance.WalletID, &balance.AssetSymbol, &balance.Available); err != nil {
 			return domain.PortfolioSummary{}, err
 		}
-
 		if balance.AssetSymbol == summary.BaseCurrency {
 			summary.CashBalance = balance.Available
 			summary.TotalValue += balance.Available
 		}
-
 		summary.Balances = append(summary.Balances, balance)
 	}
 
@@ -255,13 +266,93 @@ func (r *PortfolioRepository) GetSummary(ctx context.Context, walletID string) (
 
 		position.CurrentPrice = position.EntryPriceAvg
 		position.PositionValue = position.EntryQuantity * position.EntryPriceAvg
-		position.UnrealizedPnL = 0
-
 		summary.TotalValue += position.PositionValue
 		summary.Positions = append(summary.Positions, position)
 	}
 
 	return summary, nil
+}
+
+func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string, limit int) ([]domain.Order, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT
+			o.id,
+			o.user_id,
+			o.wallet_id,
+			o.market_id,
+			m.symbol,
+			base_asset.symbol,
+			quote_asset.symbol,
+			COALESCE(o.requested_quote_amount, 0),
+			COALESCE(o.executed_quantity, 0),
+			COALESCE(o.average_execution_price, 0),
+			o.side,
+			o.order_type,
+			o.status,
+			o.submitted_at
+		FROM orders o
+		JOIN markets m ON m.id = o.market_id
+		JOIN assets base_asset ON base_asset.id = m.base_asset_id
+		JOIN assets quote_asset ON quote_asset.id = m.quote_asset_id
+		WHERE o.wallet_id = $1
+		ORDER BY o.submitted_at DESC
+		LIMIT $2
+	`, walletID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Order
+	for rows.Next() {
+		var item domain.Order
+		if err := rows.Scan(
+			&item.ID,
+			&item.UserID,
+			&item.WalletID,
+			&item.MarketID,
+			&item.MarketSymbol,
+			&item.BaseAsset,
+			&item.QuoteAsset,
+			&item.QuoteAmount,
+			&item.BaseQuantity,
+			&item.ExpectedPrice,
+			&item.Side,
+			&item.Type,
+			&item.Status,
+			&item.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}
+
+func (r *PortfolioRepository) ListActivityByWallet(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, wallet_id, log_type, title, message, created_at
+		FROM activity_logs
+		WHERE wallet_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`, walletID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.ActivityLog
+	for rows.Next() {
+		var item domain.ActivityLog
+		if err := rows.Scan(&item.ID, &item.WalletID, &item.LogType, &item.Title, &item.Message, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
 }
 
 func (r *PortfolioRepository) Create(ctx context.Context, order domain.Order) (domain.Order, error) {

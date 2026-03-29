@@ -34,26 +34,26 @@ type Order struct {
 }
 
 type Balance struct {
-	WalletID     string
+	WalletID    string
 	AssetSymbol string
 	Available   float64
 }
 
 type Position struct {
-	ID             string
-	UserID         string
-	WalletID       string
-	MarketID       string
-	MarketSymbol   string
-	BaseAsset      string
-	QuoteAsset     string
-	Status         string
-	EntryQuantity  float64
-	EntryPriceAvg  float64
-	CurrentPrice   float64
-	PositionValue  float64
-	UnrealizedPnL  float64
-	OpenedAt       time.Time
+	ID            string
+	UserID        string
+	WalletID      string
+	MarketID      string
+	MarketSymbol  string
+	BaseAsset     string
+	QuoteAsset    string
+	Status        string
+	EntryQuantity float64
+	EntryPriceAvg float64
+	CurrentPrice  float64
+	PositionValue float64
+	UnrealizedPnL float64
+	OpenedAt      time.Time
 }
 
 type PortfolioSummary struct {
@@ -63,4 +63,13 @@ type PortfolioSummary struct {
 	CashBalance  float64
 	Positions    []Position
 	Balances     []Balance
+}
+
+type ActivityLog struct {
+	ID        string
+	WalletID  string
+	LogType   string
+	Title     string
+	Message   string
+	CreatedAt time.Time
 }
