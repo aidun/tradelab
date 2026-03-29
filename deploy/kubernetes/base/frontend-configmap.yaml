@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tradelab-frontend-config
+data:
+  PORT: "3000"
+  HOSTNAME: "0.0.0.0"
+  TRADESLAB_API_PROXY_TARGET: "http://tradelab-backend:8080"

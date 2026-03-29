@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tradelab-postgres-data
+spec:
+  resources:
+    requests:
+      storage: 50Gi

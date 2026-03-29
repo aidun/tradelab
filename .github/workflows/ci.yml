@@ -69,3 +69,44 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  backend-container:
+    name: Backend container build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t tradelab-backend:test .
+
+  frontend-container:
+    name: Frontend container build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build frontend image
+        run: docker build -f frontend/Dockerfile -t tradelab-frontend:test .
+
+  kubernetes-manifests:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.2
+
+      - name: Render development overlay
+        run: kubectl kustomize deploy/kubernetes/overlays/development > /tmp/tradelab-dev.yaml
+
+      - name: Render production overlay
+        run: kubectl kustomize deploy/kubernetes/overlays/production > /tmp/tradelab-prod.yaml

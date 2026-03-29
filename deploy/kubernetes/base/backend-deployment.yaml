@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tradelab-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tradelab-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tradelab-backend
+    spec:
+      initContainers:
+        - name: migrate
+          image: ghcr.io/aidun/tradelab-backend:latest
+          imagePullPolicy: Always
+          command:
+            - /app/tradelab-migrate
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: tradelab-database
+                  key: DATABASE_URL
+      containers:
+        - name: api
+          image: ghcr.io/aidun/tradelab-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: tradelab-backend-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: tradelab-database
+                  key: DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
