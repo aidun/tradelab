@@ -3,11 +3,13 @@
 import React, { startTransition, useEffect, useState } from "react";
 import {
   fetchActivity,
+  fetchCandles,
   fetchMarkets,
   fetchOrders,
   fetchPortfolio,
   placeMarketBuy,
   type ActivityLog,
+  type Candle,
   type Market,
   type Order,
   type PortfolioSummary
@@ -30,33 +32,176 @@ function formatNumber(value: number) {
   }).format(value);
 }
 
+function formatShortTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric"
+  }).format(new Date(value));
+}
+
+function intervalLabel(interval: string) {
+  switch (interval) {
+    case "15m":
+      return "15m";
+    case "1h":
+      return "1h";
+    case "4h":
+      return "4h";
+    default:
+      return interval;
+  }
+}
+
+function getLastItem<T>(items: T[]) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return items[items.length - 1];
+}
+
+function CandleChart({ candles }: { candles: Candle[] }) {
+  if (candles.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-12 text-sm text-[var(--muted)]">
+        Candle data will appear as soon as the market feed responds.
+      </div>
+    );
+  }
+
+  const width = 960;
+  const height = 320;
+  const paddingX = 18;
+  const paddingY = 18;
+  const chartWidth = width - paddingX * 2;
+  const chartHeight = height - paddingY * 2;
+  const candleSlot = chartWidth / candles.length;
+  const candleWidth = Math.max(4, candleSlot * 0.56);
+
+  const low = Math.min(...candles.map((item) => item.lowPrice));
+  const high = Math.max(...candles.map((item) => item.highPrice));
+  const priceRange = Math.max(high - low, 0.0001);
+
+  function mapPrice(price: number) {
+    const normalized = (price - low) / priceRange;
+    return paddingY + chartHeight - normalized * chartHeight;
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label="Live market chart"
+      className="h-[320px] w-full rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(8,24,38,0.96),rgba(4,11,22,0.96))] p-3"
+    >
+      <defs>
+        <linearGradient id="chartGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="rgba(110,242,211,0.24)" />
+          <stop offset="100%" stopColor="rgba(255,176,107,0.05)" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width={width} height={height} fill="url(#chartGlow)" rx="24" />
+
+      {[0.2, 0.4, 0.6, 0.8].map((line) => (
+        <line
+          key={line}
+          x1={paddingX}
+          x2={width - paddingX}
+          y1={paddingY + chartHeight * line}
+          y2={paddingY + chartHeight * line}
+          stroke="rgba(187,199,212,0.12)"
+          strokeDasharray="4 8"
+        />
+      ))}
+
+      {candles.map((candle, index) => {
+        const x = paddingX + index * candleSlot + candleSlot / 2;
+        const wickTop = mapPrice(candle.highPrice);
+        const wickBottom = mapPrice(candle.lowPrice);
+        const openY = mapPrice(candle.openPrice);
+        const closeY = mapPrice(candle.closePrice);
+        const bodyTop = Math.min(openY, closeY);
+        const bodyHeight = Math.max(Math.abs(openY - closeY), 3);
+        const isBull = candle.closePrice >= candle.openPrice;
+
+        return (
+          <g key={`${candle.openTime}-${index}`}>
+            <line
+              x1={x}
+              x2={x}
+              y1={wickTop}
+              y2={wickBottom}
+              stroke={isBull ? "rgba(110,242,211,0.92)" : "rgba(255,107,120,0.92)"}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <rect
+              x={x - candleWidth / 2}
+              y={bodyTop}
+              width={candleWidth}
+              height={bodyHeight}
+              rx="4"
+              fill={isBull ? "rgba(110,242,211,0.95)" : "rgba(255,107,120,0.95)"}
+            />
+          </g>
+        );
+      })}
+
+      {candles
+        .filter((_, index) => index % Math.max(1, Math.floor(candles.length / 5)) === 0)
+        .map((candle, index) => (
+          <text
+            key={`${candle.openTime}-${index}-label`}
+            x={paddingX + candles.findIndex((item) => item.openTime === candle.openTime) * candleSlot + candleSlot / 2}
+            y={height - 8}
+            textAnchor="middle"
+            fill="rgba(187,199,212,0.72)"
+            fontSize="12"
+          >
+            {formatShortTime(candle.openTime)}
+          </text>
+        ))}
+    </svg>
+  );
+}
+
 export function MarketDashboard() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
+  const [candles, setCandles] = useState<Candle[]>([]);
   const [selectedMarket, setSelectedMarket] = useState("XRP/USDT");
+  const [selectedInterval, setSelectedInterval] = useState("1h");
   const [quoteAmount, setQuoteAmount] = useState("50");
   const [expectedPrice, setExpectedPrice] = useState("0.67");
   const [isLoading, setIsLoading] = useState(true);
+  const [isChartLoading, setIsChartLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   async function loadData() {
     setError(null);
+    setIsChartLoading(true);
 
-    const [marketList, portfolioSummary, orderHistory, activityHistory] = await Promise.all([
+    const [marketList, portfolioSummary, orderHistory, activityHistory, marketCandles] = await Promise.all([
       fetchMarkets(),
       fetchPortfolio(DEMO_WALLET_ID),
       fetchOrders(DEMO_WALLET_ID),
-      fetchActivity(DEMO_WALLET_ID)
+      fetchActivity(DEMO_WALLET_ID),
+      fetchCandles(selectedMarket, selectedInterval, 48)
     ]);
 
     setMarkets(marketList);
     setPortfolio(portfolioSummary);
     setOrders(orderHistory);
     setActivity(activityHistory);
+    setCandles(marketCandles);
+    setExpectedPrice(getLastItem(marketCandles)?.closePrice.toFixed(4) ?? "0.67");
+    setIsChartLoading(false);
   }
 
   useEffect(() => {
@@ -67,6 +212,7 @@ export function MarketDashboard() {
         .catch((loadError: Error) => {
           if (!cancelled) {
             setError(loadError.message);
+            setIsChartLoading(false);
           }
         })
         .finally(() => {
@@ -79,7 +225,7 @@ export function MarketDashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedInterval, selectedMarket]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,6 +251,8 @@ export function MarketDashboard() {
     }
   }
 
+  const latestCandle = getLastItem(candles);
+
   return (
     <main className="grid-glow min-h-screen overflow-hidden px-6 py-8 md:px-10 lg:px-14">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8">
@@ -119,9 +267,9 @@ export function MarketDashboard() {
                 <span className="block text-[var(--accent-warm)]">real wallet movement.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--muted)]">
-                Markets and portfolio state are now loaded from the Go API. Every demo buy updates the
-                wallet, writes an order record, and emits an activity trail that stays visible in the
-                dashboard.
+                Live market candles now stream into the dashboard from the backend. You can inspect the
+                active pair before sending a demo order and keep the chart, wallet, and trade log on one
+                screen.
               </p>
             </div>
 
@@ -137,8 +285,8 @@ export function MarketDashboard() {
                 </span>
               </div>
               <div className="flex items-center justify-between gap-8">
-                <span>Cash balance</span>
-                <span>{portfolio ? formatCurrency(portfolio.cashBalance) : "--"}</span>
+                <span>Last price</span>
+                <span>{latestCandle ? formatCurrency(latestCandle.closePrice) : "--"}</span>
               </div>
             </div>
           </div>
@@ -248,6 +396,74 @@ export function MarketDashboard() {
               </form>
             </section>
           </div>
+
+          <section className="mt-6 rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                  Live market chart
+                </p>
+                <h2 className="mt-3 text-2xl font-semibold">{selectedMarket}</h2>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+                <span className="rounded-full border border-[var(--line)] px-3 py-2">
+                  Last close {latestCandle ? formatCurrency(latestCandle.closePrice) : "--"}
+                </span>
+                {["15m", "1h", "4h"].map((interval) => (
+                  <button
+                    key={interval}
+                    type="button"
+                    onClick={() => setSelectedInterval(interval)}
+                    className={`rounded-full border px-3 py-2 transition ${
+                      selectedInterval === interval
+                        ? "border-[var(--accent)] bg-[rgba(110,242,211,0.1)] text-[var(--accent)]"
+                        : "border-[var(--line)]"
+                    }`}
+                  >
+                    {intervalLabel(interval)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              {isChartLoading ? (
+                <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-12 text-sm text-[var(--muted)]">
+                  Loading candle data...
+                </div>
+              ) : (
+                <CandleChart candles={candles} />
+              )}
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
+                <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Session high
+                </p>
+                <p className="mt-3 text-2xl font-semibold">
+                  {latestCandle ? formatCurrency(latestCandle.highPrice) : "--"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
+                <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Session low
+                </p>
+                <p className="mt-3 text-2xl font-semibold">
+                  {latestCandle ? formatCurrency(latestCandle.lowPrice) : "--"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
+                <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Last volume
+                </p>
+                <p className="mt-3 text-2xl font-semibold">
+                  {latestCandle ? formatNumber(latestCandle.baseVolume) : "--"}
+                </p>
+              </div>
+            </div>
+          </section>
 
           <div className="mt-6 grid gap-6 xl:grid-cols-2">
             <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">

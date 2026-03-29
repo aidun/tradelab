@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type Market struct {
 	ID          string
 	Symbol      string
@@ -7,4 +9,16 @@ type Market struct {
 	QuoteAsset  string
 	MinNotional float64
 	Exchange    string
+}
+
+type Candle struct {
+	OpenTime    time.Time
+	CloseTime   time.Time
+	OpenPrice   float64
+	HighPrice   float64
+	LowPrice    float64
+	ClosePrice  float64
+	BaseVolume  float64
+	QuoteVolume float64
+	Trades      int64
 }
