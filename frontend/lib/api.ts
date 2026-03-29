@@ -59,6 +59,8 @@ export type Order = {
   id: string;
   walletID: string;
   marketSymbol: string;
+  strategyID?: string;
+  orderSource: "manual" | "strategy" | "system";
   side: "buy" | "sell";
   baseQuantity: number;
   quoteAmount: number;
@@ -77,6 +79,37 @@ export type ActivityLog = {
   title: string;
   message: string;
   createdAt: string;
+};
+
+export type StrategyStatus = "draft" | "active" | "paused" | "archived";
+
+export type StrategyConfig = {
+  dipBuy: {
+    enabled: boolean;
+    dipPercent: number;
+    spendQuoteAmount: number;
+  };
+  takeProfit: {
+    enabled: boolean;
+    triggerPercent: number;
+  };
+  stopLoss: {
+    enabled: boolean;
+    triggerPercent: number;
+  };
+};
+
+export type Strategy = {
+  id: string;
+  walletID: string;
+  marketSymbol: string;
+  status: StrategyStatus;
+  config: StrategyConfig;
+  referencePrice: number;
+  lastRunAt?: string;
+  lastDecision: "buy" | "sell" | "hold" | "";
+  lastOutcome: "executed" | "skipped" | "errored" | "";
+  lastReason: string;
 };
 
 export type DemoSession = {
@@ -261,6 +294,80 @@ export async function fetchActivity(token: string, options?: { marketSymbol?: st
 
   const data = await response.json();
   return data.activity;
+}
+
+export async function fetchStrategies(token: string, marketSymbol?: string): Promise<Strategy[]> {
+  const params = new URLSearchParams();
+  if (marketSymbol) {
+    params.set("market_symbol", marketSymbol);
+  }
+
+  const response = await fetch(apiUrl(`/api/v1/strategies${params.size > 0 ? `?${params.toString()}` : ""}`), {
+    cache: "no-store",
+    credentials: "include",
+    headers: authHeaders(token)
+  });
+  if (!response.ok) {
+    await parseApiError(response, "Failed to load strategies");
+  }
+
+  const data = await response.json();
+  return data.strategies;
+}
+
+export async function saveStrategy(input: {
+  marketSymbol: string;
+  status: StrategyStatus;
+  config: StrategyConfig;
+  token?: string | null;
+}): Promise<Strategy> {
+  const response = await fetch(apiUrl("/api/v1/strategies"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(input.token ?? undefined)
+    },
+    body: JSON.stringify({
+      market_symbol: input.marketSymbol,
+      status: input.status,
+      config: input.config
+    })
+  });
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to save strategy");
+  }
+
+  const data = await response.json();
+  return data.strategy;
+}
+
+export async function patchStrategy(input: {
+  id: string;
+  status: StrategyStatus;
+  config: StrategyConfig;
+  token?: string | null;
+}): Promise<Strategy> {
+  const response = await fetch(apiUrl(`/api/v1/strategies/${input.id}`), {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(input.token ?? undefined)
+    },
+    body: JSON.stringify({
+      status: input.status,
+      config: input.config
+    })
+  });
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to update strategy");
+  }
+
+  const data = await response.json();
+  return data.strategy;
 }
 
 export async function placeMarketOrder(input: {

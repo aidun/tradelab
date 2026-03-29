@@ -168,7 +168,7 @@ Suggested values:
 
 ### strategies
 
-User-defined bot rules.
+User-defined strategy bundles. Phase 5 uses one bundle per `wallet + market`.
 
 - id
 - user_id
@@ -179,6 +179,11 @@ User-defined bot rules.
 - config_json
 - risk_config_json
 - status
+- reference_price
+- last_run_at nullable
+- last_decision nullable
+- last_outcome nullable
+- last_reason nullable
 - created_at
 - updated_at
 - last_run_at nullable
@@ -186,10 +191,8 @@ User-defined bot rules.
 Suggested strategy types:
 
 - dip_buy
-- take_profit_stop_loss
-- dca
-- sma_crossover
-- rsi_trigger
+- take_profit
+- stop_loss
 
 Suggested status values:
 
@@ -206,6 +209,8 @@ Logs each strategy evaluation by the engine.
 - strategy_id
 - started_at
 - finished_at
+- reason
+- evaluation_duration_ms
 - outcome
 - decision
 - signal_strength nullable
@@ -307,6 +312,9 @@ Suggested layout:
 
 Important rule:
 Order logic, position logic, PnL, and strategy rules must live in isolated services, not in handlers or SQL snippets.
+
+Phase 5 note:
+The first automation engine runs inside the API process, but strategy claiming and run persistence must stay database-backed so multiple backend instances do not double-execute the same bundle.
 
 ### Persistence strategy
 

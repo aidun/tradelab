@@ -51,6 +51,8 @@ Before starting local services, review these only if you are not using the defau
 - `TRADESLAB_CLERK_ISSUER_URL` before backend startup when testing real Clerk-backed registered accounts
 - `TRADESLAB_CLERK_JWKS_URL` before backend startup when testing real Clerk-backed registered accounts
 - `TRADESLAB_AUTH_MOCK_MODE` before backend startup when local or CI auth mocking should replace live Clerk verification
+- `STRATEGY_ENGINE_ENABLED` before backend startup when local strategy automation should be disabled explicitly
+- `STRATEGY_ENGINE_TICK` before backend startup when the strategy loop should use a non-default interval
 - `TRADESLAB_API_PROXY_TARGET` before frontend startup
 - `NEXT_PUBLIC_API_BASE_URL` before frontend startup if you want direct browser-to-API calls
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` before frontend startup when using real Clerk UI
@@ -122,6 +124,7 @@ kubectl kustomize deploy/kubernetes/overlays/production
 - `backend/cmd/migrate`: migration entrypoint
 - `backend/internal/domain`: domain types
 - `backend/internal/service`: business logic
+- `backend/internal/service/strategy`: strategy bundle lifecycle and in-process automation engine
 - `backend/internal/store`: repository interfaces
 - `backend/internal/store/postgres`: PostgreSQL implementations
 - `backend/internal/http`: routing and API response shaping
@@ -129,7 +132,7 @@ kubectl kustomize deploy/kubernetes/overlays/production
 ### Frontend
 
 - `frontend/app`: app entrypoints
-- `frontend/components`: UI components, including the overview dashboard and focused market detail screen
+- `frontend/components`: UI components, including the overview dashboard, focused market detail screen, and automation card
 - `frontend/lib`: API client code and shared helpers
 - `frontend/lib/tradelab-auth.tsx`: auth provider boundary for guest, mock, and Clerk-backed registered modes
 - `frontend/lib/use-account-session.ts`: guest-plus-registered account orchestration plus guest session refresh logic
@@ -234,5 +237,6 @@ When making changes, consult the `artifact_groups` and `change_management` secti
 - backend request and service flow now emits structured JSON logs through `log/slog`
 - frontend quality gates now include Playwright coverage for core dashboard journeys
 - Phase 4 adds a global accounting-mode UI and a dedicated `/markets/[symbol]` route for the focused trading flow
+- Phase 5 adds a strategy bundle per `wallet + market` with in-process evaluation and strategy-specific order/activity visibility
 - release-ready Kubernetes output should use immutable release tags, not rely on `latest`
 - protected API routes now accept guest bearer tokens or registered HttpOnly app-session cookies, depending on the principal type

@@ -11,13 +11,15 @@ import {
   fetchMarkets,
   fetchOrders,
   fetchPortfolio,
+  fetchStrategies,
   upgradeGuestAccount,
   type ActivityLog,
   type DemoSession,
   type Market,
   type Order,
   type PortfolioSummary,
-  type RegisteredAccount
+  type RegisteredAccount,
+  type Strategy
 } from "@/lib/api";
 import { useTradeLabAuth } from "@/lib/tradelab-auth";
 
@@ -31,6 +33,7 @@ type CoreDataState = {
   portfolio: PortfolioSummary | null;
   orders: Order[];
   activity: ActivityLog[];
+  strategies: Strategy[];
   accountingMode: AccountingMode;
   isLoading: boolean;
   isUpgrading: boolean;
@@ -52,6 +55,7 @@ type CoreDataState = {
 export function useAccountSession(): CoreDataState {
   const auth = useTradeLabAuth();
   const previousAuthStatus = useRef(auth.status);
+  const hasHydratedAccountingMode = useRef(false);
 
   const [guestSession, setGuestSession] = useState<DemoSession | null>(null);
   const [registeredAccount, setRegisteredAccount] = useState<RegisteredAccount | null>(null);
@@ -59,6 +63,7 @@ export function useAccountSession(): CoreDataState {
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [accountingMode, setAccountingModeState] = useState<AccountingMode>("average_cost");
   const [isLoading, setIsLoading] = useState(true);
   const [isUpgrading, setIsUpgrading] = useState(false);
@@ -113,17 +118,19 @@ export function useAccountSession(): CoreDataState {
   async function loadCoreData(walletID: string, token?: string | null) {
     setError(null);
 
-    const [marketList, portfolioSummary, orderHistory, activityHistory] = await Promise.all([
+    const [marketList, portfolioSummary, orderHistory, activityHistory, strategyList] = await Promise.all([
       fetchMarkets(),
       fetchPortfolio(walletID, token ?? "", accountingMode),
       fetchOrders(token ?? "", { accountingMode }),
-      fetchActivity(token ?? "")
+      fetchActivity(token ?? ""),
+      fetchStrategies(token ?? "")
     ]);
 
     setMarkets(marketList);
     setPortfolio(portfolioSummary);
     setOrders(orderHistory);
     setActivity(activityHistory);
+    setStrategies(strategyList);
   }
 
   async function bootstrapRegistered() {
@@ -195,6 +202,11 @@ export function useAccountSession(): CoreDataState {
 
   useEffect(() => {
     if (!activeWalletID) {
+      return;
+    }
+
+    if (!hasHydratedAccountingMode.current) {
+      hasHydratedAccountingMode.current = true;
       return;
     }
 
@@ -313,6 +325,7 @@ export function useAccountSession(): CoreDataState {
       portfolio,
       orders,
       activity,
+      strategies,
       accountingMode,
       isLoading,
       isUpgrading,
@@ -343,6 +356,7 @@ export function useAccountSession(): CoreDataState {
       orders,
       portfolio,
       registeredAccount,
+      strategies,
       shouldShowAuthValuePrompt,
       showUpgradePrompt,
       success

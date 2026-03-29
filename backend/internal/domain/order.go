@@ -6,6 +6,7 @@ type OrderSide string
 type OrderType string
 type OrderStatus string
 type AccountingMode string
+type OrderSource string
 
 const (
 	OrderSideBuy  OrderSide = "buy"
@@ -15,6 +16,10 @@ const (
 
 	OrderStatusPending OrderStatus = "pending"
 	OrderStatusFilled  OrderStatus = "filled"
+
+	OrderSourceManual   OrderSource = "manual"
+	OrderSourceStrategy OrderSource = "strategy"
+	OrderSourceSystem   OrderSource = "system"
 
 	AccountingModeAverageCost AccountingMode = "average_cost"
 	AccountingModeFIFO        AccountingMode = "fifo"
@@ -27,6 +32,8 @@ type Order struct {
 	WalletID      string      `json:"walletID"`
 	MarketID      string      `json:"marketID"`
 	MarketSymbol  string      `json:"marketSymbol"`
+	StrategyID    string      `json:"strategyID,omitempty"`
+	OrderSource   OrderSource `json:"orderSource"`
 	BaseAsset     string      `json:"baseAsset"`
 	QuoteAsset    string      `json:"quoteAsset"`
 	QuoteAmount   float64     `json:"quoteAmount"`

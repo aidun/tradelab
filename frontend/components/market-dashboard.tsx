@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React, { startTransition, useEffect, useMemo, useState } from "react";
 
-import { fetchCandles, placeMarketOrder, type AccountingMode, type Candle, type MarketDataMeta } from "@/lib/api";
+import { fetchCandles, patchStrategy, placeMarketOrder, saveStrategy, type AccountingMode, type Candle, type MarketDataMeta, type Strategy, type StrategyConfig } from "@/lib/api";
 import { AuthEntryActions, AuthStatusControls, useTradeLabAuth } from "@/lib/tradelab-auth";
 import { useAccountSession } from "@/lib/use-account-session";
 
@@ -39,6 +39,19 @@ function pnlTone(value: number) {
   if (value > 0) return "text-[var(--accent)]";
   if (value < 0) return "text-[var(--accent-hot)]";
   return "text-[var(--muted)]";
+}
+
+function strategyStatusTone(status: Strategy["status"]) {
+  switch (status) {
+    case "active":
+      return "text-[var(--accent)]";
+    case "paused":
+      return "text-[var(--accent-warm)]";
+    case "archived":
+      return "text-[var(--accent-hot)]";
+    default:
+      return "text-[var(--muted)]";
+  }
 }
 
 function CandleChart({ candles }: { candles: Candle[] }) {
@@ -79,10 +92,11 @@ function CandleChart({ candles }: { candles: Candle[] }) {
 export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT" }: MarketDashboardProps) {
   const auth = useTradeLabAuth();
   const {
-    guestSession, registeredAccount, markets, portfolio, orders, activity, accountingMode, isLoading, isUpgrading,
+    guestSession, registeredAccount, markets, portfolio, orders, activity, strategies, accountingMode, isLoading, isUpgrading,
     showUpgradePrompt, error, success, activeWalletID, accountModeLabel, shouldShowAuthValuePrompt,
     clearMessages, setErrorMessage, setSuccessMessage, setAccountingMode, refreshCoreData, upgradeGuestSession, activeAccessToken
   } = useAccountSession();
+  const availableStrategies = strategies ?? [];
   const [selectedMarket, setSelectedMarket] = useState(initialMarket);
   const [selectedInterval, setSelectedInterval] = useState("1h");
   const [buyQuoteAmount, setBuyQuoteAmount] = useState("50");
@@ -92,6 +106,12 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const [chartError, setChartError] = useState<string | null>(null);
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingStrategy, setIsSavingStrategy] = useState(false);
+  const [strategyConfig, setStrategyConfig] = useState<StrategyConfig>({
+    dipBuy: { enabled: true, dipPercent: 5, spendQuoteAmount: 100 },
+    takeProfit: { enabled: true, triggerPercent: 8 },
+    stopLoss: { enabled: true, triggerPercent: 3 }
+  });
 
   useEffect(() => {
     setSelectedMarket(initialMarket);
@@ -123,10 +143,24 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   }, [activeWalletID, selectedInterval, selectedMarket]);
 
   const selectedPosition = useMemo(() => portfolio?.positions.find((position) => position.marketSymbol === selectedMarket) ?? null, [portfolio, selectedMarket]);
+  const selectedStrategy = useMemo(() => availableStrategies.find((item) => item.marketSymbol === selectedMarket) ?? null, [availableStrategies, selectedMarket]);
   const visibleOrders = useMemo(() => (detailOnly ? orders.filter((order) => order.marketSymbol === selectedMarket) : orders), [detailOnly, orders, selectedMarket]);
   const visibleActivity = useMemo(() => (detailOnly ? activity.filter((item) => item.marketSymbol === selectedMarket || item.marketSymbol === "") : activity), [activity, detailOnly, selectedMarket]);
   const accountSummary = registeredAccount && auth.user ? auth.user.displayName : guestSession ? `${guestSession.walletID.slice(0, 8)}...` : "--";
   const lastPrice = candles.length > 0 ? candles[candles.length - 1].closePrice : null;
+
+  useEffect(() => {
+    if (selectedStrategy) {
+      setStrategyConfig(selectedStrategy.config);
+      return;
+    }
+
+    setStrategyConfig({
+      dipBuy: { enabled: true, dipPercent: 5, spendQuoteAmount: 100 },
+      takeProfit: { enabled: true, triggerPercent: 8 },
+      stopLoss: { enabled: true, triggerPercent: 3 }
+    });
+  }, [selectedStrategy]);
 
   async function submitOrder(side: "buy" | "sell") {
     clearMessages();
@@ -147,6 +181,36 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
       setErrorMessage(submitError instanceof Error ? submitError.message : "Order failed");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function persistStrategy(nextStatus: Strategy["status"]) {
+    clearMessages();
+    setIsSavingStrategy(true);
+
+    try {
+      const token = await activeAccessToken();
+      if (selectedStrategy) {
+        await patchStrategy({
+          id: selectedStrategy.id,
+          status: nextStatus,
+          config: strategyConfig,
+          token
+        });
+      } else {
+        await saveStrategy({
+          marketSymbol: selectedMarket,
+          status: nextStatus,
+          config: strategyConfig,
+          token
+        });
+      }
+      await refreshCoreData();
+      setSuccessMessage(`Automation ${nextStatus === "active" ? "activated" : "saved"} for ${selectedMarket}.`);
+    } catch (strategyError) {
+      setErrorMessage(strategyError instanceof Error ? strategyError.message : "Failed to save automation");
+    } finally {
+      setIsSavingStrategy(false);
     }
   }
 
@@ -215,7 +279,12 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                   <Link key={market.id} href={`/markets/${encodeURIComponent(market.symbol)}`} className="rounded-[24px] border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4 text-left transition hover:border-[var(--accent)]">
                     <div className="flex items-center justify-between gap-4">
                       <div><p className="text-lg font-semibold">{market.symbol}</p><p className="mt-1 text-sm text-[var(--muted)]">{market.baseAsset} priced in {market.quoteAsset}</p></div>
-                      <span className="text-sm text-[var(--accent)]">Open market detail</span>
+                      <div className="text-right">
+                        <p className={`text-sm ${strategyStatusTone(availableStrategies.find((item) => item.marketSymbol === market.symbol)?.status ?? "draft")}`}>
+                          {availableStrategies.find((item) => item.marketSymbol === market.symbol)?.status ?? "no automation"}
+                        </p>
+                        <span className="text-sm text-[var(--accent)]">Open market detail</span>
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -246,6 +315,60 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
           </section>
 
           <div className="mt-6 grid gap-6 xl:grid-cols-2">
+            {detailOnly ? (
+              <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur xl:col-span-2">
+                <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Automation</p>
+                <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <label className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold">Dip buy</span>
+                        <input type="checkbox" checked={strategyConfig.dipBuy.enabled} onChange={(event) => setStrategyConfig((current) => ({ ...current, dipBuy: { ...current.dipBuy, enabled: event.target.checked } }))} />
+                      </div>
+                      <div className="mt-3 grid gap-3">
+                        <input value={strategyConfig.dipBuy.dipPercent} onChange={(event) => setStrategyConfig((current) => ({ ...current, dipBuy: { ...current.dipBuy, dipPercent: Number(event.target.value) } }))} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
+                        <input value={strategyConfig.dipBuy.spendQuoteAmount} onChange={(event) => setStrategyConfig((current) => ({ ...current, dipBuy: { ...current.dipBuy, spendQuoteAmount: Number(event.target.value) } }))} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
+                      </div>
+                    </label>
+                    <label className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold">Take profit</span>
+                        <input type="checkbox" checked={strategyConfig.takeProfit.enabled} onChange={(event) => setStrategyConfig((current) => ({ ...current, takeProfit: { ...current.takeProfit, enabled: event.target.checked } }))} />
+                      </div>
+                      <div className="mt-3 grid gap-3">
+                        <input value={strategyConfig.takeProfit.triggerPercent} onChange={(event) => setStrategyConfig((current) => ({ ...current, takeProfit: { ...current.takeProfit, triggerPercent: Number(event.target.value) } }))} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
+                      </div>
+                    </label>
+                    <label className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold">Stop loss</span>
+                        <input type="checkbox" checked={strategyConfig.stopLoss.enabled} onChange={(event) => setStrategyConfig((current) => ({ ...current, stopLoss: { ...current.stopLoss, enabled: event.target.checked } }))} />
+                      </div>
+                      <div className="mt-3 grid gap-3">
+                        <input value={strategyConfig.stopLoss.triggerPercent} onChange={(event) => setStrategyConfig((current) => ({ ...current, stopLoss: { ...current.stopLoss, triggerPercent: Number(event.target.value) } }))} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
+                      </div>
+                    </label>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm font-semibold">Status</span>
+                      <span className={strategyStatusTone(selectedStrategy?.status ?? "draft")}>{selectedStrategy?.status ?? "draft"}</span>
+                    </div>
+                    <div className="mt-4 grid gap-2 text-sm text-[var(--muted)]">
+                      <span>Last decision: {selectedStrategy?.lastDecision || "--"}</span>
+                      <span>Last outcome: {selectedStrategy?.lastOutcome || "--"}</span>
+                      <span>Reference price: {selectedStrategy?.referencePrice ? formatCurrency(selectedStrategy.referencePrice) : "--"}</span>
+                    </div>
+                    <p className="mt-4 text-sm leading-7 text-[var(--muted)]">{selectedStrategy?.lastReason || "No evaluation yet. Save and activate automation to start the strategy loop."}</p>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <button type="button" onClick={() => void persistStrategy(selectedStrategy?.status === "active" ? "active" : "draft")} disabled={isSavingStrategy} className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--text)] disabled:opacity-60">{isSavingStrategy ? "Saving..." : "Save bundle"}</button>
+                      <button type="button" onClick={() => void persistStrategy("active")} disabled={isSavingStrategy} className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[#04111a] disabled:opacity-60">Activate</button>
+                      <button type="button" onClick={() => void persistStrategy("paused")} disabled={isSavingStrategy || !selectedStrategy} className="rounded-2xl bg-[var(--accent-warm)] px-4 py-3 text-sm font-semibold text-[#04111a] disabled:opacity-60">Pause</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            ) : null}
             <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">
               <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">{detailOnly ? "Trade tickets" : "Balances"}</p>
               {detailOnly ? (
@@ -294,7 +417,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                   <div key={order.id} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
                     <div className="flex items-center justify-between gap-4"><span className="text-lg font-semibold">{order.marketSymbol}</span><span className={order.side === "sell" ? "text-[var(--accent-warm)]" : "text-[var(--accent)]"}>{order.side}</span></div>
                     <p className="mt-2 text-sm text-[var(--muted)]">{formatNumber(order.baseQuantity)} units at {formatCurrency(order.expectedPrice)}</p>
-                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-[var(--muted)]"><span>Quote {formatCurrency(order.quoteAmount)}</span><span>After trade {formatNumber(order.positionAfter)}</span>{order.side === "sell" ? <span className={pnlTone(order.realizedPnL)}>Realized {formatCurrency(order.realizedPnL)}</span> : null}</div>
+                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-[var(--muted)]"><span>Quote {formatCurrency(order.quoteAmount)}</span><span>After trade {formatNumber(order.positionAfter)}</span><span>{order.orderSource === "strategy" ? "Automated" : "Manual"}</span>{order.side === "sell" ? <span className={pnlTone(order.realizedPnL)}>Realized {formatCurrency(order.realizedPnL)}</span> : null}</div>
                   </div>
                 )) : <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">No orders yet for this scope.</div>}
               </div>

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
 )
@@ -44,4 +45,14 @@ type PortfolioRepository interface {
 	GetSummary(ctx context.Context, walletID string) (domain.PortfolioSummary, error)
 	ListByWallet(ctx context.Context, walletID string, limit int) ([]domain.Order, error)
 	ListActivityByWallet(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)
+}
+
+type StrategyRepository interface {
+	ListByWallet(ctx context.Context, walletID string, marketSymbol string) ([]domain.Strategy, error)
+	UpsertForWalletMarket(ctx context.Context, strategy domain.Strategy) (domain.Strategy, error)
+	GetByIDForWallet(ctx context.Context, walletID string, strategyID string) (domain.Strategy, error)
+	ClaimActiveStrategies(ctx context.Context, claimToken string, limit int, staleBefore time.Time) ([]domain.Strategy, error)
+	RecordEvaluation(ctx context.Context, strategy domain.Strategy, run domain.StrategyRun, nextReferencePrice float64) error
+	RecordEvaluationError(ctx context.Context, strategy domain.Strategy, run domain.StrategyRun) error
+	RecordLifecycleActivity(ctx context.Context, strategy domain.Strategy, title string, message string) error
 }

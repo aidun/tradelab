@@ -239,6 +239,17 @@ function installFetchMock(scenario: FetchScenario = {}) {
       return Promise.resolve(new Response(JSON.stringify({ activity: orderResponses[orderStateIndex].activity })));
     }
 
+    if (url.includes("/api/v1/strategies")) {
+      record("strategies");
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            strategies: []
+          })
+        )
+      );
+    }
+
     record("portfolio");
     return Promise.resolve(new Response(JSON.stringify({ portfolio: orderResponses[orderStateIndex].portfolio })));
   });

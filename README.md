@@ -24,7 +24,7 @@ It helps teams and individual builders:
 
 - `Stage`: active demo sandbox
 - `Reference market`: `XRP/USDT`
-- `Scope`: paper trading, dashboard UX, portfolio tracking, release automation
+- `Scope`: paper trading, strategy automation, dashboard UX, portfolio tracking, release automation
 - `Not included`: live trading, custody, exchange account linking, financial advice
 
 ## Core capabilities
@@ -38,6 +38,8 @@ It helps teams and individual builders:
 - portfolio, balances, orders, positions, realized PnL, unrealized PnL, and activity history
 - selectable accounting modes across the portfolio surface: `Average cost`, `FIFO`, and `Hybrid`
 - dedicated market detail routes for focused trading flows
+- rule-based strategy automation with one bundle per wallet and market
+- built-in `dip_buy`, `take_profit`, and `stop_loss` automation in the market detail experience
 - market candle rendering with bounded stale-feed fallback behavior
 - Kubernetes deployment assets, CI validation, and release automation
 
@@ -49,14 +51,16 @@ TradeLab currently supports a compact but realistic user journey:
 2. inspect the default market and feed state
 3. optionally sign in with Google or Apple after first value appears
 4. choose whether to preserve guest demo data or start with a fresh registered account
-5. execute a demo buy or sell
-6. switch accounting modes globally to inspect valuation and PnL
-7. review balances, positions, orders, and activity across overview and market detail screens
+5. configure and activate a strategy bundle for a market
+6. execute manual or automated demo buys and sells
+7. switch accounting modes globally to inspect valuation and PnL
+8. review balances, positions, orders, activity, and bot reasoning across overview and market detail screens
 
 Visual walkthrough:
 
 ![Dashboard overview](docs/screenshots/dashboard-overview.png)
 ![Market detail](docs/screenshots/market-detail-page.png)
+![Automation active](docs/screenshots/strategy-automation-active.png)
 ![Demo sell success](docs/screenshots/demo-sell-success.png)
 ![Accounting mode switch](docs/screenshots/accounting-mode-switch.png)
 
@@ -149,6 +153,8 @@ Only set parameters if you are deviating from the defaults:
 | `TRADESLAB_CLERK_ISSUER_URL` | before backend startup if you want registered-account verification against Clerk instead of guest-only mode | empty |
 | `TRADESLAB_CLERK_JWKS_URL` | before backend startup if you want registered-account verification against Clerk instead of guest-only mode | empty |
 | `TRADESLAB_AUTH_MOCK_MODE` | before backend startup for local or CI auth mocking without live Clerk configuration | `false` |
+| `STRATEGY_ENGINE_ENABLED` | before backend startup if you want to disable the in-process strategy engine locally | `true` |
+| `STRATEGY_ENGINE_TICK` | before backend startup if you want a strategy-evaluation interval other than `60s` | `60s` |
 | `TRADESLAB_API_PROXY_TARGET` | before frontend startup if the backend is not running on `http://localhost:8080` | `http://localhost:8080` |
 | `NEXT_PUBLIC_API_BASE_URL` | before frontend startup only if the browser should call another API origin directly | empty |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | before frontend startup when you want real Clerk UI instead of guest-only or mock auth mode | empty |

@@ -31,6 +31,7 @@
   "runtime_components": [
     "frontend web application",
     "backend API",
+    "in-process strategy engine",
     "postgres database",
     "ingress routing",
     "migration init container",
@@ -46,6 +47,10 @@
     "server-authoritative market buy and sell execution",
     "global accounting-mode selection across portfolio and history",
     "focused trading flow through /markets/[symbol]",
+    "one strategy bundle per wallet and market",
+    "in-process strategy evaluation with database-backed claiming",
+    "strategy-driven dip-buy, take-profit, and stop-loss automation",
+    "human-readable bot reasoning in the activity log",
     "market-data fetch with bounded stale fallback",
     "structured backend request and service logging",
     "PR-first CI validation",
@@ -95,7 +100,8 @@
       "GET /healthz",
       "GET /api/v1/markets",
       "GET /api/v1/markets/{symbol}/candles",
-      "POST /api/v1/sessions/demo"
+      "POST /api/v1/sessions/demo",
+      "GET /api/v1/strategies"
     ],
     "protected_routes": [
       "POST /api/v1/account/bootstrap",
@@ -103,11 +109,14 @@
       "GET /api/v1/portfolios/{walletID}",
       "GET /api/v1/orders",
       "GET /api/v1/activity",
-      "POST /api/v1/orders"
+      "POST /api/v1/orders",
+      "POST /api/v1/strategies",
+      "PATCH /api/v1/strategies/{id}"
     ],
     "auth_model": "Guest routes use backend-issued bearer tokens scoped to the browser session, while registered routes use Clerk-backed bootstrap plus a TradeLab HttpOnly app-session cookie",
-    "order_contract": "POST /api/v1/orders accepts explicit side-specific payloads for buy and sell execution",
+    "order_contract": "POST /api/v1/orders accepts explicit side-specific payloads for buy and sell execution, including strategy-sourced orders internally",
     "portfolio_query_contract": "Portfolio and order-history reads accept accounting_mode, with orders and activity also supporting market_symbol filtering for focused screens",
+    "strategy_contract": "Strategy routes manage one configurable automation bundle per wallet and market, with status, config, and last evaluation state",
     "session_security_routes": [
       "POST /api/v1/account/logout"
     ]
@@ -173,6 +182,8 @@
     "Switch the global accounting mode between average cost, FIFO, and hybrid.",
     "Open the dedicated /markets/[symbol] screen for focused trading.",
     "Execute demo buys and sells.",
+    "Configure and activate a strategy bundle from the market detail screen.",
+    "Inspect the last automation decision, outcome, and reason.",
     "Review balances, positions, realized PnL, unrealized PnL, orders, and activity after execution."
   ],
   "onboarding": {
@@ -250,7 +261,9 @@
       "MARKET_DATA_BASE_URL",
       "TRADESLAB_CLERK_ISSUER_URL",
       "TRADESLAB_CLERK_JWKS_URL",
-      "TRADESLAB_AUTH_MOCK_MODE"
+      "TRADESLAB_AUTH_MOCK_MODE",
+      "STRATEGY_ENGINE_ENABLED",
+      "STRATEGY_ENGINE_TICK"
     ],
     "local_frontend_env": [
       "TRADESLAB_API_PROXY_TARGET",
@@ -306,7 +319,14 @@
     "phase_5": {
       "epic_issue": 34,
       "focus": "Strategy automation v1",
-      "child_issues": [56, 57, 58, 59, 60]
+      "child_issues": [56, 57, 58, 59, 60],
+      "locked_decisions": {
+        "strategy_bundle_scope": "one bundle per wallet and market",
+        "engine_runtime": "in-process Go API worker",
+        "rules": ["dip_buy", "take_profit", "stop_loss"],
+        "sell_scope": "take-profit and stop-loss close the full open position",
+        "explanations": "user-facing activity should explain automated actions in plain English"
+      }
     },
     "phase_6": {
       "epic_issue": 35,
@@ -584,6 +604,17 @@
           "update docs/user-guide.md",
           "refresh screenshots",
           "update frontend tests and e2e tests",
+          "update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Add or change strategy automation behavior",
+        "followups": [
+          "update docs/user-guide.md",
+          "update docs/data-model.md",
+          "update docs/system-operations.md",
+          "refresh screenshots if automation UI changed",
+          "update backend tests, frontend tests, and e2e tests",
           "update docs/ai-metadata.json"
         ]
       },

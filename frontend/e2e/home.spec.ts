@@ -8,6 +8,7 @@ function portfolioState(index: number) {
           id: "order-1",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          orderSource: "manual",
           side: "buy",
           baseQuantity: 74.62,
           quoteAmount: 50,
@@ -72,6 +73,8 @@ function portfolioState(index: number) {
           id: "order-2",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          orderSource: "strategy",
+          strategyID: "strategy-1",
           side: "buy",
           baseQuantity: 108.7,
           quoteAmount: 75,
@@ -89,7 +92,7 @@ function portfolioState(index: number) {
           marketSymbol: "XRP/USDT",
           logType: "trade",
           title: "Demo buy executed",
-          message: "Bought 108.7000 XRP at 0.6900 USDT. Position size is now updating in the portfolio view.",
+          message: "Strategy executed a buy for 108.7000 XRP at 0.6900 USDT.",
           createdAt: "2026-03-29T12:03:00Z"
         }
       ],
@@ -136,6 +139,8 @@ function portfolioState(index: number) {
           id: "order-3",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          orderSource: "strategy",
+          strategyID: "strategy-1",
           side: "sell",
           baseQuantity: 50,
           quoteAmount: 40,
@@ -153,7 +158,7 @@ function portfolioState(index: number) {
           marketSymbol: "XRP/USDT",
           logType: "trade",
           title: "Demo sell recorded",
-          message: "Sold 50.0000 XRP at 0.8000 USDT. Review realized PnL in the updated portfolio and order history.",
+          message: "Strategy executed a sell for 50.0000 XRP at 0.8000 USDT.",
           createdAt: "2026-03-29T12:05:00Z"
         }
       ],
@@ -200,6 +205,8 @@ function portfolioState(index: number) {
           id: "order-4",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          orderSource: "strategy",
+          strategyID: "strategy-1",
           side: "sell",
           baseQuantity: 58.7,
           quoteAmount: 52.83,
@@ -217,7 +224,7 @@ function portfolioState(index: number) {
           marketSymbol: "XRP/USDT",
           logType: "trade",
           title: "Demo sell recorded",
-          message: "Sold 58.7000 XRP at 0.9000 USDT. Review realized PnL in the updated portfolio and order history.",
+          message: "Strategy executed a sell for 58.7000 XRP at 0.9000 USDT.",
           createdAt: "2026-03-29T12:07:00Z"
         }
       ],
@@ -245,6 +252,21 @@ function portfolioState(index: number) {
 
 test.beforeEach(async ({ page }) => {
   let orderStateIndex = 0;
+  let strategyState = {
+    id: "strategy-1",
+    walletID: "wallet-1",
+    marketSymbol: "XRP/USDT",
+    status: "draft",
+    config: {
+      dipBuy: { enabled: true, dipPercent: 5, spendQuoteAmount: 100 },
+      takeProfit: { enabled: true, triggerPercent: 8 },
+      stopLoss: { enabled: true, triggerPercent: 3 }
+    },
+    referencePrice: 0.64,
+    lastDecision: "",
+    lastOutcome: "",
+    lastReason: ""
+  };
 
   await page.addInitScript(() => {
     window.localStorage.clear();
@@ -348,6 +370,77 @@ test.beforeEach(async ({ page }) => {
       return;
     }
 
+    if (url.endsWith("/api/v1/strategies") && request.method() === "POST") {
+      const payload = request.postDataJSON() as { status: "draft" | "active" | "paused"; config: typeof strategyState.config };
+      strategyState = {
+        ...strategyState,
+        status: payload.status,
+        config: payload.config
+      };
+
+      if (payload.status === "active") {
+        orderStateIndex = 1;
+        strategyState = {
+          ...strategyState,
+          status: "active",
+          lastDecision: "buy",
+          lastOutcome: "executed",
+          lastReason: "Dip-buy fired because XRP/USDT dropped below the configured threshold."
+        };
+      }
+
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({ strategy: strategyState })
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/strategies/") && request.method() === "PATCH") {
+      const payload = request.postDataJSON() as { status: "active" | "paused"; config: typeof strategyState.config };
+      strategyState = {
+        ...strategyState,
+        status: payload.status,
+        config: payload.config
+      };
+
+      if (payload.status === "active") {
+        if (orderStateIndex <= 1) {
+          orderStateIndex = 2;
+          strategyState = {
+            ...strategyState,
+            lastDecision: "sell",
+            lastOutcome: "executed",
+            lastReason: "Take-profit fired because XRP/USDT moved above the configured target."
+          };
+        }
+      } else if (payload.status === "paused") {
+        strategyState = {
+          ...strategyState,
+          lastDecision: "hold",
+          lastOutcome: "skipped",
+          lastReason: "Strategy paused by user."
+        };
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ strategy: strategyState })
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/strategies")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ strategies: [strategyState] })
+      });
+      return;
+    }
+
     if (url.includes("/api/v1/portfolios/")) {
       await route.fulfill({
         status: 200,
@@ -439,4 +532,31 @@ test("switches accounting modes globally", async ({ page }) => {
   await page.getByRole("button", { name: "FIFO" }).click();
 
   await expect(page.getByText(/fifo/i).first()).toBeVisible();
+});
+
+test("configures and activates a dip-buy strategy", async ({ page }) => {
+  await page.goto("/markets/XRP%2FUSDT");
+  await page.getByRole("button", { name: /activate/i }).click();
+
+  await expect(page.getByText(/automation activated for xrp\/usdt/i)).toBeVisible();
+  await expect(page.getByText(/dip-buy fired/i)).toBeVisible();
+  await expect(page.getByText(/automated/i).first()).toBeVisible();
+});
+
+test("executes a strategy-driven take-profit sell after activation", async ({ page }) => {
+  await page.goto("/markets/XRP%2FUSDT");
+  await page.getByRole("button", { name: /activate/i }).click();
+  await page.getByRole("button", { name: /activate/i }).click();
+
+  await expect(page.getByText(/take-profit fired/i)).toBeVisible();
+  await expect(page.getByText(/realized \$5.00/i).first()).toBeVisible();
+});
+
+test("pauses an active strategy without executing a new trade", async ({ page }) => {
+  await page.goto("/markets/XRP%2FUSDT");
+  await page.getByRole("button", { name: /activate/i }).click();
+  await page.getByRole("button", { name: /pause/i }).click();
+
+  await expect(page.getByText(/strategy paused by user/i)).toBeVisible();
+  await expect(page.getByText(/^paused$/i)).toBeVisible();
 });

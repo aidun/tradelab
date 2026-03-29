@@ -18,8 +18,9 @@ The current user experience now uses two connected surfaces:
 3. global accounting mode can be switched between `Average cost`, `FIFO`, and `Hybrid`
 4. after the dashboard shows value, the user can choose to keep going as a guest or sign in with Google or Apple
 5. the user can open a dedicated market detail page
-6. the user can submit demo market buys and sells
-7. balances, positions, orders, activity, and PnL update after execution
+6. the user can configure a rule-based strategy bundle for the selected market
+7. the user can submit manual demo market buys and sells or let automation execute them
+8. balances, positions, orders, activity, and PnL update after execution
 
 ## Dashboard overview
 
@@ -46,6 +47,7 @@ The market detail page combines:
 - current position state
 - demo buy ticket
 - demo sell ticket
+- strategy automation card
 - filtered order history
 - filtered activity for the selected market
 
@@ -112,7 +114,29 @@ TradeLab executes the trade in the backend and then refreshes:
 
 ![TradeLab demo sell success state](screenshots/demo-sell-success.png)
 
-### 5. Switch accounting modes
+### 5. Configure strategy automation
+
+TradeLab now supports one strategy bundle per wallet and market.
+
+The automation card on the market detail page can manage:
+
+- `Dip buy`
+- `Take profit`
+- `Stop loss`
+
+What you can do:
+
+1. adjust thresholds and spend size
+2. save the bundle as a draft
+3. activate the bundle
+4. pause the bundle later
+5. inspect the latest decision, outcome, and plain-English reason
+
+Automated trades use the same demo wallet and order system as manual trades. In history they appear as `Automated` trades, and the activity log explains why the strategy fired.
+
+![TradeLab automation active state](screenshots/strategy-automation-active.png)
+
+### 6. Switch accounting modes
 
 TradeLab applies one global accounting mode across overview and market detail:
 
@@ -124,7 +148,7 @@ This lets you compare the same simulated trades under different valuation logic 
 
 ![TradeLab accounting mode switch](screenshots/accounting-mode-switch.png)
 
-### 6. Review the outcome
+### 7. Review the outcome
 
 After an order succeeds, use the overview and market detail together.
 
@@ -153,7 +177,8 @@ The current product is still intentionally narrow:
 - no real-money wallets
 - no exchange account linking
 - no financial advice
-- no strategy automation in the user workflow yet
+- one automation bundle per market and wallet only
+- no multi-strategy conflict management yet
 - no live account linking beyond demo-only registered accounts
 
 ## Related documentation

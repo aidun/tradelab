@@ -16,6 +16,7 @@ import (
 	"github.com/aidun/tradelab/backend/internal/logging"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 	sessionservice "github.com/aidun/tradelab/backend/internal/service/session"
+	strategyservice "github.com/aidun/tradelab/backend/internal/service/strategy"
 )
 
 type MarketLister interface {
@@ -42,6 +43,12 @@ type ActivityHistoryLister interface {
 	ListActivity(ctx context.Context, walletID string, limit int, marketSymbol string) ([]domain.ActivityLog, error)
 }
 
+type StrategyManager interface {
+	ListStrategies(ctx context.Context, walletID string, marketSymbol string) ([]domain.Strategy, error)
+	UpsertStrategy(ctx context.Context, input strategyservice.UpsertStrategyInput) (domain.Strategy, error)
+	PatchStrategy(ctx context.Context, input strategyservice.PatchStrategyInput) (domain.Strategy, error)
+}
+
 type DemoSessionManager interface {
 	CreateDemoSession(ctx context.Context) (domain.DemoSession, error)
 	Authenticate(ctx context.Context, token string) (domain.DemoSession, error)
@@ -57,7 +64,7 @@ type RegisteredAccountManager interface {
 
 const registeredSessionCookieName = "tradelab_app_session"
 
-func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) http.Handler {
+func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, strategies StrategyManager, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -296,6 +303,93 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"activity": items})
+	})
+
+	mux.HandleFunc("GET /api/v1/strategies", func(w http.ResponseWriter, r *http.Request) {
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
+		if !ok {
+			return
+		}
+
+		items, err := strategies.ListStrategies(r.Context(), principal.WalletID, strings.TrimSpace(r.URL.Query().Get("market_symbol")))
+		if err != nil {
+			logError(logger, "strategies.list_failed", err, "wallet_id", principal.WalletID)
+			writeError(w, http.StatusInternalServerError, "failed to load strategies")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{"strategies": items})
+	})
+
+	mux.HandleFunc("POST /api/v1/strategies", func(w http.ResponseWriter, r *http.Request) {
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
+		if !ok {
+			return
+		}
+
+		var payload struct {
+			MarketSymbol string                `json:"market_symbol"`
+			Status       domain.StrategyStatus `json:"status"`
+			Config       domain.StrategyConfig `json:"config"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON payload")
+			return
+		}
+
+		strategy, err := strategies.UpsertStrategy(r.Context(), strategyservice.UpsertStrategyInput{
+			UserID:       principal.UserID,
+			WalletID:     principal.WalletID,
+			MarketSymbol: payload.MarketSymbol,
+			Status:       payload.Status,
+			Config:       payload.Config,
+		})
+		if err != nil {
+			logError(logger, "strategies.create_failed", err, "wallet_id", principal.WalletID, "market_symbol", payload.MarketSymbol)
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusCreated, map[string]any{"strategy": strategy})
+	})
+
+	mux.HandleFunc("PATCH /api/v1/strategies/", func(w http.ResponseWriter, r *http.Request) {
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
+		if !ok {
+			return
+		}
+
+		strategyID := strings.TrimPrefix(r.URL.Path, "/api/v1/strategies/")
+		if strategyID == "" {
+			writeError(w, http.StatusBadRequest, "strategy ID is required")
+			return
+		}
+
+		var payload struct {
+			Status domain.StrategyStatus `json:"status"`
+			Config domain.StrategyConfig `json:"config"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON payload")
+			return
+		}
+
+		strategy, err := strategies.PatchStrategy(r.Context(), strategyservice.PatchStrategyInput{
+			UserID:   principal.UserID,
+			WalletID: principal.WalletID,
+			ID:       strategyID,
+			Status:   payload.Status,
+			Config:   payload.Config,
+		})
+		if err != nil {
+			logError(logger, "strategies.patch_failed", err, "wallet_id", principal.WalletID, "strategy_id", strategyID)
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{"strategy": strategy})
 	})
 
 	mux.HandleFunc("POST /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
