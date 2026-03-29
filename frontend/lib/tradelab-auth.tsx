@@ -5,7 +5,6 @@ import {
   ClerkProvider,
   SignInButton,
   SignUpButton,
-  UserButton,
   useAuth,
   useClerk,
   useUser
@@ -121,10 +120,6 @@ export function AuthStatusControls() {
 
   if (!auth.available || auth.status !== "signed_in") {
     return null;
-  }
-
-  if (auth.provider === "clerk") {
-    return <UserButton />;
   }
 
   return (
