@@ -39,17 +39,29 @@ export type PortfolioSummary = {
   balances: Balance[];
 };
 
-const DEFAULT_API_BASE_URL = "http://localhost:8080";
+export type Order = {
+  id: string;
+  walletID: string;
+  marketSymbol: string;
+  quoteAmount: number;
+  expectedPrice: number;
+  status: string;
+  createdAt: string;
+};
 
-function getApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL;
-}
+export type ActivityLog = {
+  id: string;
+  walletID: string;
+  logType: string;
+  title: string;
+  message: string;
+  createdAt: string;
+};
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 export async function fetchMarkets(): Promise<Market[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/markets`, {
-    cache: "no-store"
-  });
-
+  const response = await fetch(`${API_BASE_URL}/api/v1/markets`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to load markets");
   }
@@ -59,7 +71,7 @@ export async function fetchMarkets(): Promise<Market[]> {
 }
 
 export async function fetchPortfolio(walletID: string): Promise<PortfolioSummary> {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/portfolios/${walletID}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/portfolios/${walletID}`, {
     cache: "no-store"
   });
 
@@ -71,6 +83,30 @@ export async function fetchPortfolio(walletID: string): Promise<PortfolioSummary
   return data.portfolio;
 }
 
+export async function fetchOrders(walletID: string): Promise<Order[]> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/orders?wallet_id=${walletID}`, {
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load orders");
+  }
+
+  const data = await response.json();
+  return data.orders;
+}
+
+export async function fetchActivity(walletID: string): Promise<ActivityLog[]> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/activity?wallet_id=${walletID}`, {
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load activity");
+  }
+
+  const data = await response.json();
+  return data.activity;
+}
+
 export async function placeMarketBuy(input: {
   userID: string;
   walletID: string;
@@ -78,7 +114,7 @@ export async function placeMarketBuy(input: {
   quoteAmount: number;
   expectedPrice: number;
 }) {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/orders`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/orders`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -93,8 +129,8 @@ export async function placeMarketBuy(input: {
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({ error: "Order failed" }));
-    throw new Error(data.error ?? "Order failed");
+    const payload = await response.json().catch(() => ({ error: "Order failed" }));
+    throw new Error(payload.error ?? "Order failed");
   }
 
   return response.json();

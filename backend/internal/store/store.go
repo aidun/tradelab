@@ -17,9 +17,13 @@ type BalanceRepository interface {
 
 type OrderRepository interface {
 	Create(ctx context.Context, order domain.Order) (domain.Order, error)
+	ListByWallet(ctx context.Context, walletID string, limit int) ([]domain.Order, error)
+	ListActivityByWallet(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)
 }
 
 type PortfolioRepository interface {
 	ApplyMarketBuy(ctx context.Context, order domain.Order) (domain.Order, error)
 	GetSummary(ctx context.Context, walletID string) (domain.PortfolioSummary, error)
+	ListByWallet(ctx context.Context, walletID string, limit int) ([]domain.Order, error)
+	ListActivityByWallet(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)
 }

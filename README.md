@@ -69,6 +69,14 @@ curl http://localhost:8080/api/v1/portfolios/1ddb1c1c-827f-4bf0-b85a-3d5786c3b26
 ```
 
 ```bash
+curl "http://localhost:8080/api/v1/orders?wallet_id=1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c"
+```
+
+```bash
+curl "http://localhost:8080/api/v1/activity?wallet_id=1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c"
+```
+
+```bash
 curl -X POST http://localhost:8080/api/v1/orders \
   -H "Content-Type: application/json" \
   -d '{
