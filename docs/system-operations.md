@@ -26,7 +26,7 @@ TradeLab currently consists of these runtime components:
 
 - Kubernetes namespace: `tradelab-dev`
 - image tags: `latest`
-- database secret source: local ignored `.env.database`
+- database secret source: generated bootstrap secret unless `tradelab-database` already exists
 - ingress class: `traefik`
 - default ingress host: `tradelab.192.168.2.200.sslip.io`
 - intended for fast local or shared-dev iteration
@@ -35,7 +35,7 @@ TradeLab currently consists of these runtime components:
 
 - Kubernetes namespace: `tradelab`
 - image tags in release manifests: immutable release tag such as `v0.1.<run-number>`
-- database secret source: external secrets integration
+- database secret source: generated bootstrap secret by default, or external secrets through the optional production-external-secrets overlay
 - intended for controlled deployment via packaged release manifests
 
 ## Configuration and secrets
@@ -68,8 +68,9 @@ Important frontend configuration includes:
 
 Secret-bearing values should not be committed directly into base manifests.
 
-- development secrets come from `deploy/kubernetes/overlays/development/.env.database`
-- production secrets come from the configured external secret store
+- development secrets come from the generated bootstrap secret unless `tradelab-database` already exists
+- generated Kubernetes secrets are used as the first-run fallback when `tradelab-database` is absent
+- production can later switch to the configured external secret store through `deploy/kubernetes/overlays/production-external-secrets`
 - database credentials and `DATABASE_URL` are the primary required runtime secrets today
 - Clerk publishable keys are frontend-safe, but Clerk secret material must remain server-side only
 - mock-auth flags are development and CI-only controls and must not be treated as production runtime settings
@@ -79,17 +80,17 @@ Secret-bearing values should not be committed directly into base manifests.
 
 ### Development deploy
 
-1. Create `deploy/kubernetes/overlays/development/.env.database`.
-2. Bootstrap the cluster platform through [infrastructure-bootstrap.md](infrastructure-bootstrap.md) if Traefik, MetalLB, and Argo CD are not already present.
-3. Render or apply the development overlay.
+1. Bootstrap the cluster platform through [infrastructure-bootstrap.md](infrastructure-bootstrap.md) if Traefik, MetalLB, and Argo CD are not already present.
+2. Render or apply the development overlay.
+3. Verify the generated or pre-created `tradelab-database` secret.
 4. Verify ingress, backend health, and frontend availability.
 
 ### Production deploy
 
-1. Ensure the external secret store is populated.
+1. Decide whether production should use generated first-run credentials or the external-secret overlay.
 2. Ensure the release workflow has produced immutable images and a packaged manifest artifact.
 3. Render the release manifest with `deploy/kubernetes/render-release-manifests.sh` or use the packaged release artifact.
-4. Apply the manifest.
+4. Apply the manifest or Argo CD application.
 5. Verify backend health, frontend reachability, and database connectivity.
 
 ## Release model

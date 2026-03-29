@@ -7,14 +7,6 @@ resources:
   - ../../base
   - namespace.yaml
 
-secretGenerator:
-  - name: tradelab-database
-    envs:
-      - .env.database
-
-generatorOptions:
-  disableNameSuffixHash: true
-
 images:
   - name: ghcr.io/aidun/tradelab-backend
     newTag: latest

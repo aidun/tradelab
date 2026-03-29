@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tradelab-database-bootstrap-script
+data:
+  bootstrap.sh: |
+    #!/bin/sh
+    set -eu
+
+    if kubectl get secret tradelab-database >/dev/null 2>&1; then
+      echo "tradelab-database already exists"
+      exit 0
+    fi
+
+    postgres_db="${POSTGRES_DB:-tradelab}"
+    postgres_user="${POSTGRES_USER:-tradelab}"
+    postgres_password="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
+    database_url="postgres://${postgres_user}:${postgres_password}@tradelab-postgres:5432/${postgres_db}?sslmode=disable"
+
+    kubectl create secret generic tradelab-database \
+      --from-literal=POSTGRES_DB="${postgres_db}" \
+      --from-literal=POSTGRES_USER="${postgres_user}" \
+      --from-literal=POSTGRES_PASSWORD="${postgres_password}" \
+      --from-literal=DATABASE_URL="${database_url}"

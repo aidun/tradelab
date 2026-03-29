@@ -41,7 +41,7 @@ It helps teams and individual builders:
 - rule-based strategy automation with one bundle per wallet and market
 - built-in `dip_buy`, `take_profit`, and `stop_loss` automation in the market detail experience
 - market candle rendering with bounded stale-feed fallback behavior
-- Kubernetes deployment assets, repo-managed Traefik and MetalLB bootstrap, CI validation, and release automation
+- Kubernetes deployment assets, repo-managed Traefik and MetalLB bootstrap, generated first-run database credentials, CI validation, and release automation
 
 ## Product walkthrough
 

@@ -138,9 +138,6 @@ jobs:
         with:
           version: v1.32.2
 
-      - name: Prepare development secret inputs
-        run: cp deploy/kubernetes/overlays/development/.env.database.example deploy/kubernetes/overlays/development/.env.database
-
       - name: Render Argo CD bootstrap install
         run: kubectl kustomize deploy/infrastructure/bootstrap/argocd-install > /tmp/tradelab-argocd-install.yaml
 
@@ -161,6 +158,9 @@ jobs:
 
       - name: Render production overlay
         run: kubectl kustomize deploy/kubernetes/overlays/production > /tmp/tradelab-prod.yaml
+
+      - name: Render production overlay with External Secrets
+        run: kubectl kustomize deploy/kubernetes/overlays/production-external-secrets > /tmp/tradelab-prod-external-secrets.yaml
 
       - name: Validate immutable release manifest rendering
         run: |

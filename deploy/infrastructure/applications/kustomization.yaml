@@ -5,3 +5,4 @@ resources:
   - platform-namespaces.yaml
   - metallb.yaml
   - traefik.yaml
+  - tradelab-dev.yaml
