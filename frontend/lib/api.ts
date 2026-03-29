@@ -66,6 +66,15 @@ export type DemoSession = {
   expiresAt: string;
 };
 
+export type RegisteredAccount = {
+  userID: string;
+  walletID: string;
+  clerkUserID: string;
+  email: string;
+  displayName: string;
+  mode: "registered";
+};
+
 export type Candle = {
   openTime: string;
   closeTime: string;
@@ -222,4 +231,59 @@ export async function placeMarketBuy(input: {
   }
 
   return response.json();
+}
+
+export async function bootstrapRegisteredAccount(token: string): Promise<RegisteredAccount> {
+  const response = await fetch(apiUrl("/api/v1/account/bootstrap"), {
+    method: "POST",
+    headers: authHeaders(token)
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ error: "Failed to bootstrap account" }));
+    throw new Error(payload.error ?? "Failed to bootstrap account");
+  }
+
+  const data = await response.json();
+  return {
+    userID: data.account.user_id,
+    walletID: data.account.wallet_id,
+    clerkUserID: data.account.clerk_user_id,
+    email: data.account.email ?? "",
+    displayName: data.account.display_name,
+    mode: "registered"
+  };
+}
+
+export async function upgradeGuestAccount(input: {
+  registeredToken: string;
+  guestToken: string;
+  preserveGuestData: boolean;
+}): Promise<RegisteredAccount> {
+  const response = await fetch(apiUrl("/api/v1/account/upgrade"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-TradeLab-Guest-Token": input.guestToken,
+      ...authHeaders(input.registeredToken)
+    },
+    body: JSON.stringify({
+      preserve_guest_data: input.preserveGuestData
+    })
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ error: "Failed to upgrade guest account" }));
+    throw new Error(payload.error ?? "Failed to upgrade guest account");
+  }
+
+  const data = await response.json();
+  return {
+    userID: data.account.user_id,
+    walletID: data.account.wallet_id,
+    clerkUserID: data.account.clerk_user_id,
+    email: data.account.email ?? "",
+    displayName: data.account.display_name,
+    mode: "registered"
+  };
 }

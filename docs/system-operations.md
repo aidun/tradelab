@@ -42,14 +42,19 @@ Important backend configuration includes:
 - `HTTP_ADDRESS`
 - `DATABASE_URL`
 - `MARKET_DATA_BASE_URL`
+- `TRADESLAB_CLERK_ISSUER_URL`
+- `TRADESLAB_CLERK_JWKS_URL`
+- `TRADESLAB_AUTH_MOCK_MODE`
 
-Future identity changes should treat external authentication as a separate trust boundary from application trading sessions. See [authentication-model.md](authentication-model.md) and [clerk-architecture.md](clerk-architecture.md).
+TradeLab now treats external authentication as a separate trust boundary from application trading sessions. See [authentication-model.md](authentication-model.md) and [clerk-architecture.md](clerk-architecture.md).
 
 ### Frontend
 
 Important frontend configuration includes:
 
 - `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_AUTH_MOCK_MODE`
 - any same-origin or proxy alignment needed for local/runtime routing
 
 ### Secrets
@@ -166,6 +171,8 @@ For a release-focused view of published artifacts and release meaning, see [rele
   Usually visible as failed pod startup, database auth errors, or unreachable upstreams.
 - `market-data upstream degradation`
   Backend may fall back to stale market data for a bounded period; after that, market-dependent actions can fail explicitly.
+- `identity configuration failure`
+  Usually visible as missing registered-account bootstrap, rejected Clerk bearer tokens, or an absent social-login surface when auth was expected.
 - `release packaging failure`
   Usually visible in GitHub Actions during image publication or manifest rendering.
 
@@ -188,7 +195,9 @@ After deploy:
 - backend `/healthz` responds
 - frontend loads and can reach `/api`
 - database-backed routes respond successfully
-- session creation and protected API access work
+- guest session creation works
+- registered-account bootstrap works when Clerk is configured
+- protected API access works for the intended identity mode
 
 When triaging incidents:
 

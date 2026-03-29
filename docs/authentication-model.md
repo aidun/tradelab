@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This document defines the TradeLab identity model for the transition from guest demo sessions to durable registered accounts.
+This document defines the TradeLab identity model for the current coexistence of guest demo sessions and durable registered accounts.
 
-The current product remains demo-only, but authentication is now a first-class product surface. The target identity provider is `Clerk`, with guest mode kept as the low-friction entry point.
+The current product remains demo-only, and authentication is now a first-class product surface. TradeLab uses `Clerk` as the registered-account provider while keeping guest mode as the low-friction entry point.
 
 ## Identity modes
 
-TradeLab should support two identity modes:
+TradeLab now supports two identity modes:
 
 ### 1. Guest demo mode
 
@@ -65,13 +65,14 @@ On first launch, TradeLab should continue to:
 
 ### Upgrade path
 
-At the appropriate point in the user journey, the product should offer an upgrade path from guest mode to a registered account.
+After the user reaches the dashboard, the product offers an upgrade path from guest mode to a registered account.
 
-The guest-upgrade path should:
+The guest-upgrade path now:
 
-- preserve the low-friction first experience
-- make the durability benefit explicit
-- avoid forcing registration before the user understands the product
+- preserves the low-friction first experience
+- makes the durability benefit explicit
+- avoids forcing registration before the user understands the product
+- asks whether guest demo data should be preserved or discarded
 
 ## Account ownership model
 
@@ -96,12 +97,12 @@ Registered accounts should own:
 
 ## Session model
 
-TradeLab should separate:
+TradeLab separates:
 
 - `identity`: handled by Clerk
 - `application demo session`: handled by the TradeLab backend
 
-This means a registered user can still have an application-level demo session, but that session is linked to a durable identity instead of existing only as an anonymous guest token.
+This means a registered user still works inside a demo account context, but that context is linked to a durable Clerk identity instead of existing only as an anonymous guest token.
 
 ## Future compatibility
 

@@ -26,11 +26,12 @@ Goal:
 
 ## Flow 2. Sign up
 
-1. User chooses to create a durable account.
+1. User sees the durable-account prompt after the dashboard has loaded and first value is visible.
 2. Clerk presents available signup methods.
 3. User signs up with Google, Apple, or another enabled provider.
-4. TradeLab creates or links the internal user record.
-5. TradeLab initializes the durable demo account context.
+4. TradeLab asks whether guest demo data should be preserved or discarded.
+5. TradeLab creates or links the internal user record.
+6. TradeLab initializes the durable demo account context.
 
 Goal:
 
@@ -41,7 +42,7 @@ Goal:
 1. User returns to TradeLab.
 2. Clerk authenticates the user.
 3. The backend resolves the internal user and account context.
-4. The product opens into the user-owned demo environment.
+4. The product opens into the user-owned demo environment without forcing guest re-entry.
 
 Goal:
 
@@ -52,7 +53,7 @@ Goal:
 1. User signs out from the account controls.
 2. Clerk session is terminated in the frontend.
 3. Any active registered-account application context is cleared.
-4. The product may offer a return to guest mode.
+4. TradeLab falls back to a new guest demo session automatically.
 
 Goal:
 

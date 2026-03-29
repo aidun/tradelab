@@ -33,6 +33,8 @@
   ],
   "key_workflows": [
     "demo session creation",
+    "guest-to-registered account upgrade with preserve-or-fresh choice",
+    "registered account bootstrap through Clerk-backed identity",
     "authenticated paper-trading API access",
     "server-authoritative market buy execution",
     "market-data fetch with bounded stale fallback",
@@ -86,12 +88,14 @@
       "POST /api/v1/sessions/demo"
     ],
     "protected_routes": [
+      "POST /api/v1/account/bootstrap",
+      "POST /api/v1/account/upgrade",
       "GET /api/v1/portfolios/{walletID}",
       "GET /api/v1/orders",
       "GET /api/v1/activity",
       "POST /api/v1/orders"
     ],
-    "auth_model": "Bearer token from demo session today, planned transition to Clerk-backed registered accounts plus TradeLab application sessions"
+    "auth_model": "Bearer token from either a guest demo session or a Clerk-backed registered account, with guest mode as the default entry path"
   },
   "quality_gates": {
     "ci_jobs": [
@@ -172,6 +176,7 @@
       "backend health endpoint responds",
       "frontend renders the dashboard",
       "a guest demo session is created automatically",
+      "the durable account prompt appears after the dashboard has loaded when auth is available",
       "markets and chart data load",
       "portfolio panels load",
       "a demo buy updates balances, positions, orders, and activity"
@@ -179,8 +184,8 @@
     "product_requirements_doc": "docs/onboarding-requirements.md"
   },
   "identity_roadmap": {
-    "current_state": "guest demo sessions only",
-    "target_state": "guest mode plus Clerk-backed registered accounts",
+    "current_state": "guest demo sessions plus Clerk-backed registered accounts",
+    "target_state": "guest mode plus hardened Clerk-backed registered accounts with stronger session security in Phase 3",
     "managed_auth_provider": "Clerk",
     "social_login_targets": ["Google", "Apple"],
     "documentation": [
@@ -223,11 +228,16 @@
     "local_backend_env": [
       "HTTP_ADDRESS",
       "DATABASE_URL",
-      "MARKET_DATA_BASE_URL"
+      "MARKET_DATA_BASE_URL",
+      "TRADESLAB_CLERK_ISSUER_URL",
+      "TRADESLAB_CLERK_JWKS_URL",
+      "TRADESLAB_AUTH_MOCK_MODE"
     ],
     "local_frontend_env": [
       "TRADESLAB_API_PROXY_TARGET",
-      "NEXT_PUBLIC_API_BASE_URL"
+      "NEXT_PUBLIC_API_BASE_URL",
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "NEXT_PUBLIC_AUTH_MOCK_MODE"
     ],
     "kubernetes_development_secret_keys": [
       "POSTGRES_DB",

@@ -32,13 +32,11 @@ TradeLab should support two lifecycle types:
 
 Guest users should be able to upgrade to a registered account.
 
-The upgrade path should define whether:
+The upgrade path now lets the user choose whether:
 
 - demo balances are preserved
 - trade history is preserved
 - a new durable account is created and linked
-
-The product should explicitly communicate the chosen behavior.
 
 ## Registered account lifecycle
 
@@ -60,7 +58,7 @@ The product should explicitly communicate the chosen behavior.
 ### Logout
 
 - user leaves the durable account context
-- the product should either return to a signed-out state or offer guest re-entry
+- the product returns to guest re-entry automatically
 
 ## Multi-device expectations
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"github.com/aidun/tradelab/backend/internal/config"
 	httpapi "github.com/aidun/tradelab/backend/internal/http"
 	"github.com/aidun/tradelab/backend/internal/logging"
+	accountservice "github.com/aidun/tradelab/backend/internal/service/account"
 	historyservice "github.com/aidun/tradelab/backend/internal/service/history"
 	marketservice "github.com/aidun/tradelab/backend/internal/service/market"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
@@ -31,15 +33,27 @@ func main() {
 	balanceRepository := postgres.NewBalanceRepository(db)
 	portfolioRepository := postgres.NewPortfolioRepository(db)
 	sessionRepository := postgres.NewDemoSessionRepository(db)
+	registeredAccountRepository := postgres.NewRegisteredAccountRepository(db)
+
+	clerkVerifier, err := accountservice.NewClerkTokenVerifier(context.Background(), accountservice.ClerkVerifierConfig{
+		JWKSURL:  cfg.ClerkJWKSURL,
+		Issuer:   cfg.ClerkIssuerURL,
+		MockMode: cfg.AuthMockMode,
+	})
+	if err != nil {
+		logger.Error("failed to initialize clerk verifier", "operation", "startup.clerk_verifier", "error", err)
+		os.Exit(1)
+	}
 
 	marketService := marketservice.NewService(marketRepository, cfg.MarketDataBaseURL, logging.NewJSONLogger("market_service"))
 	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository, marketService, logging.NewJSONLogger("order_service"))
 	portfolioService := portfolioservice.NewService(portfolioRepository, logging.NewJSONLogger("portfolio_service"))
 	historyService := historyservice.NewService(portfolioRepository, logging.NewJSONLogger("history_service"))
 	sessionService := sessionservice.NewService(sessionRepository, logging.NewJSONLogger("session_service"))
+	accountService := accountservice.NewService(registeredAccountRepository, clerkVerifier, logging.NewJSONLogger("account_service"))
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
-		Handler: httpapi.NewRouter(marketService, marketService, orderService, portfolioService, historyService, historyService, sessionService, logging.NewJSONLogger("http_api")),
+		Handler: httpapi.NewRouter(marketService, marketService, orderService, portfolioService, historyService, historyService, sessionService, accountService, logging.NewJSONLogger("http_api")),
 	}
 
 	logger.Info("backend listening", "operation", "startup.listen", "address", cfg.HTTPAddress)

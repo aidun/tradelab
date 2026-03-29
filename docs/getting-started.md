@@ -64,6 +64,7 @@ What you should expect on first launch:
 3. the market list appears with `XRP/USDT` as the reference pair
 4. the chart loads with a feed freshness indicator
 5. portfolio panels, recent orders, and activity become visible
+6. after first value appears, the app can offer a durable-account upgrade through Google or Apple login
 
 The full walkthrough is in [user-guide.md](user-guide.md).
 
@@ -119,8 +120,13 @@ Only set configuration values when you intentionally deviate from the default to
 | `DATABASE_URL` | before migrations or backend startup | your PostgreSQL host, port, user, password, or DB name differs |
 | `HTTP_ADDRESS` | before backend startup | you want the API on another address or port |
 | `MARKET_DATA_BASE_URL` | before backend startup | you want another upstream market-data base URL |
+| `TRADESLAB_CLERK_ISSUER_URL` | before backend startup | you want real Clerk-backed registered-account verification |
+| `TRADESLAB_CLERK_JWKS_URL` | before backend startup | you want real Clerk-backed registered-account verification |
+| `TRADESLAB_AUTH_MOCK_MODE` | before backend startup | you want local or CI auth mocking instead of live Clerk verification |
 | `TRADESLAB_API_PROXY_TARGET` | before frontend startup | the frontend should proxy `/api` to a non-default backend origin |
 | `NEXT_PUBLIC_API_BASE_URL` | before frontend startup | the browser should call a different API origin directly |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | before frontend startup | you want the real Clerk UI and social-login surface |
+| `NEXT_PUBLIC_AUTH_MOCK_MODE` | before frontend startup | you want local or CI auth mocking instead of live Clerk UI |
 
 For the complete matrix, see [deployment.md](deployment.md).
 
@@ -133,6 +139,7 @@ Use this checklist after setup:
 - backend responds at `/healthz`
 - frontend renders the dashboard
 - a demo session is created automatically
+- the durable-account prompt appears after the dashboard has loaded when auth is available
 - the market list loads
 - the chart loads candle data
 - portfolio panels load successfully

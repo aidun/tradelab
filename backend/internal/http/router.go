@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -45,7 +46,13 @@ type DemoSessionManager interface {
 	Authenticate(ctx context.Context, token string) (domain.DemoSession, error)
 }
 
-func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, sessions DemoSessionManager, logger *slog.Logger) http.Handler {
+type RegisteredAccountManager interface {
+	AuthenticateRegistered(ctx context.Context, token string) (domain.RegisteredAccount, error)
+	BootstrapRegisteredAccount(ctx context.Context, token string) (domain.RegisteredAccount, error)
+	UpgradeGuestSession(ctx context.Context, registeredToken string, guestToken string, preserveGuestData bool) (domain.RegisteredAccount, error)
+}
+
+func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -121,8 +128,81 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		})
 	})
 
+	mux.HandleFunc("POST /api/v1/account/bootstrap", func(w http.ResponseWriter, r *http.Request) {
+		token, ok := bearerToken(r.Header.Get("Authorization"))
+		if !ok {
+			logInfo(logger, "auth.registered_missing_bearer_token", "path", r.URL.Path)
+			writeError(w, http.StatusUnauthorized, "missing bearer token")
+			return
+		}
+
+		account, err := registeredAccounts.BootstrapRegisteredAccount(r.Context(), token)
+		if err != nil {
+			logError(logger, "account.bootstrap_failed", err, "path", r.URL.Path)
+			writeError(w, http.StatusUnauthorized, "failed to bootstrap registered account")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"account": map[string]any{
+				"user_id":       account.UserID,
+				"wallet_id":     account.WalletID,
+				"clerk_user_id": account.ClerkUserID,
+				"email":         account.Email,
+				"display_name":  account.DisplayName,
+				"mode":          "registered",
+			},
+		})
+	})
+
+	mux.HandleFunc("POST /api/v1/account/upgrade", func(w http.ResponseWriter, r *http.Request) {
+		token, ok := bearerToken(r.Header.Get("Authorization"))
+		if !ok {
+			logInfo(logger, "auth.registered_missing_bearer_token", "path", r.URL.Path)
+			writeError(w, http.StatusUnauthorized, "missing bearer token")
+			return
+		}
+
+		guestToken := strings.TrimSpace(r.Header.Get("X-TradeLab-Guest-Token"))
+		if guestToken == "" {
+			writeError(w, http.StatusBadRequest, "guest token is required")
+			return
+		}
+
+		var payload struct {
+			PreserveGuestData bool `json:"preserve_guest_data"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && !errors.Is(err, io.EOF) {
+			writeError(w, http.StatusBadRequest, "invalid JSON payload")
+			return
+		}
+
+		account, err := registeredAccounts.UpgradeGuestSession(r.Context(), token, guestToken, payload.PreserveGuestData)
+		if err != nil {
+			statusCode := http.StatusUnauthorized
+			if strings.Contains(err.Error(), "already exists") {
+				statusCode = http.StatusConflict
+			}
+			logError(logger, "account.upgrade_failed", err, "path", r.URL.Path, "status_code", statusCode)
+			writeError(w, statusCode, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"account": map[string]any{
+				"user_id":       account.UserID,
+				"wallet_id":     account.WalletID,
+				"clerk_user_id": account.ClerkUserID,
+				"email":         account.Email,
+				"display_name":  account.DisplayName,
+				"mode":          "registered",
+			},
+		})
+	})
+
 	mux.HandleFunc("GET /api/v1/portfolios/", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions, logger)
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
 		if !ok {
 			return
 		}
@@ -133,7 +213,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		if walletID != demoSession.WalletID {
+		if walletID != principal.WalletID {
 			writeError(w, http.StatusForbidden, "wallet access denied")
 			return
 		}
@@ -149,14 +229,14 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("GET /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions, logger)
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
 		if !ok {
 			return
 		}
 
-		items, err := orderHistory.ListOrders(r.Context(), demoSession.WalletID, parseLimit(r.URL.Query().Get("limit")))
+		items, err := orderHistory.ListOrders(r.Context(), principal.WalletID, parseLimit(r.URL.Query().Get("limit")))
 		if err != nil {
-			logError(logger, "orders.history_failed", err, "wallet_id", demoSession.WalletID)
+			logError(logger, "orders.history_failed", err, "wallet_id", principal.WalletID)
 			writeError(w, http.StatusInternalServerError, "failed to load orders")
 			return
 		}
@@ -165,14 +245,14 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("GET /api/v1/activity", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions, logger)
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
 		if !ok {
 			return
 		}
 
-		items, err := activityHistory.ListActivity(r.Context(), demoSession.WalletID, parseLimit(r.URL.Query().Get("limit")))
+		items, err := activityHistory.ListActivity(r.Context(), principal.WalletID, parseLimit(r.URL.Query().Get("limit")))
 		if err != nil {
-			logError(logger, "activity.history_failed", err, "wallet_id", demoSession.WalletID)
+			logError(logger, "activity.history_failed", err, "wallet_id", principal.WalletID)
 			writeError(w, http.StatusInternalServerError, "failed to load activity")
 			return
 		}
@@ -181,7 +261,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("POST /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
-		demoSession, ok := requireSession(w, r, sessions, logger)
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
 		if !ok {
 			return
 		}
@@ -197,10 +277,10 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		logInfo(logger, "orders.create_attempt", "wallet_id", demoSession.WalletID, "market_symbol", payload.MarketSymbol, "quote_amount", payload.QuoteAmount)
+		logInfo(logger, "orders.create_attempt", "wallet_id", principal.WalletID, "market_symbol", payload.MarketSymbol, "quote_amount", payload.QuoteAmount)
 		order, err := orders.PlaceMarketBuy(r.Context(), orderservice.PlaceMarketBuyInput{
-			UserID:       demoSession.UserID,
-			WalletID:     demoSession.WalletID,
+			UserID:       principal.UserID,
+			WalletID:     principal.WalletID,
 			MarketSymbol: payload.MarketSymbol,
 			QuoteAmount:  payload.QuoteAmount,
 		})
@@ -214,38 +294,57 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 				statusCode = http.StatusUnprocessableEntity
 			}
 
-			logError(logger, "orders.create_failed", err, "wallet_id", demoSession.WalletID, "market_symbol", payload.MarketSymbol, "status_code", statusCode)
+			logError(logger, "orders.create_failed", err, "wallet_id", principal.WalletID, "market_symbol", payload.MarketSymbol, "status_code", statusCode)
 			writeError(w, statusCode, err.Error())
 			return
 		}
 
-		logInfo(logger, "orders.create_success", "wallet_id", demoSession.WalletID, "market_symbol", order.MarketSymbol, "order_id", order.ID)
+		logInfo(logger, "orders.create_success", "wallet_id", principal.WalletID, "market_symbol", order.MarketSymbol, "order_id", order.ID)
 		writeJSON(w, http.StatusCreated, map[string]any{"order": order})
 	})
 
 	return loggingMiddleware(logger, mux)
 }
 
-func requireSession(w http.ResponseWriter, r *http.Request, sessions DemoSessionManager, logger *slog.Logger) (domain.DemoSession, bool) {
+func requirePrincipal(w http.ResponseWriter, r *http.Request, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) (domain.Principal, bool) {
 	token, ok := bearerToken(r.Header.Get("Authorization"))
 	if !ok {
 		logInfo(logger, "auth.missing_bearer_token", "path", r.URL.Path)
 		writeError(w, http.StatusUnauthorized, "missing bearer token")
-		return domain.DemoSession{}, false
+		return domain.Principal{}, false
 	}
 
 	demoSession, err := sessions.Authenticate(r.Context(), token)
-	if err != nil {
-		statusCode := http.StatusUnauthorized
-		if !errors.Is(err, sessionservice.ErrInvalidSession) {
-			statusCode = http.StatusInternalServerError
-		}
-		logError(logger, "auth.invalid_session", err, "path", r.URL.Path, "status_code", statusCode)
-		writeError(w, statusCode, "invalid session token")
-		return domain.DemoSession{}, false
+	if err == nil {
+		return domain.Principal{
+			Kind:      domain.PrincipalKindGuest,
+			UserID:    demoSession.UserID,
+			WalletID:  demoSession.WalletID,
+			SessionID: demoSession.ID,
+		}, true
 	}
 
-	return demoSession, true
+	if !errors.Is(err, sessionservice.ErrInvalidSession) {
+		logError(logger, "auth.invalid_session", err, "path", r.URL.Path, "status_code", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "invalid session token")
+		return domain.Principal{}, false
+	}
+
+	// Guest sessions stay the default path, but once that lookup says "not a guest token"
+	// we fall through to the registered-account verifier so both identity models can coexist.
+	account, registeredErr := registeredAccounts.AuthenticateRegistered(r.Context(), token)
+	if registeredErr != nil {
+		logError(logger, "auth.invalid_registered_account", registeredErr, "path", r.URL.Path, "status_code", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "invalid session token")
+		return domain.Principal{}, false
+	}
+
+	return domain.Principal{
+		Kind:        domain.PrincipalKindRegistered,
+		UserID:      account.UserID,
+		WalletID:    account.WalletID,
+		ClerkUserID: account.ClerkUserID,
+	}, true
 }
 
 func bearerToken(header string) (string, bool) {
