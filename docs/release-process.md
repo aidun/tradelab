@@ -15,9 +15,10 @@ The release workflow is intentionally manual and is triggered through GitHub Act
 Recommended operator flow:
 
 1. merge reviewed work into `master`
-2. trigger the `Release` workflow from `master`
-3. confirm the GitHub Release and immutable images were published
-4. trigger `Promote Production` when production should move to the newest official release
+2. if the development publish step for the current `master` state was missed, manually dispatch `Publish Master Images` with `source_ref=master`
+3. trigger the `Release` workflow from `master`
+4. confirm the GitHub Release and immutable images were published
+5. trigger `Promote Production` when production should move to the newest official release
 
 ## Release stages
 

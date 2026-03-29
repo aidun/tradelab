@@ -127,6 +127,7 @@ Development image policy:
 - the overlay defaults to the mutable `master` tag for direct manual rendering
 - the Argo CD development application overrides both images to immutable `master-<shortsha>` tags
 - the same Argo application pins `targetRevision` to the exact source commit that produced those images
+- if the master-image workflow was introduced after the current `master` state landed or a run was missed, operators can manually dispatch `Publish Master Images` with `source_ref=master` to backfill the immutable development images and Argo target update
 
 ### Kubernetes production parameters
 

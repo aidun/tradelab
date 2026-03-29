@@ -6,6 +6,13 @@ on:
       - master
     paths-ignore:
       - deploy/infrastructure/applications/tradelab-dev.yaml
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Git ref to publish for development backfill
+        required: true
+        default: master
+        type: string
 
 permissions:
   contents: write
@@ -22,18 +29,21 @@ jobs:
     outputs:
       short_sha: ${{ steps.meta.outputs.short_sha }}
       full_sha: ${{ steps.meta.outputs.full_sha }}
+      source_ref: ${{ steps.meta.outputs.source_ref }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.sha }}
 
       - name: Compute image metadata
         id: meta
         shell: bash
         run: |
           short_sha="$(git rev-parse --short=12 HEAD)"
+          source_ref="${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.sha }}"
+          echo "source_ref=$source_ref" >> "$GITHUB_OUTPUT"
           echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
           echo "full_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
