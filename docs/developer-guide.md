@@ -115,6 +115,45 @@ TradeLab currently follows a PR-first workflow:
 - `master` is the release branch
 - successful `master` runs produce release artifacts and published container images
 
+## GitHub Actions flow
+
+TradeLab uses three workflows in sequence:
+
+1. `CI`
+2. `Auto Merge PR`
+3. `Release`
+
+### CI
+
+The CI workflow runs these jobs in parallel:
+
+- `Backend tests`
+- `Frontend unit tests`
+- `Frontend build`
+- `Frontend E2E tests`
+- `Backend container build`
+- `Frontend container build`
+- `Kubernetes manifests`
+- `Metadata validation`
+
+### Auto Merge PR
+
+When `CI` finishes successfully for a pull request targeting `master`, the auto-merge workflow performs a `squash` merge.
+
+### Release
+
+After the merge into `master`, the release workflow runs in this order:
+
+1. `Release metadata`
+2. `Verify backend` and `Verify frontend`
+3. `Build backend binaries`, `Build frontend artifact`, `Publish backend image`, and `Publish frontend image`
+4. `Package Kubernetes manifests`
+5. `Create GitHub release`
+
+This is the expected delivery chain for normal feature work:
+
+`feature branch -> pull request -> CI -> auto-merge -> master -> release`
+
 ## Contribution expectations
 
 When making changes:
