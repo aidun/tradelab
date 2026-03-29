@@ -62,6 +62,23 @@ The full end-user walkthrough with screenshots is available here:
 
 ## Local development
 
+### Parameters before you start
+
+For a default local setup you usually do not need to set anything manually.
+
+Only set parameters if you are deviating from the defaults:
+
+| Parameter | When to set it | Default |
+| --- | --- | --- |
+| `DATABASE_URL` | before backend startup or migrations if your local PostgreSQL is not the default local instance | `postgres://tradelab:tradelab@localhost:5432/tradelab?sslmode=disable` |
+| `HTTP_ADDRESS` | before backend startup if you want the API on a different port/address | `:8080` |
+| `MARKET_DATA_BASE_URL` | before backend startup if you want another upstream market-data endpoint | `https://api.binance.com` |
+| `TRADESLAB_API_PROXY_TARGET` | before frontend startup if the backend is not running on `http://localhost:8080` | `http://localhost:8080` |
+| `NEXT_PUBLIC_API_BASE_URL` | before frontend startup only if the browser should call another API origin directly | empty |
+
+For the full parameter matrix, including Kubernetes development and production values, see:
+[deployment.md](docs/deployment.md)
+
 ### Start PostgreSQL
 
 ```bash

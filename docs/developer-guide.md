@@ -29,6 +29,18 @@ This guide explains how to work in the TradeLab repository safely and efficientl
 
 ## Local workflow
 
+## Configuration checkpoints
+
+Before starting local services, review these only if you are not using the defaults:
+
+- `DATABASE_URL` before backend startup or migrations
+- `HTTP_ADDRESS` before backend startup
+- `MARKET_DATA_BASE_URL` before backend startup
+- `TRADESLAB_API_PROXY_TARGET` before frontend startup
+- `NEXT_PUBLIC_API_BASE_URL` before frontend startup if you want direct browser-to-API calls
+
+The full environment and deployment parameter reference lives in [deployment.md](deployment.md).
+
 ### Start dependencies
 
 ```bash

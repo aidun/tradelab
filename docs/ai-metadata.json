@@ -145,5 +145,29 @@
   "documentation_assets": {
     "screenshots_directory": "docs/screenshots/",
     "screenshot_generation": "frontend/scripts/capture-doc-screenshots.mjs"
+  },
+  "configuration": {
+    "local_backend_env": [
+      "HTTP_ADDRESS",
+      "DATABASE_URL",
+      "MARKET_DATA_BASE_URL"
+    ],
+    "local_frontend_env": [
+      "TRADESLAB_API_PROXY_TARGET",
+      "NEXT_PUBLIC_API_BASE_URL"
+    ],
+    "kubernetes_development_secret_keys": [
+      "POSTGRES_DB",
+      "POSTGRES_USER",
+      "POSTGRES_PASSWORD",
+      "DATABASE_URL"
+    ],
+    "kubernetes_production_secret_keys": [
+      "POSTGRES_DB",
+      "POSTGRES_USER",
+      "POSTGRES_PASSWORD",
+      "DATABASE_URL"
+    ],
+    "parameter_reference_doc": "docs/deployment.md"
   }
 }
