@@ -675,7 +675,7 @@ func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string,
 			o.wallet_id,
 			o.market_id,
 			m.symbol,
-			COALESCE(o.strategy_id, ''),
+			COALESCE(o.strategy_id::text, ''),
 			o.order_source,
 			base_asset.symbol,
 			quote_asset.symbol,
@@ -795,7 +795,7 @@ func insertOrderAndActivity(ctx context.Context, tx *sql.Tx, order domain.Order,
 			average_execution_price,
 			submitted_at,
 			executed_at
-		) VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		) VALUES ($1, $2, $3, $4, NULLIF($5, '')::uuid, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	`, order.ID, order.UserID, order.WalletID, order.MarketID, order.StrategyID, order.OrderSource, order.Side, order.Type, order.Status, order.BaseQuantity, order.QuoteAmount, order.BaseQuantity, order.ExpectedPrice, order.CreatedAt, order.ExecutedAt); err != nil {
 		return err
 	}
