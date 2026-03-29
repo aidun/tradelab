@@ -38,8 +38,8 @@ This guide explains how to work in the TradeLab repository safely and efficientl
 - PostgreSQL or Docker for local PostgreSQL
 - Git
 - optional but useful:
-  - `kubectl` with kustomize support
-  - GitHub CLI
+- `kubectl` with kustomize support
+- GitHub CLI
 
 ## Local workflow
 
@@ -121,6 +121,7 @@ kubectl kustomize deploy/infrastructure/platform/namespaces
 kubectl kustomize deploy/infrastructure/platform/metallb/config
 kubectl kustomize deploy/kubernetes/overlays/development
 kubectl kustomize deploy/kubernetes/overlays/production
+kubectl kustomize deploy/kubernetes/overlays/production-external-secrets
 ```
 
 ## Architecture map
@@ -223,6 +224,7 @@ When making changes:
 - `docs/security-model.md` is the source of truth for session, secret, redaction, and sensitive-data boundaries
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/infrastructure-bootstrap.md` is the source of truth for the k3s platform bootstrap and Argo CD app-of-apps layout
+- application secrets should default to generated bootstrap values when no secret exists, not to committed credentials
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/user-guide.md` is the user-facing walkthrough with screenshots
 - `docs/roadmap.md` is the public product direction summary

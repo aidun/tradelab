@@ -96,21 +96,16 @@ First local run order:
 
 ### Kubernetes development parameters
 
-The development overlay reads its database values from:
+The development overlay no longer requires a repo-local `.env.database` file.
 
-- [`.env.database.example`](../deploy/kubernetes/overlays/development/.env.database.example)
-- generated local file: `deploy/kubernetes/overlays/development/.env.database`
+If the secret `tradelab-database` does not already exist, the committed bootstrap job creates it automatically with:
 
-You must create `deploy/kubernetes/overlays/development/.env.database` before the first apply.
+- `POSTGRES_DB=tradelab`
+- `POSTGRES_USER=tradelab`
+- a generated `POSTGRES_PASSWORD`
+- a generated `DATABASE_URL`
 
-Required keys in that file:
-
-| Parameter | Required | When to set it | Used by |
-| --- | --- | --- | --- |
-| `POSTGRES_DB` | yes | before `kubectl apply -k deploy/kubernetes/overlays/development` | PostgreSQL StatefulSet |
-| `POSTGRES_USER` | yes | before `kubectl apply -k deploy/kubernetes/overlays/development` | PostgreSQL StatefulSet |
-| `POSTGRES_PASSWORD` | yes | before `kubectl apply -k deploy/kubernetes/overlays/development` | PostgreSQL StatefulSet |
-| `DATABASE_URL` | yes | before `kubectl apply -k deploy/kubernetes/overlays/development` | backend deployment and migration init container |
+If you want fixed development credentials instead, create `tradelab-database` manually before the first sync or apply. The bootstrap job exits without changing anything when the secret already exists.
 
 Additional development values defined in manifests:
 
@@ -124,9 +119,20 @@ Additional development values defined in manifests:
 
 ### Kubernetes production parameters
 
-The production overlay expects secrets from [external-secret.yaml](../deploy/kubernetes/overlays/production/external-secret.yaml).
+The default production overlay is now self-contained and follows the same bootstrap rule as development:
 
-Required remote secret properties:
+- if `tradelab-database` does not exist yet, the bootstrap job creates it with generated credentials
+- if `tradelab-database` already exists, the bootstrap job does nothing
+
+This makes first bring-up possible without a separate secret controller.
+
+For a later operator-managed secret flow, TradeLab also ships:
+
+- [production-external-secrets](../deploy/kubernetes/overlays/production-external-secrets/kustomization.yaml)
+
+That overlay adds an `ExternalSecret` on top of the normal production deployment.
+
+Required remote secret properties for the external-secret variant:
 
 | Parameter | Required | When to set it | Used by |
 | --- | --- | --- | --- |
@@ -139,7 +145,7 @@ Production values that usually need review before deployment:
 
 | Setting | Where to change it | When to change it |
 | --- | --- | --- |
-| external secret store name or path | [external-secret.yaml](../deploy/kubernetes/overlays/production/external-secret.yaml) | before first production deploy if your secret backend naming differs |
+| external secret store name or path | [external-secret.yaml](../deploy/kubernetes/overlays/production-external-secrets/external-secret.yaml) | before first production deploy if your secret backend naming differs |
 | ingress host and TLS host | [patch-ingress.yaml](../deploy/kubernetes/overlays/production/patch-ingress.yaml) | before first production deploy and whenever the public domain changes |
 | app replica counts | [patch-backend-deployment.yaml](../deploy/kubernetes/overlays/production/patch-backend-deployment.yaml) and [patch-frontend-deployment.yaml](../deploy/kubernetes/overlays/production/patch-frontend-deployment.yaml) | before scaling production capacity |
 | PostgreSQL storage size | [patch-postgres-persistent-volume-claim.yaml](../deploy/kubernetes/overlays/production/patch-postgres-persistent-volume-claim.yaml) | before first production deploy or storage expansion |
@@ -150,24 +156,7 @@ The development overlay uses:
 
 - namespace: `tradelab-dev`
 - host: `tradelab.192.168.2.200.sslip.io`
-- a local `.env.database` file that is generated outside Git
-
-Create the development secret input once:
-
-```bash
-cp deploy/kubernetes/overlays/development/.env.database.example deploy/kubernetes/overlays/development/.env.database
-```
-
-Edit `deploy/kubernetes/overlays/development/.env.database` before the first deployment.
-
-Typical development values:
-
-```env
-POSTGRES_DB=tradelab
-POSTGRES_USER=tradelab
-POSTGRES_PASSWORD=tradelab
-DATABASE_URL=postgres://tradelab:tradelab@tradelab-postgres:5432/tradelab?sslmode=disable
-```
+- generated database credentials if no secret already exists
 
 Then apply it:
 
@@ -177,6 +166,7 @@ kubectl apply -k deploy/kubernetes/overlays/development
 
 After apply, validate:
 
+- the `tradelab-database` secret exists
 - PostgreSQL pod is healthy
 - migration init container completed
 - backend `/healthz` responds
@@ -187,21 +177,21 @@ If you are using the committed platform bootstrap, `sslip.io` resolves the devel
 
 ## Production deployment
 
-The production overlay expects an `External Secrets Operator` installation and a `ClusterSecretStore`
-named `tradelab-secrets`. The committed manifest maps the Kubernetes secret `tradelab-database` from
-the external secret key `tradelab/production/database`.
-
 Before applying the production overlay:
 
-- make sure the external secret store exposes `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL`
-- update `deploy/kubernetes/overlays/production/external-secret.yaml` if your secret paths differ
 - replace the ingress host values in `deploy/kubernetes/overlays/production/patch-ingress.yaml`
 - review replica counts and storage size patches if the defaults are not suitable for your environment
 
-Then deploy:
+If you want generated first-run credentials, apply the default production overlay:
 
 ```bash
 kubectl apply -k deploy/kubernetes/overlays/production
+```
+
+If you want operator-managed credentials from External Secrets, make sure the external secret store exposes `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL`, then apply:
+
+```bash
+kubectl apply -k deploy/kubernetes/overlays/production-external-secrets
 ```
 
 For immutable production output tied to a release tag, render the packaged manifest shape with:
@@ -220,5 +210,6 @@ After apply, validate the first protected product flow with [installation-valida
 - The frontend also includes a rewrite fallback to `TRADESLAB_API_PROXY_TARGET`, which keeps local standalone runs aligned with the Kubernetes topology.
 - If you deploy outside the included ingress setup, re-check both `TRADESLAB_API_PROXY_TARGET` and `NEXT_PUBLIC_API_BASE_URL` so frontend requests still resolve correctly.
 - The committed application overlays now assume the `traefik` ingress class.
+- The committed overlays now generate initial database credentials automatically when `tradelab-database` is missing.
 - The recommended cluster entrypoint is the GitOps platform bootstrap in [infrastructure-bootstrap.md](infrastructure-bootstrap.md).
 - First-time install and smoke-test expectations live in [getting-started.md](getting-started.md) and [installation-validation.md](installation-validation.md).

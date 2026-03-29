@@ -1,22 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tradelab-dev
+  name: tradelab-prod
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   project: default
   source:
     repoURL: https://github.com/aidun/tradelab.git
     targetRevision: master
-    path: deploy/kubernetes/overlays/development
+    path: deploy/kubernetes/overlays/production
   destination:
     server: https://kubernetes.default.svc
-    namespace: tradelab-dev
+    namespace: tradelab
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true

@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tradelab-database-bootstrap
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tradelab-database-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: tradelab-database-bootstrap
+      containers:
+        - name: bootstrap
+          image: bitnami/kubectl:1.32.2
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - /bootstrap/bootstrap.sh
+          env:
+            - name: POSTGRES_DB
+              value: tradelab
+            - name: POSTGRES_USER
+              value: tradelab
+          volumeMounts:
+            - name: bootstrap-script
+              mountPath: /bootstrap
+              readOnly: true
+      volumes:
+        - name: bootstrap-script
+          configMap:
+            name: tradelab-database-bootstrap-script
+            defaultMode: 493

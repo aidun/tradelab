@@ -200,8 +200,11 @@
         "deploy/infrastructure/applications/metallb.yaml",
         "deploy/infrastructure/applications/traefik.yaml"
       ],
-      "prepared_next_step": [
+    "managed_by_root": [
         "deploy/infrastructure/applications/tradelab-dev.yaml"
+      ],
+      "prepared_next_step": [
+        "deploy/infrastructure/applications/tradelab-prod.yaml"
       ]
     }
   },
@@ -312,7 +315,17 @@
       "POSTGRES_PASSWORD",
       "DATABASE_URL"
     ],
-    "parameter_reference_doc": "docs/deployment.md"
+    "parameter_reference_doc": "docs/deployment.md",
+    "bootstrap_secret_contract": {
+      "secret_name": "tradelab-database",
+      "generated_when_missing": true,
+      "generated_keys": [
+        "POSTGRES_DB",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "DATABASE_URL"
+      ]
+    }
   },
   "phase_tracking": {
     "phase_1": {
@@ -432,6 +445,11 @@
     "infrastructure_manifests": [
       "deploy/infrastructure/",
       "deploy/kubernetes/"
+    ],
+    "secret_bootstrap_manifests": [
+      "deploy/kubernetes/base/database-bootstrap-script-configmap.yaml",
+      "deploy/kubernetes/base/database-bootstrap-rbac.yaml",
+      "deploy/kubernetes/base/database-bootstrap-job.yaml"
     ]
   },
   "change_management": {
@@ -558,6 +576,7 @@
       "deployment_change": {
         "required_followups": [
           "review infrastructure_manifests",
+          "review secret_bootstrap_manifests",
           "update docs/deployment.md",
           "update docs/infrastructure-bootstrap.md",
           "update docs/system-operations.md",
@@ -588,7 +607,25 @@
         ],
         "validation_expectations": [
           "verify bootstrap paths render cleanly",
-          "verify MetalLB pool, Traefik ingress class, and Argo applications stay aligned"
+          "verify MetalLB pool, Traefik ingress class, Argo applications, and generated secret behavior stay aligned"
+        ]
+      },
+      "secret_or_credentials_change": {
+        "required_followups": [
+          "review secret_bootstrap_manifests",
+          "update docs/deployment.md",
+          "update docs/system-operations.md",
+          "update docs/developer-guide.md",
+          "review workflow_files",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update deploy/infrastructure applications when Argo CD ownership changes",
+          "update production-external-secrets overlay when the secret contract changes"
+        ],
+        "validation_expectations": [
+          "verify no committed default password remains in active overlays",
+          "verify generated secrets or external-secret paths still satisfy the workload contract"
         ]
       },
       "release_flow_change": {
@@ -702,6 +739,17 @@
           "update docs/system-operations.md",
           "update deploy/kubernetes ingress assumptions",
           "update CI manifest validation",
+          "update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Change how database credentials are provided to Kubernetes",
+        "followups": [
+          "update bootstrap secret manifests",
+          "update docs/deployment.md",
+          "update docs/system-operations.md",
+          "update docs/developer-guide.md",
+          "update CI manifest validation if overlay paths changed",
           "update docs/ai-metadata.json"
         ]
       },

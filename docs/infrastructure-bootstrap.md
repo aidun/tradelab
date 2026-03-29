@@ -64,6 +64,7 @@ The root application then manages:
 1. platform namespaces
 2. MetalLB
 3. Traefik
+4. `tradelab-dev`
 
 ## Argo CD model
 
@@ -74,8 +75,9 @@ TradeLab uses an `App of Apps` layout.
   - `platform-namespaces`
   - `metallb`
   - `traefik`
-- prepared but not yet wired into the root app:
   - `tradelab-dev`
+- prepared for later production activation:
+  - `tradelab-prod`
 
 Sync behavior for platform applications:
 
@@ -94,7 +96,8 @@ Sync waves are used so the cluster is built in a predictable order:
 - MetalLB must advertise only addresses that are actually free on the LAN.
 - Traefik is the only ingress class assumed by the committed TradeLab overlays.
 - The repo does not yet bootstrap `cert-manager`, `External Secrets Operator`, or TLS automation in this infrastructure layer.
-- Production secret handling remains a later step and still belongs to the application deployment flow.
+- TradeLab application overlays now generate initial database credentials automatically when `tradelab-database` is absent.
+- Later production secret management can switch to the optional `production-external-secrets` overlay without changing the workload secret contract.
 
 ## Validation checklist
 

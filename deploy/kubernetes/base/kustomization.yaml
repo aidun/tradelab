@@ -2,6 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  - database-bootstrap-script-configmap.yaml
+  - database-bootstrap-rbac.yaml
+  - database-bootstrap-job.yaml
   - backend-configmap.yaml
   - frontend-configmap.yaml
   - postgres-persistent-volume-claim.yaml
