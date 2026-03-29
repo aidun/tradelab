@@ -19,7 +19,8 @@
     "frontend": "frontend/",
     "backend": "backend/",
     "deploy": "deploy/",
-    "docs": "docs/"
+    "docs": "docs/",
+    "github": ".github/"
   },
   "runtime_components": [
     "frontend web application",
@@ -220,6 +221,365 @@
       "status: planned",
       "status: in progress",
       "status: blocked"
+    ]
+  },
+  "artifact_groups": {
+    "public_docs": [
+      "README.md",
+      "docs/PRD.md",
+      "docs/roadmap.md",
+      "docs/release-process.md"
+    ],
+    "user_docs": [
+      "docs/user-guide.md",
+      "docs/screenshots/"
+    ],
+    "developer_docs": [
+      "CONTRIBUTING.md",
+      "docs/developer-guide.md",
+      "docs/ai-metadata.json"
+    ],
+    "operator_docs": [
+      "docs/deployment.md",
+      "docs/system-operations.md",
+      "docs/release-process.md"
+    ],
+    "planning_docs": [
+      "docs/roadmap.md",
+      "docs/PRD.md",
+      "docs/data-model.md"
+    ],
+    "community_health_docs": [
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "CODE_OF_CONDUCT.md",
+      "SUPPORT.md",
+      "CODEOWNERS"
+    ],
+    "github_templates": [
+      ".github/pull_request_template.md",
+      ".github/ISSUE_TEMPLATE/bug_report.yml",
+      ".github/ISSUE_TEMPLATE/feature_request.yml",
+      ".github/ISSUE_TEMPLATE/documentation.yml",
+      ".github/ISSUE_TEMPLATE/config.yml"
+    ],
+    "visual_docs": [
+      "docs/screenshots/",
+      "docs/assets/github-social-preview.svg",
+      "frontend/scripts/capture-doc-screenshots.mjs"
+    ],
+    "frontend_tests": [
+      "frontend/__tests__/"
+    ],
+    "backend_tests": [
+      "backend/**/*_test.go"
+    ],
+    "e2e_tests": [
+      "frontend/e2e/"
+    ],
+    "release_and_delivery_docs": [
+      "docs/release-process.md",
+      "docs/system-operations.md",
+      "docs/github-rollout.md"
+    ],
+    "workflow_files": [
+      ".github/workflows/"
+    ],
+    "api_docs": [
+      "README.md",
+      "docs/user-guide.md",
+      "docs/developer-guide.md",
+      "docs/ai-metadata.json"
+    ],
+    "frontend_runtime": [
+      "frontend/app/",
+      "frontend/components/",
+      "frontend/lib/"
+    ],
+    "backend_runtime": [
+      "backend/cmd/",
+      "backend/internal/"
+    ],
+    "deployment_assets": [
+      "deploy/kubernetes/",
+      "docker-compose.yml"
+    ]
+  },
+  "change_management": {
+    "authoritative_purpose": "Primary dependency map for repo-facing follow-up work. Review this section whenever code, docs, workflows, GitHub surface, screenshots, or release behavior change.",
+    "change_categories": {
+      "ui_visual_change": {
+        "description": "Visible UI styling, layout, component composition, or screen-level presentation changed materially.",
+        "required_followups": [
+          "visual_docs",
+          "user_docs",
+          "public_docs",
+          "frontend_tests"
+        ],
+        "conditional_followups": [
+          "e2e_tests if the visible change affects the main user path",
+          "developer_docs if screenshot generation or frontend conventions changed"
+        ],
+        "validation_expectations": [
+          "Review README visual section",
+          "Regenerate screenshots if the visible output changed materially",
+          "Review frontend unit coverage for affected components"
+        ]
+      },
+      "ui_user_flow_change": {
+        "description": "User-facing behavior or the sequence of steps inside the product changed.",
+        "required_followups": [
+          "user_docs",
+          "public_docs",
+          "e2e_tests"
+        ],
+        "conditional_followups": [
+          "visual_docs if the changed flow is shown in screenshots",
+          "frontend_tests if local UI state behavior changed"
+        ],
+        "validation_expectations": [
+          "Update user workflow documentation",
+          "Review README workflow summary",
+          "Update or add E2E coverage for the changed path"
+        ]
+      },
+      "frontend_data_flow_change": {
+        "description": "Frontend API integration, state loading, caching, or client-side data behavior changed.",
+        "required_followups": [
+          "frontend_tests",
+          "e2e_tests",
+          "developer_docs"
+        ],
+        "conditional_followups": [
+          "user_docs if visible behavior changed",
+          "api_docs if the frontend consumer contract changed"
+        ],
+        "validation_expectations": [
+          "Review unit coverage around state transitions",
+          "Review E2E impact on core journeys"
+        ]
+      },
+      "api_surface_change": {
+        "description": "Routes, request/response shapes, auth expectations, or public API capabilities changed.",
+        "required_followups": [
+          "api_docs",
+          "backend_tests",
+          "developer_docs"
+        ],
+        "conditional_followups": [
+          "frontend_tests if the frontend consumes the API",
+          "e2e_tests if the API affects a user-visible path",
+          "planning_docs if the API reflects a new product capability"
+        ],
+        "validation_expectations": [
+          "Update public or contributor-facing API references",
+          "Add or adjust backend test coverage",
+          "Review downstream consumers"
+        ]
+      },
+      "backend_behavior_change": {
+        "description": "Business logic, logging, service behavior, authorization rules, or execution semantics changed.",
+        "required_followups": [
+          "backend_tests",
+          "developer_docs"
+        ],
+        "conditional_followups": [
+          "operator_docs if runtime behavior changed",
+          "api_docs if external behavior changed",
+          "e2e_tests if the behavior is user-visible"
+        ],
+        "validation_expectations": [
+          "Review logging expectations",
+          "Review unit or integration test impact",
+          "Document externally visible behavior changes"
+        ]
+      },
+      "domain_or_data_model_change": {
+        "description": "Core entities, persistence shape, domain language, or storage-level concepts changed.",
+        "required_followups": [
+          "planning_docs",
+          "backend_tests",
+          "developer_docs"
+        ],
+        "conditional_followups": [
+          "api_docs if the change is externally visible",
+          "operator_docs if deployment or migration behavior changed"
+        ],
+        "validation_expectations": [
+          "Update data model docs",
+          "Review migration/test implications",
+          "Review API and workflow docs for terminology drift"
+        ]
+      },
+      "configuration_change": {
+        "description": "Environment variables, runtime settings, local setup, or deployment configuration expectations changed.",
+        "required_followups": [
+          "public_docs",
+          "developer_docs",
+          "operator_docs"
+        ],
+        "conditional_followups": [
+          "workflow_files if CI or release configuration changed",
+          "deployment_assets if runtime manifests changed"
+        ],
+        "validation_expectations": [
+          "Update installation and parameter documentation",
+          "Review local and deployment setup instructions",
+          "Review metadata for new or changed configuration keys"
+        ]
+      },
+      "deployment_change": {
+        "description": "Kubernetes, container, infra packaging, or runtime deployment shape changed.",
+        "required_followups": [
+          "deployment_assets",
+          "operator_docs",
+          "release_and_delivery_docs"
+        ],
+        "conditional_followups": [
+          "workflow_files if CI/release packaging changed",
+          "developer_docs if local operator workflow changed"
+        ],
+        "validation_expectations": [
+          "Update deployment documentation",
+          "Update system operations guidance",
+          "Review release docs and rollout checklist"
+        ]
+      },
+      "release_flow_change": {
+        "description": "Release trigger logic, artifact creation, image publication, or GitHub release behavior changed.",
+        "required_followups": [
+          "release_and_delivery_docs",
+          "public_docs",
+          "workflow_files",
+          "developer_docs"
+        ],
+        "conditional_followups": [
+          "operator_docs if deployment expectations changed"
+        ],
+        "validation_expectations": [
+          "Update release-process documentation",
+          "Update system-operations release chain",
+          "Review README quality and delivery section"
+        ]
+      },
+      "github_process_change": {
+        "description": "Contribution flow, templates, labels, community-health docs, or repository governance changed.",
+        "required_followups": [
+          "community_health_docs",
+          "github_templates",
+          "developer_docs"
+        ],
+        "conditional_followups": [
+          "public_docs if the public repo presentation changed",
+          "release_and_delivery_docs if workflow behavior changed"
+        ],
+        "validation_expectations": [
+          "Update contributing guidance",
+          "Update GitHub rollout checklist",
+          "Review template and policy consistency"
+        ]
+      },
+      "documentation_structure_change": {
+        "description": "Docs were added, moved, renamed, or materially restructured.",
+        "required_followups": [
+          "public_docs",
+          "developer_docs"
+        ],
+        "conditional_followups": [
+          "operator_docs if operational docs moved",
+          "planning_docs if roadmap or product docs changed"
+        ],
+        "validation_expectations": [
+          "Update README documentation index",
+          "Fix cross-links",
+          "Update ai-metadata document paths"
+        ]
+      },
+      "screenshots_or_visual_assets_change": {
+        "description": "Documentation screenshots, social preview assets, or visual documentation generators changed.",
+        "required_followups": [
+          "visual_docs",
+          "user_docs",
+          "public_docs"
+        ],
+        "conditional_followups": [
+          "developer_docs if screenshot generation workflow changed"
+        ],
+        "validation_expectations": [
+          "Review screenshot references in docs",
+          "Review README visual section",
+          "Review asset-generation instructions"
+        ]
+      },
+      "testing_strategy_change": {
+        "description": "The expected test mix, validation flow, or quality-gate strategy changed.",
+        "required_followups": [
+          "developer_docs",
+          "workflow_files"
+        ],
+        "conditional_followups": [
+          "community_health_docs if contributor expectations changed",
+          "public_docs if the repository quality posture changed materially"
+        ],
+        "validation_expectations": [
+          "Update contributing expectations",
+          "Update developer guide test commands",
+          "Review CI job documentation"
+        ]
+      }
+    },
+    "examples": [
+      {
+        "scenario": "Change the dashboard layout",
+        "maps_to_categories": [
+          "ui_visual_change",
+          "ui_user_flow_change"
+        ],
+        "required_actions": [
+          "Review and regenerate screenshots if the visible output changed materially",
+          "Update docs/user-guide.md",
+          "Review the README walkthrough section",
+          "Review frontend unit tests and E2E coverage"
+        ]
+      },
+      {
+        "scenario": "Add a new API endpoint",
+        "maps_to_categories": [
+          "api_surface_change"
+        ],
+        "required_actions": [
+          "Update API-facing docs and relevant public docs",
+          "Add or update backend tests",
+          "Review frontend consumers and tests if applicable",
+          "Update docs/ai-metadata.json when the public repo contract changed"
+        ]
+      },
+      {
+        "scenario": "Change release automation",
+        "maps_to_categories": [
+          "release_flow_change",
+          "testing_strategy_change"
+        ],
+        "required_actions": [
+          "Update docs/release-process.md",
+          "Update docs/system-operations.md",
+          "Review README quality and delivery section",
+          "Review developer/contributing guidance if local expectations changed",
+          "Update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Add a new GitHub template or process",
+        "maps_to_categories": [
+          "github_process_change"
+        ],
+        "required_actions": [
+          "Update docs/github-rollout.md",
+          "Update CONTRIBUTING.md or other community-health docs as needed",
+          "Review template consistency",
+          "Update docs/ai-metadata.json"
+        ]
+      }
     ]
   }
 }

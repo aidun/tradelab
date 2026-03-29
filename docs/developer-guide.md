@@ -195,8 +195,17 @@ When making changes:
 - `docs/roadmap.md` is the public product direction summary
 - `docs/release-process.md` describes release artifacts and workflow meaning
 - `docs/github-rollout.md` captures manual GitHub repository settings and presentation steps
-- `docs/ai-metadata.json` exists for machine consumption and should be updated when the human-facing structure materially changes
+- `docs/ai-metadata.json` is the authoritative dependency map for repo-facing follow-up work and should be reviewed whenever code, docs, screenshots, workflows, or public process change
 - logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
+
+## AI metadata contract
+
+`docs/ai-metadata.json` now does two jobs:
+
+- it describes the repository and its public engineering surface
+- it defines the dependency rules for follow-up work when something changes
+
+When making changes, consult the `artifact_groups` and `change_management` sections to decide which documentation, screenshots, tests, workflow files, or GitHub-facing artifacts must also be reviewed or updated.
 
 ## Notes for future contributors
 
