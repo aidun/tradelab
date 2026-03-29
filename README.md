@@ -91,6 +91,7 @@ TradeLab is intentionally developed in the open with a curated product roadmap.
   [docs/onboarding-requirements.md](docs/onboarding-requirements.md)
 - product and planning:
   [docs/PRD.md](docs/PRD.md),
+  [docs/authentication-model.md](docs/authentication-model.md),
   [docs/roadmap.md](docs/roadmap.md)
 - developers:
   [docs/developer-guide.md](docs/developer-guide.md),
@@ -113,6 +114,15 @@ TradeLab is intentionally developed in the open with a curated product roadmap.
   [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - support guidance:
   [SUPPORT.md](SUPPORT.md)
+
+## Identity roadmap
+
+TradeLab currently uses guest demo sessions for the low-friction first run. The next identity phase is defined around Clerk-backed registered accounts with Google and Apple sign-in, while keeping guest mode as the entry path.
+
+- [docs/authentication-model.md](docs/authentication-model.md)
+- [docs/clerk-architecture.md](docs/clerk-architecture.md)
+- [docs/auth-flows.md](docs/auth-flows.md)
+- [docs/account-lifecycle.md](docs/account-lifecycle.md)
 
 ## Local development
 

@@ -10,6 +10,8 @@ This guide explains how to work in the TradeLab repository safely and efficientl
   [PRD.md](PRD.md)
 - Public roadmap:
   [roadmap.md](roadmap.md)
+- Authentication model:
+  [authentication-model.md](authentication-model.md)
 - Data model:
   [data-model.md](data-model.md)
 - Runtime and operations:
@@ -196,6 +198,7 @@ When making changes:
 - `docs/getting-started.md` is the audience-aware entrypoint for setup and first-run success
 - `docs/installation-validation.md` defines the required smoke path for local and deployed environments
 - `docs/onboarding-requirements.md` captures the intended guest-first product onboarding behavior
+- `docs/authentication-model.md`, `docs/clerk-architecture.md`, `docs/auth-flows.md`, and `docs/account-lifecycle.md` define the planned identity surface
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/user-guide.md` is the user-facing walkthrough with screenshots

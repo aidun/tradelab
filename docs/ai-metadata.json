@@ -47,6 +47,10 @@
     "user_guide": "docs/user-guide.md",
     "installation_validation": "docs/installation-validation.md",
     "onboarding_requirements": "docs/onboarding-requirements.md",
+    "authentication_model": "docs/authentication-model.md",
+    "clerk_architecture": "docs/clerk-architecture.md",
+    "auth_flows": "docs/auth-flows.md",
+    "account_lifecycle": "docs/account-lifecycle.md",
     "product": "docs/PRD.md",
     "roadmap": "docs/roadmap.md",
     "data_model": "docs/data-model.md",
@@ -87,7 +91,7 @@
       "GET /api/v1/activity",
       "POST /api/v1/orders"
     ],
-    "auth_model": "Bearer token from demo session"
+    "auth_model": "Bearer token from demo session today, planned transition to Clerk-backed registered accounts plus TradeLab application sessions"
   },
   "quality_gates": {
     "ci_jobs": [
@@ -173,6 +177,18 @@
       "a demo buy updates balances, positions, orders, and activity"
     ],
     "product_requirements_doc": "docs/onboarding-requirements.md"
+  },
+  "identity_roadmap": {
+    "current_state": "guest demo sessions only",
+    "target_state": "guest mode plus Clerk-backed registered accounts",
+    "managed_auth_provider": "Clerk",
+    "social_login_targets": ["Google", "Apple"],
+    "documentation": [
+      "docs/authentication-model.md",
+      "docs/clerk-architecture.md",
+      "docs/auth-flows.md",
+      "docs/account-lifecycle.md"
+    ]
   },
   "documentation_assets": {
     "screenshots_directory": "docs/screenshots/",
@@ -273,12 +289,16 @@
     "user_docs": [
       "docs/getting-started.md",
       "docs/user-guide.md",
-      "docs/onboarding-requirements.md"
+      "docs/onboarding-requirements.md",
+      "docs/auth-flows.md"
     ],
     "developer_docs": [
       "docs/developer-guide.md",
       "docs/data-model.md",
-      "docs/ai-metadata.json"
+      "docs/ai-metadata.json",
+      "docs/authentication-model.md",
+      "docs/clerk-architecture.md",
+      "docs/account-lifecycle.md"
     ],
     "operator_docs": [
       "docs/deployment.md",
@@ -330,6 +350,7 @@
       "ui_user_flow_change",
       "frontend_data_flow_change",
       "api_surface_change",
+      "identity_or_auth_change",
       "backend_behavior_change",
       "domain_or_data_model_change",
       "configuration_change",
@@ -381,6 +402,23 @@
         ],
         "validation_expectations": [
           "verify API examples and protected-route expectations remain correct"
+        ]
+      },
+      "identity_or_auth_change": {
+        "required_followups": [
+          "update docs/authentication-model.md",
+          "update docs/clerk-architecture.md",
+          "update docs/auth-flows.md",
+          "update docs/account-lifecycle.md",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update README.md and docs/getting-started.md if first-run identity behavior changes",
+          "update docs/system-operations.md if trust boundaries or runtime responsibilities change",
+          "update frontend_tests, backend_tests, and e2e_tests when implementation changes land"
+        ],
+        "validation_expectations": [
+          "verify guest versus registered behavior is still documented consistently"
         ]
       },
       "backend_behavior_change": {
@@ -529,6 +567,15 @@
           "update docs/github-rollout.md",
           "update docs/developer-guide.md",
           "update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Change the authentication model or social login providers",
+        "followups": [
+          "update auth planning docs",
+          "update README identity roadmap section",
+          "update docs/ai-metadata.json",
+          "review onboarding and operator docs for trust-boundary changes"
         ]
       }
     ]

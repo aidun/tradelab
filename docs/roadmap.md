@@ -42,10 +42,20 @@ Focus:
 - stronger visual polish
 - more usable onboarding and documentation
 
+### 5. Identity and trust
+
+Focus:
+
+- move from guest-only access to a dual model of guest sessions plus durable registered accounts
+- introduce Clerk as the managed auth provider
+- support Google and Apple sign-in
+- define account lifecycle, session behavior, and upgrade paths before live-like expansion
+
 ## Near-term priorities
 
 - keep the trading sandbox stable and understandable
 - improve public product and engineering documentation
+- define the authentication and account roadmap before implementing registered access
 - strengthen roadmap, release, and GitHub contribution signals
 - continue increasing quality gates around CI, E2E coverage, and release automation
 
