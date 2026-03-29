@@ -178,7 +178,6 @@ export function MarketDashboard() {
   const [selectedMarket, setSelectedMarket] = useState("XRP/USDT");
   const [selectedInterval, setSelectedInterval] = useState("1h");
   const [quoteAmount, setQuoteAmount] = useState("50");
-  const [expectedPrice, setExpectedPrice] = useState("0.67");
   const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -224,7 +223,6 @@ export function MarketDashboard() {
     setOrders(orderHistory);
     setActivity(activityHistory);
     setCandles(marketCandles);
-    setExpectedPrice(getLastItem(marketCandles)?.closePrice.toFixed(4) ?? "0.67");
     setIsChartLoading(false);
   }
 
@@ -273,8 +271,7 @@ export function MarketDashboard() {
       await placeMarketBuy({
         token: session.token,
         marketSymbol: selectedMarket,
-        quoteAmount: Number(quoteAmount),
-        expectedPrice: Number(expectedPrice)
+        quoteAmount: Number(quoteAmount)
       });
 
       await loadData(session);
@@ -413,12 +410,10 @@ export function MarketDashboard() {
                 </label>
 
                 <label className="grid gap-2 text-sm text-[var(--muted)]">
-                  Expected execution price
-                  <input
-                    value={expectedPrice}
-                    onChange={(event) => setExpectedPrice(event.target.value)}
-                    className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none"
-                  />
+                  Server-side execution pricing
+                  <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)]">
+                    {latestCandle ? `${formatCurrency(latestCandle.closePrice)} estimated from live feed` : "Waiting for market data..."}
+                  </div>
                 </label>
 
                 <button

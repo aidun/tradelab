@@ -34,6 +34,46 @@ func (s *Service) List(ctx context.Context) ([]domain.Market, error) {
 	return s.markets.List(ctx)
 }
 
+func (s *Service) GetSpotPrice(ctx context.Context, marketSymbol string) (float64, error) {
+	market, err := s.markets.GetBySymbol(ctx, marketSymbol)
+	if err != nil {
+		return 0, fmt.Errorf("get market: %w", err)
+	}
+
+	query := url.Values{}
+	query.Set("symbol", strings.ReplaceAll(market.Symbol, "/", ""))
+
+	endpoint := fmt.Sprintf("%s/api/v3/ticker/price?%s", s.marketDataBaseURL, query.Encode())
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return 0, fmt.Errorf("create market price request: %w", err)
+	}
+
+	response, err := s.client.Do(request)
+	if err != nil {
+		return 0, fmt.Errorf("request market price: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("market price request failed with status %d", response.StatusCode)
+	}
+
+	var payload struct {
+		Price string `json:"price"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		return 0, fmt.Errorf("decode market price: %w", err)
+	}
+
+	price, err := strconv.ParseFloat(payload.Price, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse market price: %w", err)
+	}
+
+	return price, nil
+}
+
 func (s *Service) ListCandles(ctx context.Context, marketSymbol string, interval string, limit int) ([]domain.Candle, error) {
 	if interval == "" {
 		interval = "1h"

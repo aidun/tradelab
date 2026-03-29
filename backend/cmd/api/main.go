@@ -29,7 +29,7 @@ func main() {
 	sessionRepository := postgres.NewDemoSessionRepository(db)
 
 	marketService := marketservice.NewService(marketRepository, cfg.MarketDataBaseURL)
-	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository)
+	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository, marketService)
 	portfolioService := portfolioservice.NewService(portfolioRepository)
 	historyService := historyservice.NewService(portfolioRepository)
 	sessionService := sessionservice.NewService(sessionRepository)

@@ -176,9 +176,8 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		}
 
 		var payload struct {
-			MarketSymbol  string  `json:"market_symbol"`
-			QuoteAmount   float64 `json:"quote_amount"`
-			ExpectedPrice float64 `json:"expected_price"`
+			MarketSymbol string  `json:"market_symbol"`
+			QuoteAmount  float64 `json:"quote_amount"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -187,17 +186,16 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		}
 
 		order, err := orders.PlaceMarketBuy(r.Context(), orderservice.PlaceMarketBuyInput{
-			UserID:        demoSession.UserID,
-			WalletID:      demoSession.WalletID,
-			MarketSymbol:  payload.MarketSymbol,
-			QuoteAmount:   payload.QuoteAmount,
-			ExpectedPrice: payload.ExpectedPrice,
+			UserID:       demoSession.UserID,
+			WalletID:     demoSession.WalletID,
+			MarketSymbol: payload.MarketSymbol,
+			QuoteAmount:  payload.QuoteAmount,
 		})
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 
 			switch {
-			case errors.Is(err, orderservice.ErrQuoteAmountTooLow), errors.Is(err, orderservice.ErrExpectedPriceLow):
+			case errors.Is(err, orderservice.ErrQuoteAmountTooLow), errors.Is(err, orderservice.ErrCurrentPriceUnavailable):
 				statusCode = http.StatusBadRequest
 			case errors.Is(err, orderservice.ErrInsufficientFunds):
 				statusCode = http.StatusUnprocessableEntity

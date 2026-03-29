@@ -24,22 +24,6 @@ func TestPlaceMarketBuyReturnsErrorForZeroQuoteAmount(t *testing.T) {
 	}
 }
 
-func TestPlaceMarketBuyReturnsErrorForZeroExpectedPrice(t *testing.T) {
-	service := &Service{}
-
-	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
-		UserID:        "user-1",
-		WalletID:      "wallet-1",
-		MarketSymbol:  "XRP/USDT",
-		QuoteAmount:   10,
-		ExpectedPrice: 0,
-	})
-
-	if !errors.Is(err, ErrExpectedPriceLow) {
-		t.Fatalf("expected ErrExpectedPriceLow, got %v", err)
-	}
-}
-
 func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 	service := NewService(
 		fakeMarketRepository{
@@ -58,14 +42,14 @@ func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 			},
 		},
 		fakePortfolioRepository{},
+		fakePriceProvider{price: 0.65},
 	)
 
 	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
-		UserID:        "user-1",
-		WalletID:      "wallet-1",
-		MarketSymbol:  "XRP/USDT",
-		QuoteAmount:   200,
-		ExpectedPrice: 0.65,
+		UserID:       "user-1",
+		WalletID:     "wallet-1",
+		MarketSymbol: "XRP/USDT",
+		QuoteAmount:  200,
 	})
 
 	if !errors.Is(err, ErrInsufficientFunds) {
@@ -93,15 +77,15 @@ func TestPlaceMarketBuyCreatesFilledOrder(t *testing.T) {
 			},
 		},
 		fakePortfolioRepository{},
+		fakePriceProvider{price: 0.67},
 	)
 	service.clock = fakeClock{now: now}
 
 	order, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
-		UserID:        "user-1",
-		WalletID:      "wallet-1",
-		MarketSymbol:  "XRP/USDT",
-		QuoteAmount:   100,
-		ExpectedPrice: 0.67,
+		UserID:       "user-1",
+		WalletID:     "wallet-1",
+		MarketSymbol: "XRP/USDT",
+		QuoteAmount:  100,
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -117,6 +101,42 @@ func TestPlaceMarketBuyCreatesFilledOrder(t *testing.T) {
 
 	if !order.CreatedAt.Equal(now) {
 		t.Fatalf("expected created time %s, got %s", now, order.CreatedAt)
+	}
+
+	if order.ExpectedPrice != 0.67 {
+		t.Fatalf("expected server-side price 0.67, got %f", order.ExpectedPrice)
+	}
+}
+
+func TestPlaceMarketBuyReturnsErrorWhenPriceProviderHasNoPrice(t *testing.T) {
+	service := NewService(
+		fakeMarketRepository{
+			market: domain.Market{
+				ID:          "market-1",
+				Symbol:      "XRP/USDT",
+				BaseAsset:   "XRP",
+				QuoteAsset:  "USDT",
+				MinNotional: 10,
+			},
+		},
+		fakeBalanceRepository{
+			balance: domain.Balance{
+				AssetSymbol: "USDT",
+				Available:   500,
+			},
+		},
+		fakePortfolioRepository{},
+		fakePriceProvider{price: 0},
+	)
+
+	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+		UserID:       "user-1",
+		WalletID:     "wallet-1",
+		MarketSymbol: "XRP/USDT",
+		QuoteAmount:  100,
+	})
+	if !errors.Is(err, ErrCurrentPriceUnavailable) {
+		t.Fatalf("expected ErrCurrentPriceUnavailable, got %v", err)
 	}
 }
 
@@ -168,4 +188,13 @@ func (f fakePortfolioRepository) ListByWallet(context.Context, string, int) ([]d
 
 func (f fakePortfolioRepository) ListActivityByWallet(context.Context, string, int) ([]domain.ActivityLog, error) {
 	return nil, f.err
+}
+
+type fakePriceProvider struct {
+	price float64
+	err   error
+}
+
+func (f fakePriceProvider) GetSpotPrice(context.Context, string) (float64, error) {
+	return f.price, f.err
 }
