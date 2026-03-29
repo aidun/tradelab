@@ -43,6 +43,8 @@ Important backend configuration includes:
 - `DATABASE_URL`
 - `MARKET_DATA_BASE_URL`
 
+Future identity changes should treat external authentication as a separate trust boundary from application trading sessions. See [authentication-model.md](authentication-model.md) and [clerk-architecture.md](clerk-architecture.md).
+
 ### Frontend
 
 Important frontend configuration includes:
