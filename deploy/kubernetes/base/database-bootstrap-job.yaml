@@ -16,7 +16,7 @@ spec:
       serviceAccountName: tradelab-database-bootstrap
       containers:
         - name: bootstrap
-          image: bitnami/kubectl:1.32.2
+          image: rancher/kubectl:v1.32.2
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
