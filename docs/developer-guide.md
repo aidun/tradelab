@@ -8,12 +8,18 @@ This guide explains how to work in the TradeLab repository safely and efficientl
 
 - Product intent:
   [PRD.md](PRD.md)
+- Public roadmap:
+  [roadmap.md](roadmap.md)
 - Data model:
   [data-model.md](data-model.md)
 - Runtime and operations:
   [system-operations.md](system-operations.md)
 - Deployment details:
   [deployment.md](deployment.md)
+- Release process:
+  [release-process.md](release-process.md)
+- GitHub rollout:
+  [github-rollout.md](github-rollout.md)
 - Machine-readable repo metadata:
   [ai-metadata.json](ai-metadata.json)
 
@@ -186,6 +192,9 @@ When making changes:
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/user-guide.md` is the user-facing walkthrough with screenshots
+- `docs/roadmap.md` is the public product direction summary
+- `docs/release-process.md` describes release artifacts and workflow meaning
+- `docs/github-rollout.md` captures manual GitHub repository settings and presentation steps
 - `docs/ai-metadata.json` exists for machine consumption and should be updated when the human-facing structure materially changes
 - logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
 

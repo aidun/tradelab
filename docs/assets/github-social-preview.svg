@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">TradeLab GitHub Social Preview</title>
+  <desc id="desc">TradeLab product banner for the GitHub repository social preview.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07111f"/>
+      <stop offset="55%" stop-color="#0c2333"/>
+      <stop offset="100%" stop-color="#13293d"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6ef2d3"/>
+      <stop offset="100%" stop-color="#ffb06b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <circle cx="1060" cy="130" r="220" fill="#6ef2d3" fill-opacity="0.08"/>
+  <circle cx="980" cy="520" r="240" fill="#ffb06b" fill-opacity="0.08"/>
+  <rect x="70" y="72" width="1140" height="496" rx="36" fill="#081826" fill-opacity="0.82" stroke="#20384d"/>
+  <text x="110" y="150" fill="#6ef2d3" font-family="Segoe UI, Arial, sans-serif" font-size="26" letter-spacing="6">TRADELAB</text>
+  <text x="110" y="255" fill="#f5f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="86" font-weight="700">Product-grade</text>
+  <text x="110" y="345" fill="#f5f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="86" font-weight="700">crypto trading sandbox</text>
+  <text x="110" y="420" fill="#b7c5d4" font-family="Segoe UI, Arial, sans-serif" font-size="30">Multi-asset paper trading, release automation, and disciplined engineering workflows.</text>
+  <rect x="110" y="470" width="230" height="54" rx="27" fill="url(#accent)"/>
+  <text x="145" y="505" fill="#04111a" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Demo-only product</text>
+  <text x="852" y="500" fill="#b7c5d4" font-family="Segoe UI, Arial, sans-serif" font-size="24">Go backend · Next.js frontend · PostgreSQL · Kubernetes</text>
