@@ -115,7 +115,7 @@ Additional development values defined in manifests:
 | `PORT` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `3000` | internal frontend container port |
 | `HOSTNAME` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `0.0.0.0` | internal frontend bind host |
 | `TRADESLAB_API_PROXY_TARGET` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `http://tradelab-backend:8080` | keeps frontend `/api` rewrite inside the cluster |
-| development host | [patch-ingress.yaml](../deploy/kubernetes/overlays/development/patch-ingress.yaml) | `tradelab.192.168.2.200.sslip.io` | assumes Traefik is exposed on `192.168.2.200` through MetalLB |
+| development entrypoints | [patch-ingress.yaml](../deploy/kubernetes/overlays/development/patch-ingress.yaml) | `http://192.168.2.200/` and `http://192.168.2.200/tradelab-dev` | hostless Traefik access on the MetalLB IP |
 
 ### Kubernetes production parameters
 
@@ -155,7 +155,8 @@ Production values that usually need review before deployment:
 The development overlay uses:
 
 - namespace: `tradelab-dev`
-- host: `tradelab.192.168.2.200.sslip.io`
+- primary entrypoint: `http://192.168.2.200/`
+- alternate entrypoint: `http://192.168.2.200/tradelab-dev`
 - generated database credentials if no secret already exists
 
 Then apply it:
@@ -173,14 +174,21 @@ After apply, validate:
 - frontend loads through ingress
 - a guest demo session can be created
 
-If you are using the committed platform bootstrap, `sslip.io` resolves the development host directly to the reserved Traefik IP. If you use another ingress IP or another DNS strategy, update the development ingress patch before apply.
+If you are using the committed platform bootstrap, Traefik is reachable directly on the reserved MetalLB IP. The development ingress is intentionally hostless so the app does not depend on local DNS. The alternate `/tradelab-dev` path is a convenient cluster entrypoint, while the current frontend generation still serves its canonical routes from `/`.
 
 ## Production deployment
 
 Before applying the production overlay:
 
-- replace the ingress host values in `deploy/kubernetes/overlays/production/patch-ingress.yaml`
+- review the hostless path entrypoints in `deploy/kubernetes/overlays/production/patch-ingress.yaml`
 - review replica counts and storage size patches if the defaults are not suitable for your environment
+
+The production overlay is prepared for these IP-based entrypoints:
+
+- primary entrypoint: `http://<traefik-ip>/`
+- alternate entrypoint: `http://<traefik-ip>/tradelab`
+
+As with development, the current frontend image still serves its canonical routes from `/`. The `/tradelab` path is therefore an operator-friendly entrypoint on the shared Traefik IP, not yet a fully isolated subpath build.
 
 If you want generated first-run credentials, apply the default production overlay:
 

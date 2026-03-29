@@ -4,3 +4,22 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.3/manifests/install.yaml
+  - argocd-ingress.yaml
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: argocd-cmd-params-cm
+    patch: |-
+      - op: add
+        path: /data
+        value: {}
+      - op: add
+        path: /data/server.basehref
+        value: /argocd
+      - op: add
+        path: /data/server.rootpath
+        value: /argocd
+      - op: add
+        path: /data/server.insecure
+        value: "true"

@@ -28,7 +28,8 @@ TradeLab currently consists of these runtime components:
 - image tags: `latest`
 - database secret source: generated bootstrap secret unless `tradelab-database` already exists
 - ingress class: `traefik`
-- default ingress host: `tradelab.192.168.2.200.sslip.io`
+- default development ingress entrypoint: `http://192.168.2.200/tradelab-dev`
+- prepared production ingress entrypoint: `http://192.168.2.200/tradelab`
 - intended for fast local or shared-dev iteration
 
 ### Production

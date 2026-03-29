@@ -5,9 +5,15 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: tradelab.192.168.2.200.sslip.io
-      http:
+    - http:
         paths:
+          - path: /tradelab-dev/api
+            pathType: Prefix
+            backend:
+              service:
+                name: tradelab-backend
+                port:
+                  number: 8080
           - path: /api
             pathType: Prefix
             backend:
@@ -15,6 +21,13 @@ spec:
                 name: tradelab-backend
                 port:
                   number: 8080
+          - path: /tradelab-dev
+            pathType: Prefix
+            backend:
+              service:
+                name: tradelab-frontend
+                port:
+                  number: 3000
           - path: /
             pathType: Prefix
             backend:
