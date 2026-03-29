@@ -86,6 +86,63 @@ TradeLab uses a PR-first delivery model:
    - renders immutable Kubernetes release manifests
    - creates a GitHub Release
 
+## GitHub Actions sequence
+
+TradeLab currently uses three GitHub Actions workflows that form one delivery chain:
+
+1. `CI`
+2. `Auto Merge PR`
+3. `Release`
+
+### CI workflow
+
+The CI workflow runs on pull requests and on pushes to `master`.
+
+Its jobs run in parallel:
+
+- `Backend tests`
+- `Frontend unit tests`
+- `Frontend build`
+- `Frontend E2E tests`
+- `Backend container build`
+- `Frontend container build`
+- `Kubernetes manifests`
+- `Metadata validation`
+
+### Auto-merge workflow
+
+The auto-merge workflow listens for a completed `CI` workflow run.
+
+If the finished run:
+
+- succeeded
+- belongs to a pull request
+- targets `master`
+
+then the workflow performs a `squash` merge into `master`.
+
+### Release workflow
+
+The release workflow runs after a pull request into `master` is closed and merged, or manually via workflow dispatch.
+
+Its execution order is:
+
+1. `Release metadata`
+2. in parallel:
+   - `Verify backend`
+   - `Verify frontend`
+3. after verification succeeds, in parallel:
+   - `Build backend binaries`
+   - `Build frontend artifact`
+   - `Publish backend image`
+   - `Publish frontend image`
+4. `Package Kubernetes manifests`
+5. `Create GitHub release`
+
+This means the effective repository delivery path is:
+
+`pull request -> CI -> auto-merge into master -> release verification/build/publish/package -> GitHub release`
+
 ## Health and failure surfaces
 
 ### First places to check

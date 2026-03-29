@@ -29,6 +29,18 @@ This guide explains how to work in the TradeLab repository safely and efficientl
 
 ## Local workflow
 
+## Configuration checkpoints
+
+Before starting local services, review these only if you are not using the defaults:
+
+- `DATABASE_URL` before backend startup or migrations
+- `HTTP_ADDRESS` before backend startup
+- `MARKET_DATA_BASE_URL` before backend startup
+- `TRADESLAB_API_PROXY_TARGET` before frontend startup
+- `NEXT_PUBLIC_API_BASE_URL` before frontend startup if you want direct browser-to-API calls
+
+The full environment and deployment parameter reference lives in [deployment.md](deployment.md).
+
 ### Start dependencies
 
 ```bash
@@ -72,6 +84,7 @@ cd frontend
 npm run test
 npm run build
 npm run test:e2e
+npm run docs:screenshots
 ```
 
 ### Optional deployment validation
@@ -99,6 +112,7 @@ kubectl kustomize deploy/kubernetes/overlays/production
 - `frontend/components`: UI components, including the trading dashboard
 - `frontend/lib`: API client code and shared helpers
 - `frontend/__tests__`: component and workflow tests
+- `frontend/scripts`: utility scripts, including documentation screenshot generation
 
 ### Delivery and deployment
 
@@ -114,6 +128,45 @@ TradeLab currently follows a PR-first workflow:
 - merges are expected to remain reviewable and reasonably scoped
 - `master` is the release branch
 - successful `master` runs produce release artifacts and published container images
+
+## GitHub Actions flow
+
+TradeLab uses three workflows in sequence:
+
+1. `CI`
+2. `Auto Merge PR`
+3. `Release`
+
+### CI
+
+The CI workflow runs these jobs in parallel:
+
+- `Backend tests`
+- `Frontend unit tests`
+- `Frontend build`
+- `Frontend E2E tests`
+- `Backend container build`
+- `Frontend container build`
+- `Kubernetes manifests`
+- `Metadata validation`
+
+### Auto Merge PR
+
+When `CI` finishes successfully for a pull request targeting `master`, the auto-merge workflow performs a `squash` merge.
+
+### Release
+
+After the merge into `master`, the release workflow runs in this order:
+
+1. `Release metadata`
+2. `Verify backend` and `Verify frontend`
+3. `Build backend binaries`, `Build frontend artifact`, `Publish backend image`, and `Publish frontend image`
+4. `Package Kubernetes manifests`
+5. `Create GitHub release`
+
+This is the expected delivery chain for normal feature work:
+
+`feature branch -> pull request -> CI -> auto-merge -> master -> release`
 
 ## Contribution expectations
 
@@ -132,6 +185,7 @@ When making changes:
 - the root README is for repository landing-page readers
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
+- `docs/user-guide.md` is the user-facing walkthrough with screenshots
 - `docs/ai-metadata.json` exists for machine consumption and should be updated when the human-facing structure materially changes
 - logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
 

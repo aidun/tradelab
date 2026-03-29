@@ -40,6 +40,7 @@
   ],
   "documentation": {
     "readme": "README.md",
+    "user_guide": "docs/user-guide.md",
     "product": "docs/PRD.md",
     "data_model": "docs/data-model.md",
     "deployment": "docs/deployment.md",
@@ -90,10 +91,83 @@
       "Kubernetes manifests",
       "Metadata validation"
     ],
+    "github_actions_sequence": [
+      {
+        "workflow": "CI",
+        "trigger": ["pull_request", "push:master"],
+        "jobs_parallel": [
+          "Backend tests",
+          "Frontend unit tests",
+          "Frontend build",
+          "Frontend E2E tests",
+          "Backend container build",
+          "Frontend container build",
+          "Kubernetes manifests",
+          "Metadata validation"
+        ]
+      },
+      {
+        "workflow": "Auto Merge PR",
+        "trigger": ["workflow_run:CI"],
+        "conditions": [
+          "CI conclusion is success",
+          "event is pull_request",
+          "base branch is master"
+        ],
+        "action": "Squash merge pull request into master"
+      },
+      {
+        "workflow": "Release",
+        "trigger": ["pull_request_target:closed on master", "workflow_dispatch"],
+        "conditions": ["pull request was merged when triggered from pull_request_target"],
+        "jobs_order": [
+          "Release metadata",
+          "Verify backend and Verify frontend",
+          "Build backend binaries, Build frontend artifact, Publish backend image, and Publish frontend image",
+          "Package Kubernetes manifests",
+          "Create GitHub release"
+        ]
+      }
+    ],
     "observability": [
       "Structured JSON logs via log/slog",
       "Request lifecycle logging in the HTTP layer",
       "Service-level logging for sessions, market data, orders, portfolio, and history"
     ]
+  },
+  "user_workflows": [
+    "Open the app and create a demo session automatically.",
+    "Inspect the default XRP/USDT reference market and chart feed state.",
+    "Switch intervals or markets without clearing portfolio panels.",
+    "Execute a demo market buy.",
+    "Review balances, positions, orders, and activity after execution."
+  ],
+  "documentation_assets": {
+    "screenshots_directory": "docs/screenshots/",
+    "screenshot_generation": "frontend/scripts/capture-doc-screenshots.mjs"
+  },
+  "configuration": {
+    "local_backend_env": [
+      "HTTP_ADDRESS",
+      "DATABASE_URL",
+      "MARKET_DATA_BASE_URL"
+    ],
+    "local_frontend_env": [
+      "TRADESLAB_API_PROXY_TARGET",
+      "NEXT_PUBLIC_API_BASE_URL"
+    ],
+    "kubernetes_development_secret_keys": [
+      "POSTGRES_DB",
+      "POSTGRES_USER",
+      "POSTGRES_PASSWORD",
+      "DATABASE_URL"
+    ],
+    "kubernetes_production_secret_keys": [
+      "POSTGRES_DB",
+      "POSTGRES_USER",
+      "POSTGRES_PASSWORD",
+      "DATABASE_URL"
+    ],
+    "parameter_reference_doc": "docs/deployment.md"
   }
 }

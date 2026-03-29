@@ -8,7 +8,8 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "docs:screenshots": "node ./scripts/capture-doc-screenshots.mjs"
   },
   "dependencies": {
     "next": "16.0.10",
