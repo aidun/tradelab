@@ -7,6 +7,39 @@ describe("Hero", () => {
     vi.spyOn(global, "fetch").mockImplementation((input) => {
       const url = String(input);
 
+      if (url.includes("/candles")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              candles: [
+                {
+                  openTime: "2026-03-29T10:00:00Z",
+                  closeTime: "2026-03-29T10:59:59Z",
+                  openPrice: 0.62,
+                  highPrice: 0.64,
+                  lowPrice: 0.61,
+                  closePrice: 0.63,
+                  baseVolume: 1200000,
+                  quoteVolume: 756000,
+                  trades: 8000
+                },
+                {
+                  openTime: "2026-03-29T11:00:00Z",
+                  closeTime: "2026-03-29T11:59:59Z",
+                  openPrice: 0.63,
+                  highPrice: 0.65,
+                  lowPrice: 0.62,
+                  closePrice: 0.64,
+                  baseVolume: 1400000,
+                  quoteVolume: 896000,
+                  trades: 9200
+                }
+              ]
+            })
+          )
+        );
+      }
+
       if (url.includes("/api/v1/markets")) {
         return Promise.resolve(
           new Response(
@@ -101,6 +134,7 @@ describe("Hero", () => {
       expect(screen.getAllByText(/xrp\/usdt/i)[0]).toBeInTheDocument();
     });
 
+    expect(screen.getByLabelText(/live market chart/i)).toBeInTheDocument();
     expect(screen.getByText(/run demo buy/i)).toBeInTheDocument();
     expect(screen.getByText(/demo buy recorded/i)).toBeInTheDocument();
   });

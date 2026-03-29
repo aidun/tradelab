@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,10 @@ import (
 
 type MarketLister interface {
 	List(ctx context.Context) ([]domain.Market, error)
+}
+
+type MarketCandlesLister interface {
+	ListCandles(ctx context.Context, marketSymbol string, interval string, limit int) ([]domain.Candle, error)
 }
 
 type OrderPlacer interface {
@@ -32,7 +37,7 @@ type ActivityHistoryLister interface {
 	ListActivity(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)
 }
 
-func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister) http.Handler {
+func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -50,6 +55,38 @@ func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGet
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"markets": items})
+	})
+
+	mux.HandleFunc("GET /api/v1/markets/", func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/candles") {
+			writeError(w, http.StatusNotFound, "route not found")
+			return
+		}
+
+		marketSymbol := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/markets/"), "/candles")
+		if marketSymbol == "" {
+			writeError(w, http.StatusBadRequest, "market symbol is required")
+			return
+		}
+
+		marketSymbol, err := url.PathUnescape(marketSymbol)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "market symbol is invalid")
+			return
+		}
+
+		candles, err := marketCandles.ListCandles(
+			r.Context(),
+			marketSymbol,
+			r.URL.Query().Get("interval"),
+			parseBoundedLimit(r.URL.Query().Get("limit"), 48, 1, 200),
+		)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load candles")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{"candles": candles})
 	})
 
 	mux.HandleFunc("GET /api/v1/portfolios/", func(w http.ResponseWriter, r *http.Request) {
@@ -142,12 +179,16 @@ func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGet
 }
 
 func parseLimit(raw string) int {
+	return parseBoundedLimit(raw, 10, 1, 100)
+}
+
+func parseBoundedLimit(raw string, fallback int, min int, max int) int {
 	if raw == "" {
-		return 10
+		return fallback
 	}
 	limit, err := strconv.Atoi(raw)
-	if err != nil || limit <= 0 || limit > 100 {
-		return 10
+	if err != nil || limit < min || limit > max {
+		return fallback
 	}
 	return limit
 }

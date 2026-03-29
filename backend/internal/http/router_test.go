@@ -17,7 +17,7 @@ func TestHealthRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}).ServeHTTP(recorder, req)
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -32,7 +32,7 @@ func TestListMarketsRoute(t *testing.T) {
 		markets: []domain.Market{
 			{ID: "market-1", Symbol: "XRP/USDT", BaseAsset: "XRP", QuoteAsset: "USDT", Exchange: "demo"},
 		},
-	}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}).ServeHTTP(recorder, req)
+	}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -43,7 +43,7 @@ func TestPortfolioRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/wallet-1", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{
 		summary: domain.PortfolioSummary{WalletID: "wallet-1", BaseCurrency: "USDT", TotalValue: 10000},
 	}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}).ServeHTTP(recorder, req)
 
@@ -56,7 +56,7 @@ func TestListOrdersRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders?wallet_id=wallet-1", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{
 		orders: []domain.Order{{ID: "order-1", WalletID: "wallet-1", MarketSymbol: "XRP/USDT"}},
 	}, fakeActivityHistoryLister{}).ServeHTTP(recorder, req)
 
@@ -73,7 +73,7 @@ func TestListActivityRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/activity?wallet_id=wallet-1", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{
 		activity: []domain.ActivityLog{{ID: "log-1", WalletID: "wallet-1", Title: "Demo buy recorded", CreatedAt: time.Now()}},
 	}).ServeHTTP(recorder, req)
 
@@ -82,12 +82,32 @@ func TestListActivityRoute(t *testing.T) {
 	}
 }
 
+func TestListMarketCandlesRoute(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/markets/XRP%2FUSDT/candles?interval=1h&limit=2", nil)
+	recorder := httptest.NewRecorder()
+
+	NewRouter(fakeMarketLister{}, fakeMarketLister{
+		candles: []domain.Candle{
+			{OpenPrice: 0.62, HighPrice: 0.64, LowPrice: 0.61, ClosePrice: 0.63},
+			{OpenPrice: 0.63, HighPrice: 0.65, LowPrice: 0.62, ClosePrice: 0.64},
+		},
+	}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}).ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+
+	if !strings.Contains(recorder.Body.String(), "\"candles\"") {
+		t.Fatalf("expected candles payload in response, got %s", recorder.Body.String())
+	}
+}
+
 func TestCreateOrderRoute(t *testing.T) {
 	body := bytes.NewBufferString(`{"user_id":"user-1","wallet_id":"wallet-1","market_symbol":"XRP/USDT","quote_amount":50,"expected_price":0.67}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", body)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeOrderPlacer{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{
 		order: domain.Order{
 			ID:           "order-1",
 			UserID:       "user-1",
@@ -106,10 +126,14 @@ func TestCreateOrderRoute(t *testing.T) {
 
 type fakeMarketLister struct {
 	markets []domain.Market
+	candles []domain.Candle
 	err     error
 }
 
 func (f fakeMarketLister) List(context.Context) ([]domain.Market, error) { return f.markets, f.err }
+func (f fakeMarketLister) ListCandles(context.Context, string, string, int) ([]domain.Candle, error) {
+	return f.candles, f.err
+}
 
 type fakeOrderPlacer struct {
 	order domain.Order

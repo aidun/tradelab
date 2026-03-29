@@ -26,13 +26,13 @@ func main() {
 	balanceRepository := postgres.NewBalanceRepository(db)
 	portfolioRepository := postgres.NewPortfolioRepository(db)
 
-	marketService := marketservice.NewService(marketRepository)
+	marketService := marketservice.NewService(marketRepository, cfg.MarketDataBaseURL)
 	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository)
 	portfolioService := portfolioservice.NewService(portfolioRepository)
 	historyService := historyservice.NewService(portfolioRepository)
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
-		Handler: httpapi.NewRouter(marketService, orderService, portfolioService, historyService, historyService),
+		Handler: httpapi.NewRouter(marketService, marketService, orderService, portfolioService, historyService, historyService),
 	}
 
 	log.Printf("TradeLab backend listening on %s", cfg.HTTPAddress)

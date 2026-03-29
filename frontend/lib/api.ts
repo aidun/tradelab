@@ -58,6 +58,18 @@ export type ActivityLog = {
   createdAt: string;
 };
 
+export type Candle = {
+  openTime: string;
+  closeTime: string;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  closePrice: number;
+  baseVolume: number;
+  quoteVolume: number;
+  trades: number;
+};
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 function apiUrl(path: string) {
@@ -76,6 +88,19 @@ export async function fetchMarkets(): Promise<Market[]> {
 
   const data = await response.json();
   return data.markets;
+}
+
+export async function fetchCandles(marketSymbol: string, interval = "1h", limit = 48): Promise<Candle[]> {
+  const encodedSymbol = encodeURIComponent(marketSymbol);
+  const response = await fetch(apiUrl(`/api/v1/markets/${encodedSymbol}/candles?interval=${interval}&limit=${limit}`), {
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load candles");
+  }
+
+  const data = await response.json();
+  return data.candles;
 }
 
 export async function fetchPortfolio(walletID: string): Promise<PortfolioSummary> {
