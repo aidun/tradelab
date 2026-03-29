@@ -186,7 +186,6 @@ export async function fetchActivity(token: string): Promise<ActivityLog[]> {
 export async function placeMarketBuy(input: {
   marketSymbol: string;
   quoteAmount: number;
-  expectedPrice: number;
   token: string;
 }) {
   const response = await fetch(apiUrl("/api/v1/orders"), {
@@ -197,8 +196,7 @@ export async function placeMarketBuy(input: {
     },
     body: JSON.stringify({
       market_symbol: input.marketSymbol,
-      quote_amount: input.quoteAmount,
-      expected_price: input.expectedPrice
+      quote_amount: input.quoteAmount
     })
   });
 

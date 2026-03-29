@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	ErrQuoteAmountTooLow = errors.New("quote amount must be greater than zero")
-	ErrExpectedPriceLow  = errors.New("expected price must be greater than zero")
-	ErrInsufficientFunds = errors.New("insufficient quote balance")
+	ErrQuoteAmountTooLow       = errors.New("quote amount must be greater than zero")
+	ErrCurrentPriceUnavailable = errors.New("current market price is unavailable")
+	ErrInsufficientFunds       = errors.New("insufficient quote balance")
 )
 
 type Clock interface {
@@ -32,33 +32,34 @@ type Service struct {
 	markets  store.MarketRepository
 	balances store.BalanceRepository
 	orders   store.PortfolioRepository
+	prices   PriceProvider
 	clock    Clock
 }
 
-func NewService(markets store.MarketRepository, balances store.BalanceRepository, orders store.PortfolioRepository) *Service {
+type PriceProvider interface {
+	GetSpotPrice(ctx context.Context, marketSymbol string) (float64, error)
+}
+
+func NewService(markets store.MarketRepository, balances store.BalanceRepository, orders store.PortfolioRepository, prices PriceProvider) *Service {
 	return &Service{
 		markets:  markets,
 		balances: balances,
 		orders:   orders,
+		prices:   prices,
 		clock:    realClock{},
 	}
 }
 
 type PlaceMarketBuyInput struct {
-	UserID        string
-	WalletID      string
-	MarketSymbol  string
-	QuoteAmount   float64
-	ExpectedPrice float64
+	UserID       string
+	WalletID     string
+	MarketSymbol string
+	QuoteAmount  float64
 }
 
 func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput) (domain.Order, error) {
 	if input.QuoteAmount <= 0 {
 		return domain.Order{}, ErrQuoteAmountTooLow
-	}
-
-	if input.ExpectedPrice <= 0 {
-		return domain.Order{}, ErrExpectedPriceLow
 	}
 
 	market, err := s.markets.GetBySymbol(ctx, input.MarketSymbol)
@@ -79,6 +80,15 @@ func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput)
 		return domain.Order{}, ErrInsufficientFunds
 	}
 
+	currentPrice, err := s.prices.GetSpotPrice(ctx, market.Symbol)
+	if err != nil {
+		return domain.Order{}, fmt.Errorf("get current price: %w", err)
+	}
+
+	if currentPrice <= 0 {
+		return domain.Order{}, ErrCurrentPriceUnavailable
+	}
+
 	order := domain.Order{
 		ID:            uuid.NewString(),
 		UserID:        input.UserID,
@@ -88,8 +98,8 @@ func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput)
 		BaseAsset:     market.BaseAsset,
 		QuoteAsset:    market.QuoteAsset,
 		QuoteAmount:   input.QuoteAmount,
-		BaseQuantity:  input.QuoteAmount / input.ExpectedPrice,
-		ExpectedPrice: input.ExpectedPrice,
+		BaseQuantity:  input.QuoteAmount / currentPrice,
+		ExpectedPrice: currentPrice,
 		Side:          domain.OrderSideBuy,
 		Type:          domain.OrderTypeMarket,
 		Status:        domain.OrderStatusFilled,

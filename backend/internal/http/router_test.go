@@ -160,7 +160,7 @@ func TestListMarketCandlesRoute(t *testing.T) {
 }
 
 func TestCreateOrderRoute(t *testing.T) {
-	body := bytes.NewBufferString(`{"market_symbol":"XRP/USDT","quote_amount":50,"expected_price":0.67}`)
+	body := bytes.NewBufferString(`{"market_symbol":"XRP/USDT","quote_amount":50}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", body)
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()

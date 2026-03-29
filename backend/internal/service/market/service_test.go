@@ -59,6 +59,41 @@ func TestListCandlesFetchesRemoteMarketData(t *testing.T) {
 	}
 }
 
+func TestGetSpotPriceFetchesRemoteMarketPrice(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v3/ticker/price" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+
+		if got := r.URL.Query().Get("symbol"); got != "XRPUSDT" {
+			t.Fatalf("expected symbol XRPUSDT, got %s", got)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"symbol":"XRPUSDT","price":"0.6543"}`))
+	}))
+	defer server.Close()
+
+	service := NewService(fakeMarketRepository{
+		market: domain.Market{
+			ID:         "market-1",
+			Symbol:     "XRP/USDT",
+			BaseAsset:  "XRP",
+			QuoteAsset: "USDT",
+		},
+	}, server.URL)
+	service.client = server.Client()
+
+	price, err := service.GetSpotPrice(context.Background(), "XRP/USDT")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if price != 0.6543 {
+		t.Fatalf("expected price 0.6543, got %f", price)
+	}
+}
+
 type fakeMarketRepository struct {
 	market  domain.Market
 	markets []domain.Market
