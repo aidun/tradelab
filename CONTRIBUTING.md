@@ -20,7 +20,7 @@ We expect contributions to match the repository's current quality bar:
 - code and documentation remain in English
 - behavior changes come with tests or an explicit documented reason they cannot
 - documentation stays aligned with behavior changes
-- `docs/ai-metadata.json` is the authoritative dependency map for repo-facing follow-up work and must be reviewed whenever code, docs, screenshots, workflows, or public process change
+- `docs/ai-metadata.json` is updated when repo-facing structure, workflows, or public docs materially change
 - CI must stay green
 - public-facing claims must not overstate product maturity
 
@@ -76,8 +76,6 @@ Update documentation when changes affect:
 - GitHub-facing process or standards
 - release behavior
 - public positioning of the product
-
-Use `docs/ai-metadata.json` as the dependency checklist for deciding what else must be reviewed or updated. It now encodes the required follow-up artifacts for UI changes, API changes, backend behavior changes, documentation restructuring, deployment changes, testing changes, and GitHub process changes.
 
 ## Security reporting
 
