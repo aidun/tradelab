@@ -1,6 +1,6 @@
 # Kubernetes Deployment
 
-TradeLab ships with a Kubernetes deployment layout under `deploy/kubernetes`, a GitOps infrastructure bootstrap under `deploy/infrastructure`, and publishes ready-to-run container images to GitHub Container Registry on every successful `master` release.
+TradeLab ships with a Kubernetes deployment layout under `deploy/kubernetes`, a GitOps infrastructure bootstrap under `deploy/infrastructure`, and publishes ready-to-run container images to GitHub Container Registry for both `master` development builds and official releases.
 
 For the broader runtime model and operator workflow, see [system-operations.md](system-operations.md). For contributor workflow and local setup, see [developer-guide.md](developer-guide.md). For the GitOps platform bootstrap, see [infrastructure-bootstrap.md](infrastructure-bootstrap.md). For a first successful run by audience, start with [getting-started.md](getting-started.md).
 
@@ -14,16 +14,21 @@ For the broader runtime model and operator workflow, see [system-operations.md](
 
 ## Container images
 
-Every successful `master` release publishes:
+Every successful `master` push publishes development images:
+
+- `ghcr.io/aidun/tradelab-backend:master`
+- `ghcr.io/aidun/tradelab-backend:master-<shortsha>`
+- `ghcr.io/aidun/tradelab-frontend:master`
+- `ghcr.io/aidun/tradelab-frontend:master-<shortsha>`
+
+Every successful official release publishes:
 
 - `ghcr.io/aidun/tradelab-backend:latest`
 - `ghcr.io/aidun/tradelab-backend:v0.1.<run-number>`
 - `ghcr.io/aidun/tradelab-frontend:latest`
 - `ghcr.io/aidun/tradelab-frontend:v0.1.<run-number>`
 
-The release artifact packages Kubernetes manifests with immutable `v0.1.<run-number>` image tags. The
-development overlay keeps using `latest` for convenience, while release deployments should use the packaged
-manifest artifact or render production manifests through the release helper script.
+Argo CD development now deploys immutable `master-<shortsha>` image tags that are committed back into the development application manifest after each successful `master` image publish. Release deployments should use the packaged manifest artifact or the production Argo CD application pinned to an official release tag.
 
 ## Layout
 
@@ -116,6 +121,12 @@ Additional development values defined in manifests:
 | `HOSTNAME` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `0.0.0.0` | internal frontend bind host |
 | `TRADESLAB_API_PROXY_TARGET` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `http://tradelab-backend:8080` | keeps frontend `/api` rewrite inside the cluster |
 | development entrypoints | [patch-ingress.yaml](../deploy/kubernetes/overlays/development/patch-ingress.yaml) | `http://192.168.2.200/` and `http://192.168.2.200/tradelab-dev` | hostless Traefik access on the MetalLB IP |
+
+Development image policy:
+
+- the overlay defaults to the mutable `master` tag for direct manual rendering
+- the Argo CD development application overrides both images to immutable `master-<shortsha>` tags
+- the same Argo application pins `targetRevision` to the exact source commit that produced those images
 
 ### Kubernetes production parameters
 
@@ -216,6 +227,12 @@ kubectl apply -f /tmp/tradelab-kubernetes.yaml
 ```
 
 After apply, validate the first protected product flow with [installation-validation.md](installation-validation.md).
+
+Production image policy:
+
+- the production Argo CD application always uses release-tagged backend and frontend images
+- the `Promote Production` workflow updates both the Argo source revision and the production image tags together
+- production should never depend on mutable `master` or `latest` tags
 
 ## Operational notes
 

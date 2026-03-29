@@ -56,6 +56,7 @@
     "market-data fetch with bounded stale fallback",
     "structured backend request and service logging",
     "PR-first CI validation",
+    "automatic master-image publication for development after merges to master",
     "manual GitHub release execution from master",
     "manual production promotion to the latest official release tag",
     "k3s platform bootstrap with Argo CD app-of-apps",
@@ -86,7 +87,7 @@
   "constraints": {
     "code_language": "English",
     "chat_language": "German",
-    "delivery_model": "Feature branches -> PR CI -> merge to master -> release",
+    "delivery_model": "Feature branches -> PR CI -> merge to master -> publish master images for dev -> release",
     "merge_strategy": "squash merge",
     "demo_only": true,
     "live_trading": false,
@@ -164,6 +165,17 @@
         "action": "Squash merge pull request into master"
       },
       {
+        "workflow": "Publish Master Images",
+        "trigger": ["push:master"],
+        "conditions": [
+          "skip commits that only update deploy/infrastructure/applications/tradelab-dev.yaml"
+        ],
+        "jobs_order": [
+          "Build and publish backend/frontend master images",
+          "Update tradelab-dev Argo application to source commit SHA plus matching immutable master image tags"
+        ]
+      },
+      {
         "workflow": "Release",
         "trigger": ["workflow_dispatch"],
         "conditions": ["operator starts the workflow from master or another explicitly selected ref"],
@@ -229,7 +241,7 @@
         "deploy/infrastructure/applications/tradelab-prod.yaml"
       ],
       "environment_revision_policy": {
-        "development": "track master",
+        "development": "track the latest merged master commit through an Argo application manifest committed on master",
         "production": "track a promoted official release tag"
       }
     }
@@ -327,7 +339,10 @@
       "TRADESLAB_API_PROXY_TARGET",
       "NEXT_PUBLIC_API_BASE_URL",
       "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-      "NEXT_PUBLIC_AUTH_MOCK_MODE"
+      "NEXT_PUBLIC_AUTH_MOCK_MODE",
+      "NEXT_PUBLIC_BUILD_RELEASE",
+      "NEXT_PUBLIC_BUILD_BRANCH",
+      "NEXT_PUBLIC_BUILD_COMMIT"
     ],
     "kubernetes_development_secret_keys": [
       "POSTGRES_DB",
@@ -612,7 +627,8 @@
         ],
         "conditional_followups": [
           "update docs/installation-validation.md when smoke validation changes",
-          "update README.md when the public delivery story changes"
+          "update README.md when the public delivery story changes",
+          "update deploy/infrastructure application image overrides when GitOps image selection changes"
         ],
         "validation_expectations": [
           "verify deployment instructions still match manifests and release behavior"
@@ -658,6 +674,7 @@
       "release_flow_change": {
         "required_followups": [
           "update README.md",
+          "update docs/release-process.md",
           "update docs/system-operations.md",
           "review workflow_files",
           "update docs/ai-metadata.json"
@@ -755,6 +772,17 @@
           "update docs/deployment.md",
           "update docs/installation-validation.md",
           "update README.md",
+          "update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Change how master merges are built and delivered to the development cluster",
+        "followups": [
+          "update master image publishing workflow",
+          "update deploy/infrastructure/applications/tradelab-dev.yaml",
+          "update docs/deployment.md",
+          "update docs/system-operations.md",
+          "update docs/developer-guide.md",
           "update docs/ai-metadata.json"
         ]
       },

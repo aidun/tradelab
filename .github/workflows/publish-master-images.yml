@@ -1,0 +1,162 @@
+name: Publish Master Images
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - deploy/infrastructure/applications/tradelab-dev.yaml
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: publish-master-images
+  cancel-in-progress: true
+
+jobs:
+  publish-master-images:
+    name: Build and publish master images
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.meta.outputs.short_sha }}
+      full_sha: ${{ steps.meta.outputs.full_sha }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Compute image metadata
+        id: meta
+        shell: bash
+        run: |
+          short_sha="$(git rev-parse --short=12 HEAD)"
+          echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
+          echo "full_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/aidun/tradelab-backend:master
+            ghcr.io/aidun/tradelab-backend:master-${{ steps.meta.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.meta.outputs.full_sha }}
+            org.opencontainers.image.version=master-${{ steps.meta.outputs.short_sha }}
+            org.opencontainers.image.source=https://github.com/aidun/tradelab
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_BUILD_RELEASE=master-${{ steps.meta.outputs.short_sha }}
+            NEXT_PUBLIC_BUILD_BRANCH=master
+            NEXT_PUBLIC_BUILD_COMMIT=${{ steps.meta.outputs.full_sha }}
+          tags: |
+            ghcr.io/aidun/tradelab-frontend:master
+            ghcr.io/aidun/tradelab-frontend:master-${{ steps.meta.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.meta.outputs.full_sha }}
+            org.opencontainers.image.version=master-${{ steps.meta.outputs.short_sha }}
+            org.opencontainers.image.source=https://github.com/aidun/tradelab
+
+  update-dev-application:
+    name: Update development Argo target
+    needs:
+      - publish-master-images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Update development application manifest
+        shell: python
+        env:
+          FULL_SHA: ${{ needs.publish-master-images.outputs.full_sha }}
+          SHORT_SHA: ${{ needs.publish-master-images.outputs.short_sha }}
+        run: |
+          from pathlib import Path
+          import os
+
+          app_file = Path("deploy/infrastructure/applications/tradelab-dev.yaml")
+          full_sha = os.environ["FULL_SHA"]
+          short_sha = os.environ["SHORT_SHA"]
+          backend_image = f"ghcr.io/aidun/tradelab-backend:master-{short_sha}"
+          frontend_image = f"ghcr.io/aidun/tradelab-frontend:master-{short_sha}"
+          lines = []
+          in_source = False
+          in_kustomize = False
+          replaced_target = False
+          replaced_backend = False
+          replaced_frontend = False
+
+          for line in app_file.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped == "source:":
+              in_source = True
+            elif in_source and line.startswith("  ") and not line.startswith("    "):
+              in_source = False
+
+            if in_source and stripped.startswith("targetRevision:"):
+              lines.append(f"    targetRevision: {full_sha}")
+              replaced_target = True
+              continue
+
+            if in_source and stripped == "kustomize:":
+              in_kustomize = True
+              lines.append(line)
+              continue
+
+            if in_kustomize and stripped.startswith("- ghcr.io/aidun/tradelab-backend:"):
+              lines.append(f"        - {backend_image}")
+              replaced_backend = True
+              continue
+
+            if in_kustomize and stripped.startswith("- ghcr.io/aidun/tradelab-frontend:"):
+              lines.append(f"        - {frontend_image}")
+              replaced_frontend = True
+              continue
+
+            if in_kustomize and line.startswith("  ") and not line.startswith("      "):
+              in_kustomize = False
+
+            lines.append(line)
+
+          if not replaced_target:
+            raise SystemExit("targetRevision not updated in tradelab-dev application")
+          if not replaced_backend or not replaced_frontend:
+            raise SystemExit("development image overrides not updated in tradelab-dev application")
+
+          app_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+      - name: Commit development target update
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/infrastructure/applications/tradelab-dev.yaml
+          if git diff --cached --quiet; then
+            echo "Development application already points at this master revision."
+            exit 0
+          fi
+          git commit -m "Update development Argo target to ${{ needs.publish-master-images.outputs.short_sha }}"
+          git push origin HEAD:master

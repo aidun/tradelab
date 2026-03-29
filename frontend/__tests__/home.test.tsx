@@ -284,6 +284,9 @@ describe("Hero", () => {
 
     expect(screen.getByText(/run demo buy/i)).toBeInTheDocument();
     expect(screen.getByText(/demo buy recorded/i)).toBeInTheDocument();
+    expect(screen.getByText(/^local-dev$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^workspace$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^uncommitted$/i)).toBeInTheDocument();
   });
 
   it("stores guest session state in sessionStorage instead of localStorage", async () => {

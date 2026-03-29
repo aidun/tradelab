@@ -11,9 +11,9 @@ resources:
 
 images:
   - name: ghcr.io/aidun/tradelab-backend
-    newTag: latest
+    newTag: master
   - name: ghcr.io/aidun/tradelab-frontend
-    newTag: latest
+    newTag: master
 
 patches:
   - path: patch-ingress.yaml
