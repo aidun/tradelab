@@ -129,7 +129,7 @@ kubectl kustomize deploy/kubernetes/overlays/production
 ### Frontend
 
 - `frontend/app`: app entrypoints
-- `frontend/components`: UI components, including the trading dashboard
+- `frontend/components`: UI components, including the overview dashboard and focused market detail screen
 - `frontend/lib`: API client code and shared helpers
 - `frontend/lib/tradelab-auth.tsx`: auth provider boundary for guest, mock, and Clerk-backed registered modes
 - `frontend/lib/use-account-session.ts`: guest-plus-registered account orchestration plus guest session refresh logic
@@ -233,5 +233,6 @@ When making changes, consult the `artifact_groups` and `change_management` secti
 - market-data behavior now includes bounded stale fallback semantics
 - backend request and service flow now emits structured JSON logs through `log/slog`
 - frontend quality gates now include Playwright coverage for core dashboard journeys
+- Phase 4 adds a global accounting-mode UI and a dedicated `/markets/[symbol]` route for the focused trading flow
 - release-ready Kubernetes output should use immutable release tags, not rely on `latest`
 - protected API routes now accept guest bearer tokens or registered HttpOnly app-session cookies, depending on the principal type

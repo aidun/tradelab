@@ -27,19 +27,19 @@ type MarketCandlesLister interface {
 }
 
 type OrderPlacer interface {
-	PlaceMarketBuy(ctx context.Context, input orderservice.PlaceMarketBuyInput) (domain.Order, error)
+	PlaceMarketOrder(ctx context.Context, input orderservice.PlaceMarketOrderInput) (domain.Order, error)
 }
 
 type PortfolioGetter interface {
-	GetSummary(ctx context.Context, walletID string) (domain.PortfolioSummary, error)
+	GetSummary(ctx context.Context, walletID string, mode domain.AccountingMode) (domain.PortfolioSummary, error)
 }
 
 type OrderHistoryLister interface {
-	ListOrders(ctx context.Context, walletID string, limit int) ([]domain.Order, error)
+	ListOrders(ctx context.Context, walletID string, limit int, marketSymbol string, mode domain.AccountingMode) ([]domain.Order, error)
 }
 
 type ActivityHistoryLister interface {
-	ListActivity(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)
+	ListActivity(ctx context.Context, walletID string, limit int, marketSymbol string) ([]domain.ActivityLog, error)
 }
 
 type DemoSessionManager interface {
@@ -254,7 +254,8 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		summary, err := portfolios.GetSummary(r.Context(), walletID)
+		mode := parseAccountingMode(r.URL.Query().Get("accounting_mode"))
+		summary, err := portfolios.GetSummary(r.Context(), walletID, mode)
 		if err != nil {
 			logError(logger, "portfolios.summary_failed", err, "wallet_id", walletID)
 			writeError(w, http.StatusInternalServerError, "failed to load portfolio")
@@ -270,7 +271,8 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		items, err := orderHistory.ListOrders(r.Context(), principal.WalletID, parseLimit(r.URL.Query().Get("limit")))
+		mode := parseAccountingMode(r.URL.Query().Get("accounting_mode"))
+		items, err := orderHistory.ListOrders(r.Context(), principal.WalletID, parseLimit(r.URL.Query().Get("limit")), strings.TrimSpace(r.URL.Query().Get("market_symbol")), mode)
 		if err != nil {
 			logError(logger, "orders.history_failed", err, "wallet_id", principal.WalletID)
 			writeError(w, http.StatusInternalServerError, "failed to load orders")
@@ -286,7 +288,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		items, err := activityHistory.ListActivity(r.Context(), principal.WalletID, parseLimit(r.URL.Query().Get("limit")))
+		items, err := activityHistory.ListActivity(r.Context(), principal.WalletID, parseLimit(r.URL.Query().Get("limit")), strings.TrimSpace(r.URL.Query().Get("market_symbol")))
 		if err != nil {
 			logError(logger, "activity.history_failed", err, "wallet_id", principal.WalletID)
 			writeError(w, http.StatusInternalServerError, "failed to load activity")
@@ -304,7 +306,9 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 
 		var payload struct {
 			MarketSymbol string  `json:"market_symbol"`
+			Side         string  `json:"side"`
 			QuoteAmount  float64 `json:"quote_amount"`
+			BaseQuantity float64 `json:"base_quantity"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -313,20 +317,23 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		logInfo(logger, "orders.create_attempt", "wallet_id", principal.WalletID, "market_symbol", payload.MarketSymbol, "quote_amount", payload.QuoteAmount)
-		order, err := orders.PlaceMarketBuy(r.Context(), orderservice.PlaceMarketBuyInput{
+		side := domain.OrderSide(strings.ToLower(strings.TrimSpace(payload.Side)))
+		logInfo(logger, "orders.create_attempt", "wallet_id", principal.WalletID, "market_symbol", payload.MarketSymbol, "quote_amount", payload.QuoteAmount, "base_quantity", payload.BaseQuantity, "side", side)
+		order, err := orders.PlaceMarketOrder(r.Context(), orderservice.PlaceMarketOrderInput{
 			UserID:       principal.UserID,
 			WalletID:     principal.WalletID,
 			MarketSymbol: payload.MarketSymbol,
+			Side:         side,
 			QuoteAmount:  payload.QuoteAmount,
+			BaseQuantity: payload.BaseQuantity,
 		})
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 
 			switch {
-			case errors.Is(err, orderservice.ErrQuoteAmountTooLow), errors.Is(err, orderservice.ErrCurrentPriceUnavailable):
+			case errors.Is(err, orderservice.ErrQuoteAmountTooLow), errors.Is(err, orderservice.ErrBaseQuantityTooLow), errors.Is(err, orderservice.ErrCurrentPriceUnavailable):
 				statusCode = http.StatusBadRequest
-			case errors.Is(err, orderservice.ErrInsufficientFunds):
+			case errors.Is(err, orderservice.ErrInsufficientFunds), errors.Is(err, orderservice.ErrInsufficientPosition):
 				statusCode = http.StatusUnprocessableEntity
 			}
 
@@ -417,6 +424,10 @@ func parseBoundedLimit(raw string, fallback int, min int, max int) int {
 		return fallback
 	}
 	return limit
+}
+
+func parseAccountingMode(raw string) domain.AccountingMode {
+	return domain.NormalizeAccountingMode(strings.TrimSpace(strings.ToLower(raw)))
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, payload any) {

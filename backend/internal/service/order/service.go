@@ -15,8 +15,10 @@ import (
 
 var (
 	ErrQuoteAmountTooLow       = errors.New("quote amount must be greater than zero")
+	ErrBaseQuantityTooLow      = errors.New("base quantity must be greater than zero")
 	ErrCurrentPriceUnavailable = errors.New("current market price is unavailable")
 	ErrInsufficientFunds       = errors.New("insufficient quote balance")
+	ErrInsufficientPosition    = errors.New("insufficient base balance")
 )
 
 type Clock interface {
@@ -53,52 +55,79 @@ func NewService(markets store.MarketRepository, balances store.BalanceRepository
 	}
 }
 
-type PlaceMarketBuyInput struct {
+type PlaceMarketOrderInput struct {
 	UserID       string
 	WalletID     string
 	MarketSymbol string
+	Side         domain.OrderSide
 	QuoteAmount  float64
+	BaseQuantity float64
 }
 
-func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput) (domain.Order, error) {
-	s.logInfo("place_market_buy.attempt", "wallet_id", input.WalletID, "market_symbol", input.MarketSymbol, "quote_amount", input.QuoteAmount)
-
-	if input.QuoteAmount <= 0 {
-		s.logInfo("place_market_buy.validation_failed", "wallet_id", input.WalletID, "reason", "quote_amount_too_low")
-		return domain.Order{}, ErrQuoteAmountTooLow
-	}
+func (s *Service) PlaceMarketOrder(ctx context.Context, input PlaceMarketOrderInput) (domain.Order, error) {
+	s.logInfo("place_market_order.attempt", "wallet_id", input.WalletID, "market_symbol", input.MarketSymbol, "side", input.Side, "quote_amount", input.QuoteAmount, "base_quantity", input.BaseQuantity)
 
 	market, err := s.markets.GetBySymbol(ctx, input.MarketSymbol)
 	if err != nil {
-		s.logError("place_market_buy.market_lookup_failed", err, "wallet_id", input.WalletID, "market_symbol", input.MarketSymbol)
+		s.logError("place_market_order.market_lookup_failed", err, "wallet_id", input.WalletID, "market_symbol", input.MarketSymbol)
 		return domain.Order{}, fmt.Errorf("get market: %w", err)
-	}
-
-	if input.QuoteAmount < market.MinNotional {
-		s.logInfo("place_market_buy.validation_failed", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "reason", "below_min_notional", "min_notional", market.MinNotional)
-		return domain.Order{}, fmt.Errorf("quote amount below market minimum: %.2f", market.MinNotional)
-	}
-
-	quoteBalance, err := s.balances.GetByWalletAndAsset(ctx, input.WalletID, market.QuoteAsset)
-	if err != nil {
-		s.logError("place_market_buy.balance_lookup_failed", err, "wallet_id", input.WalletID, "market_symbol", market.Symbol)
-		return domain.Order{}, fmt.Errorf("get balance: %w", err)
-	}
-
-	if quoteBalance.Available < input.QuoteAmount {
-		s.logInfo("place_market_buy.insufficient_funds", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "available_balance", quoteBalance.Available)
-		return domain.Order{}, ErrInsufficientFunds
 	}
 
 	currentPrice, err := s.prices.GetSpotPrice(ctx, market.Symbol)
 	if err != nil {
-		s.logError("place_market_buy.price_lookup_failed", err, "wallet_id", input.WalletID, "market_symbol", market.Symbol)
+		s.logError("place_market_order.price_lookup_failed", err, "wallet_id", input.WalletID, "market_symbol", market.Symbol)
 		return domain.Order{}, fmt.Errorf("get current price: %w", err)
 	}
 
 	if currentPrice <= 0 {
-		s.logInfo("place_market_buy.validation_failed", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "reason", "price_unavailable")
+		s.logInfo("place_market_order.validation_failed", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "reason", "price_unavailable")
 		return domain.Order{}, ErrCurrentPriceUnavailable
+	}
+
+	switch input.Side {
+	case domain.OrderSideBuy:
+		if input.QuoteAmount <= 0 {
+			s.logInfo("place_market_order.validation_failed", "wallet_id", input.WalletID, "reason", "quote_amount_too_low")
+			return domain.Order{}, ErrQuoteAmountTooLow
+		}
+
+		if input.QuoteAmount < market.MinNotional {
+			s.logInfo("place_market_order.validation_failed", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "reason", "below_min_notional", "min_notional", market.MinNotional)
+			return domain.Order{}, fmt.Errorf("quote amount below market minimum: %.2f", market.MinNotional)
+		}
+
+		quoteBalance, err := s.balances.GetByWalletAndAsset(ctx, input.WalletID, market.QuoteAsset)
+		if err != nil {
+			s.logError("place_market_order.balance_lookup_failed", err, "wallet_id", input.WalletID, "market_symbol", market.Symbol, "asset", market.QuoteAsset)
+			return domain.Order{}, fmt.Errorf("get balance: %w", err)
+		}
+
+		if quoteBalance.Available < input.QuoteAmount {
+			s.logInfo("place_market_order.insufficient_funds", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "available_balance", quoteBalance.Available)
+			return domain.Order{}, ErrInsufficientFunds
+		}
+
+		input.BaseQuantity = input.QuoteAmount / currentPrice
+	case domain.OrderSideSell:
+		if input.BaseQuantity <= 0 {
+			s.logInfo("place_market_order.validation_failed", "wallet_id", input.WalletID, "reason", "base_quantity_too_low")
+			return domain.Order{}, ErrBaseQuantityTooLow
+		}
+
+		baseBalance, err := s.balances.GetByWalletAndAsset(ctx, input.WalletID, market.BaseAsset)
+		if err != nil {
+			s.logError("place_market_order.balance_lookup_failed", err, "wallet_id", input.WalletID, "market_symbol", market.Symbol, "asset", market.BaseAsset)
+			return domain.Order{}, fmt.Errorf("get balance: %w", err)
+		}
+
+		if baseBalance.Available < input.BaseQuantity {
+			s.logInfo("place_market_order.insufficient_position", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "available_balance", baseBalance.Available)
+			return domain.Order{}, ErrInsufficientPosition
+		}
+
+		input.QuoteAmount = input.BaseQuantity * currentPrice
+	default:
+		return domain.Order{}, fmt.Errorf("unsupported order side: %s", input.Side)
 	}
 
 	order := domain.Order{
@@ -110,22 +139,28 @@ func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput)
 		BaseAsset:     market.BaseAsset,
 		QuoteAsset:    market.QuoteAsset,
 		QuoteAmount:   input.QuoteAmount,
-		BaseQuantity:  input.QuoteAmount / currentPrice,
+		BaseQuantity:  input.BaseQuantity,
 		ExpectedPrice: currentPrice,
-		Side:          domain.OrderSideBuy,
+		Side:          input.Side,
 		Type:          domain.OrderTypeMarket,
 		Status:        domain.OrderStatusFilled,
 		CreatedAt:     s.clock.Now(),
 		ExecutedAt:    s.clock.Now(),
 	}
 
-	createdOrder, err := s.orders.ApplyMarketBuy(ctx, order)
+	var createdOrder domain.Order
+	switch input.Side {
+	case domain.OrderSideBuy:
+		createdOrder, err = s.orders.ApplyMarketBuy(ctx, order)
+	case domain.OrderSideSell:
+		createdOrder, err = s.orders.ApplyMarketSell(ctx, order)
+	}
 	if err != nil {
-		s.logError("place_market_buy.apply_failed", err, "wallet_id", input.WalletID, "market_symbol", market.Symbol)
+		s.logError("place_market_order.apply_failed", err, "wallet_id", input.WalletID, "market_symbol", market.Symbol, "side", input.Side)
 		return domain.Order{}, fmt.Errorf("create order: %w", err)
 	}
 
-	s.logInfo("place_market_buy.success", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "order_id", createdOrder.ID, "executed_price", createdOrder.ExpectedPrice)
+	s.logInfo("place_market_order.success", "wallet_id", input.WalletID, "market_symbol", market.Symbol, "order_id", createdOrder.ID, "executed_price", createdOrder.ExpectedPrice, "side", createdOrder.Side)
 	return createdOrder, nil
 }
 

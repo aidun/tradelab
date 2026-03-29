@@ -48,7 +48,7 @@ func main() {
 
 	marketService := marketservice.NewService(marketRepository, cfg.MarketDataBaseURL, logging.NewJSONLogger("market_service"))
 	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository, marketService, logging.NewJSONLogger("order_service"))
-	portfolioService := portfolioservice.NewService(portfolioRepository, logging.NewJSONLogger("portfolio_service"))
+	portfolioService := portfolioservice.NewService(portfolioRepository, marketService, logging.NewJSONLogger("portfolio_service"))
 	historyService := historyservice.NewService(portfolioRepository, logging.NewJSONLogger("history_service"))
 	sessionService := sessionservice.NewService(sessionRepository, appSessionRepository, logging.NewJSONLogger("session_service"))
 	accountService := accountservice.NewService(registeredAccountRepository, clerkVerifier, logging.NewJSONLogger("account_service"))

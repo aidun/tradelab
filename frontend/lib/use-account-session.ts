@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  type AccountingMode,
   ApiError,
   bootstrapRegisteredAccount,
   createDemoSession,
@@ -21,6 +22,7 @@ import {
 import { useTradeLabAuth } from "@/lib/tradelab-auth";
 
 const DEMO_SESSION_STORAGE_KEY = "tradelab.demo-session";
+const ACCOUNTING_MODE_STORAGE_KEY = "tradelab.accounting-mode";
 
 type CoreDataState = {
   guestSession: DemoSession | null;
@@ -29,6 +31,7 @@ type CoreDataState = {
   portfolio: PortfolioSummary | null;
   orders: Order[];
   activity: ActivityLog[];
+  accountingMode: AccountingMode;
   isLoading: boolean;
   isUpgrading: boolean;
   showUpgradePrompt: boolean;
@@ -40,6 +43,7 @@ type CoreDataState = {
   clearMessages: () => void;
   setErrorMessage: (message: string | null) => void;
   setSuccessMessage: (message: string | null) => void;
+  setAccountingMode: (mode: AccountingMode) => void;
   refreshCoreData: () => Promise<{ walletID: string; token: string | null } | null>;
   upgradeGuestSession: (preserveGuestData: boolean) => Promise<void>;
   activeAccessToken: () => Promise<string | null>;
@@ -55,6 +59,7 @@ export function useAccountSession(): CoreDataState {
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
+  const [accountingMode, setAccountingModeState] = useState<AccountingMode>("average_cost");
   const [isLoading, setIsLoading] = useState(true);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
@@ -94,13 +99,24 @@ export function useAccountSession(): CoreDataState {
     setGuestSession(null);
   }
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedMode = window.localStorage.getItem(ACCOUNTING_MODE_STORAGE_KEY) as AccountingMode | null;
+    if (storedMode === "average_cost" || storedMode === "fifo" || storedMode === "hybrid") {
+      setAccountingModeState(storedMode);
+    }
+  }, []);
+
   async function loadCoreData(walletID: string, token?: string | null) {
     setError(null);
 
     const [marketList, portfolioSummary, orderHistory, activityHistory] = await Promise.all([
       fetchMarkets(),
-      fetchPortfolio(walletID, token ?? ""),
-      fetchOrders(token ?? ""),
+      fetchPortfolio(walletID, token ?? "", accountingMode),
+      fetchOrders(token ?? "", { accountingMode }),
       fetchActivity(token ?? "")
     ]);
 
@@ -176,6 +192,18 @@ export function useAccountSession(): CoreDataState {
       cancelled = true;
     };
   }, [auth.status, guestSession, registeredAccount]);
+
+  useEffect(() => {
+    if (!activeWalletID) {
+      return;
+    }
+
+    startTransition(() => {
+      refreshCoreData().catch((refreshError: Error) => {
+        setError(refreshError.message);
+      });
+    });
+  }, [accountingMode]);
 
   useEffect(() => {
     const authJustSignedIn = previousAuthStatus.current !== "signed_in" && auth.status === "signed_in";
@@ -270,6 +298,13 @@ export function useAccountSession(): CoreDataState {
     setSuccess(null);
   }
 
+  function setAccountingMode(mode: AccountingMode) {
+    setAccountingModeState(mode);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ACCOUNTING_MODE_STORAGE_KEY, mode);
+    }
+  }
+
   return useMemo(
     () => ({
       guestSession,
@@ -278,6 +313,7 @@ export function useAccountSession(): CoreDataState {
       portfolio,
       orders,
       activity,
+      accountingMode,
       isLoading,
       isUpgrading,
       showUpgradePrompt,
@@ -289,12 +325,14 @@ export function useAccountSession(): CoreDataState {
       clearMessages,
       setErrorMessage: setError,
       setSuccessMessage: setSuccess,
+      setAccountingMode,
       refreshCoreData,
       upgradeGuestSession,
       activeAccessToken
     }),
     [
       activity,
+      accountingMode,
       activeWalletID,
       accountModeLabel,
       error,

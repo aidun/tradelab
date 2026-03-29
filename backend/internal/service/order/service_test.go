@@ -11,12 +11,27 @@ import (
 )
 
 func TestPlaceMarketBuyReturnsErrorForZeroQuoteAmount(t *testing.T) {
-	service := &Service{}
+	service := NewService(
+		fakeMarketRepository{
+			market: domain.Market{
+				ID:          "market-1",
+				Symbol:      "XRP/USDT",
+				BaseAsset:   "XRP",
+				QuoteAsset:  "USDT",
+				MinNotional: 10,
+			},
+		},
+		fakeBalanceRepository{},
+		fakePortfolioRepository{},
+		fakePriceProvider{price: 0.67},
+		logging.NewDiscardLogger("order_service_test"),
+	)
 
-	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+	_, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
 		UserID:       "user-1",
 		WalletID:     "wallet-1",
 		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideBuy,
 		QuoteAmount:  0,
 	})
 
@@ -47,10 +62,11 @@ func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 		logging.NewDiscardLogger("order_service_test"),
 	)
 
-	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+	_, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
 		UserID:       "user-1",
 		WalletID:     "wallet-1",
 		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideBuy,
 		QuoteAmount:  200,
 	})
 
@@ -84,10 +100,11 @@ func TestPlaceMarketBuyCreatesFilledOrder(t *testing.T) {
 	)
 	service.clock = fakeClock{now: now}
 
-	order, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+	order, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
 		UserID:       "user-1",
 		WalletID:     "wallet-1",
 		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideBuy,
 		QuoteAmount:  100,
 	})
 	if err != nil {
@@ -133,10 +150,11 @@ func TestPlaceMarketBuyReturnsErrorWhenPriceProviderHasNoPrice(t *testing.T) {
 		logging.NewDiscardLogger("order_service_test"),
 	)
 
-	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+	_, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
 		UserID:       "user-1",
 		WalletID:     "wallet-1",
 		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideBuy,
 		QuoteAmount:  100,
 	})
 	if !errors.Is(err, ErrCurrentPriceUnavailable) {
@@ -166,10 +184,11 @@ func TestPlaceMarketBuyReturnsErrorWhenPriceProviderFails(t *testing.T) {
 		logging.NewDiscardLogger("order_service_test"),
 	)
 
-	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+	_, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
 		UserID:       "user-1",
 		WalletID:     "wallet-1",
 		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideBuy,
 		QuoteAmount:  100,
 	})
 	if err == nil {
@@ -199,14 +218,94 @@ func TestPlaceMarketBuyReturnsErrorWhenBelowMarketMinimum(t *testing.T) {
 		logging.NewDiscardLogger("order_service_test"),
 	)
 
-	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+	_, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
 		UserID:       "user-1",
 		WalletID:     "wallet-1",
 		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideBuy,
 		QuoteAmount:  5,
 	})
 	if err == nil {
 		t.Fatal("expected an error, got nil")
+	}
+}
+
+func TestPlaceMarketSellRejectsOversizedPosition(t *testing.T) {
+	service := NewService(
+		fakeMarketRepository{
+			market: domain.Market{
+				ID:          "market-1",
+				Symbol:      "XRP/USDT",
+				BaseAsset:   "XRP",
+				QuoteAsset:  "USDT",
+				MinNotional: 10,
+			},
+		},
+		fakeBalanceRepository{
+			balance: domain.Balance{
+				AssetSymbol: "XRP",
+				Available:   10,
+			},
+		},
+		fakePortfolioRepository{},
+		fakePriceProvider{price: 0.67},
+		logging.NewDiscardLogger("order_service_test"),
+	)
+
+	_, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
+		UserID:       "user-1",
+		WalletID:     "wallet-1",
+		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideSell,
+		BaseQuantity: 25,
+	})
+	if !errors.Is(err, ErrInsufficientPosition) {
+		t.Fatalf("expected ErrInsufficientPosition, got %v", err)
+	}
+}
+
+func TestPlaceMarketSellCreatesFilledOrder(t *testing.T) {
+	now := time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)
+
+	service := NewService(
+		fakeMarketRepository{
+			market: domain.Market{
+				ID:          "market-1",
+				Symbol:      "XRP/USDT",
+				BaseAsset:   "XRP",
+				QuoteAsset:  "USDT",
+				MinNotional: 10,
+			},
+		},
+		fakeBalanceRepository{
+			balance: domain.Balance{
+				AssetSymbol: "XRP",
+				Available:   250,
+			},
+		},
+		fakePortfolioRepository{},
+		fakePriceProvider{price: 0.7},
+		logging.NewDiscardLogger("order_service_test"),
+	)
+	service.clock = fakeClock{now: now}
+
+	order, err := service.PlaceMarketOrder(context.Background(), PlaceMarketOrderInput{
+		UserID:       "user-1",
+		WalletID:     "wallet-1",
+		MarketSymbol: "XRP/USDT",
+		Side:         domain.OrderSideSell,
+		BaseQuantity: 100,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.Side != domain.OrderSideSell {
+		t.Fatalf("expected sell side, got %s", order.Side)
+	}
+
+	if order.QuoteAmount != 70 {
+		t.Fatalf("expected quote proceeds 70, got %f", order.QuoteAmount)
 	}
 }
 
@@ -242,6 +341,13 @@ type fakePortfolioRepository struct {
 }
 
 func (f fakePortfolioRepository) ApplyMarketBuy(_ context.Context, order domain.Order) (domain.Order, error) {
+	if f.err != nil {
+		return domain.Order{}, f.err
+	}
+	return order, nil
+}
+
+func (f fakePortfolioRepository) ApplyMarketSell(_ context.Context, order domain.Order) (domain.Order, error) {
 	if f.err != nil {
 		return domain.Order{}, f.err
 	}
