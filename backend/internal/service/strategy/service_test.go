@@ -129,6 +129,9 @@ func TestRunOnceExecutesDipBuy(t *testing.T) {
 	if orders.inputs[0].OrderSource != domain.OrderSourceStrategy {
 		t.Fatalf("expected strategy order source, got %s", orders.inputs[0].OrderSource)
 	}
+	if orders.inputs[0].StrategyID != "strategy-1" {
+		t.Fatalf("expected strategy id to be forwarded, got %q", orders.inputs[0].StrategyID)
+	}
 	if len(repo.recorded) != 1 || repo.recorded[0].Outcome != domain.StrategyOutcomeExecuted {
 		t.Fatalf("expected executed strategy run, got %#v", repo.recorded)
 	}
@@ -179,6 +182,9 @@ func TestRunOnceExecutesTakeProfitSell(t *testing.T) {
 	}
 	if orders.inputs[0].BaseQuantity != 50 {
 		t.Fatalf("expected full-position sell, got %f", orders.inputs[0].BaseQuantity)
+	}
+	if orders.inputs[0].StrategyID != "strategy-1" {
+		t.Fatalf("expected strategy id to be forwarded, got %q", orders.inputs[0].StrategyID)
 	}
 }
 
