@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import { TradeLabAuthProvider } from "@/lib/tradelab-auth";
 import "./globals.css";
 
 const displayFont = Space_Grotesk({
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${displayFont.variable} ${monoFont.variable}`}>
-        {children}
+        <TradeLabAuthProvider>{children}</TradeLabAuthProvider>
       </body>
     </html>
   );

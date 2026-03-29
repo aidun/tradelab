@@ -20,6 +20,12 @@ type DemoSessionRepository interface {
 	GetByToken(ctx context.Context, token string) (domain.DemoSession, error)
 }
 
+type RegisteredAccountRepository interface {
+	GetByClerkUserID(ctx context.Context, clerkUserID string) (domain.RegisteredAccount, error)
+	BootstrapRegisteredAccount(ctx context.Context, identity domain.RegisteredIdentity) (domain.RegisteredAccount, error)
+	UpgradeGuestSession(ctx context.Context, guestToken string, identity domain.RegisteredIdentity, preserveGuestData bool) (domain.RegisteredAccount, error)
+}
+
 type OrderRepository interface {
 	Create(ctx context.Context, order domain.Order) (domain.Order, error)
 	ListByWallet(ctx context.Context, walletID string, limit int) ([]domain.Order, error)

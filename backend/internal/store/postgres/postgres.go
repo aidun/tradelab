@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -187,6 +188,176 @@ func (r *DemoSessionRepository) GetByToken(ctx context.Context, token string) (d
 	}
 
 	return session, nil
+}
+
+type RegisteredAccountRepository struct {
+	db *sql.DB
+}
+
+func NewRegisteredAccountRepository(db *sql.DB) *RegisteredAccountRepository {
+	return &RegisteredAccountRepository{db: db}
+}
+
+func (r *RegisteredAccountRepository) GetByClerkUserID(ctx context.Context, clerkUserID string) (domain.RegisteredAccount, error) {
+	var account domain.RegisteredAccount
+
+	err := r.db.QueryRowContext(ctx, `
+		SELECT users.id, wallets.id, users.clerk_user_id, COALESCE(users.email, ''), users.display_name
+		FROM users
+		JOIN wallets ON wallets.user_id = users.id
+		WHERE users.clerk_user_id = $1
+		ORDER BY wallets.created_at ASC
+		LIMIT 1
+	`, clerkUserID).Scan(&account.UserID, &account.WalletID, &account.ClerkUserID, &account.Email, &account.DisplayName)
+	if err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	return account, nil
+}
+
+func (r *RegisteredAccountRepository) BootstrapRegisteredAccount(ctx context.Context, identity domain.RegisteredIdentity) (domain.RegisteredAccount, error) {
+	existing, err := r.GetByClerkUserID(ctx, identity.ClerkUserID)
+	if err == nil {
+		return existing, nil
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		return domain.RegisteredAccount{}, err
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+	defer tx.Rollback()
+
+	now := time.Now().UTC()
+	userID := newUUID()
+	walletID := newUUID()
+	email := accountEmail(identity)
+	displayName := accountDisplayName(identity)
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO users (id, clerk_user_id, email, password_hash, display_name, auth_provider, created_at, updated_at)
+		VALUES ($1, $2, $3, NULL, $4, 'clerk', $5, $5)
+	`, userID, identity.ClerkUserID, nullableText(email), displayName, now); err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO wallets (id, user_id, wallet_type, base_currency, starting_balance, created_at, updated_at)
+		VALUES ($1, $2, 'paper', 'USDT', 10000, $3, $3)
+	`, walletID, userID, now); err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO wallet_balances (id, wallet_id, asset_id, available_amount, locked_amount, average_entry_price, updated_at)
+		SELECT $1, $2, id, 10000, 0, 1, $3
+		FROM assets
+		WHERE symbol = 'USDT'
+	`, newUUID(), walletID, now); err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	return domain.RegisteredAccount{
+		UserID:      userID,
+		WalletID:    walletID,
+		ClerkUserID: identity.ClerkUserID,
+		Email:       email,
+		DisplayName: displayName,
+	}, nil
+}
+
+func (r *RegisteredAccountRepository) UpgradeGuestSession(ctx context.Context, guestToken string, identity domain.RegisteredIdentity, preserveGuestData bool) (domain.RegisteredAccount, error) {
+	existing, err := r.GetByClerkUserID(ctx, identity.ClerkUserID)
+	if err == nil {
+		if preserveGuestData {
+			return domain.RegisteredAccount{}, fmt.Errorf("registered account already exists")
+		}
+
+		if err := r.deleteGuestSessionByToken(ctx, guestToken); err != nil {
+			return domain.RegisteredAccount{}, err
+		}
+
+		return existing, nil
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		return domain.RegisteredAccount{}, err
+	}
+
+	if !preserveGuestData {
+		account, err := r.BootstrapRegisteredAccount(ctx, identity)
+		if err != nil {
+			return domain.RegisteredAccount{}, err
+		}
+
+		if err := r.deleteGuestSessionByToken(ctx, guestToken); err != nil {
+			return domain.RegisteredAccount{}, err
+		}
+
+		return account, nil
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+	defer tx.Rollback()
+
+	tokenHash := hashToken(guestToken)
+	var sessionID, userID, walletID string
+	err = tx.QueryRowContext(ctx, `
+		SELECT id, user_id, wallet_id
+		FROM demo_sessions
+		WHERE token_hash = $1
+	`, tokenHash).Scan(&sessionID, &userID, &walletID)
+	if err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	email := accountEmail(identity)
+	displayName := accountDisplayName(identity)
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE users
+		SET clerk_user_id = $1,
+			email = $2,
+			password_hash = NULL,
+			display_name = $3,
+			auth_provider = 'clerk',
+			updated_at = NOW()
+		WHERE id = $4
+	`, identity.ClerkUserID, nullableText(email), displayName, userID); err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM demo_sessions WHERE id = $1`, sessionID); err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return domain.RegisteredAccount{}, err
+	}
+
+	return domain.RegisteredAccount{
+		UserID:      userID,
+		WalletID:    walletID,
+		ClerkUserID: identity.ClerkUserID,
+		Email:       email,
+		DisplayName: displayName,
+	}, nil
+}
+
+func (r *RegisteredAccountRepository) deleteGuestSessionByToken(ctx context.Context, guestToken string) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM demo_sessions WHERE token_hash = $1`, hashToken(guestToken))
+	return err
 }
 
 type PortfolioRepository struct {
@@ -482,4 +653,36 @@ func newSessionToken() (string, string, error) {
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+func accountEmail(identity domain.RegisteredIdentity) string {
+	if identity.Email != "" {
+		return identity.Email
+	}
+
+	return ""
+}
+
+func accountDisplayName(identity domain.RegisteredIdentity) string {
+	if identity.DisplayName != "" {
+		return identity.DisplayName
+	}
+
+	return "Trader " + truncate(identity.ClerkUserID)
+}
+
+func nullableText(value string) any {
+	if value == "" {
+		return nil
+	}
+
+	return value
+}
+
+func truncate(value string) string {
+	if len(value) <= 8 {
+		return value
+	}
+
+	return value[:8]
 }

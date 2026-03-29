@@ -1,25 +1,16 @@
 "use client";
 
-import React, { startTransition, useEffect, useState } from "react";
+import React, { startTransition, useEffect, useMemo, useState } from "react";
 import {
-  createDemoSession,
-  fetchActivity,
   fetchCandles,
-  fetchMarkets,
-  fetchOrders,
-  fetchPortfolio,
   placeMarketBuy,
-  type ActivityLog,
   type Candle,
   type CandleFeed,
-  type DemoSession,
-  type Market,
   type MarketDataMeta,
-  type Order,
-  type PortfolioSummary
+  type RegisteredAccount
 } from "@/lib/api";
-
-const DEMO_SESSION_STORAGE_KEY = "tradelab.demo-session";
+import { AuthEntryActions, AuthStatusControls, useTradeLabAuth } from "@/lib/tradelab-auth";
+import { useAccountSession } from "@/lib/use-account-session";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -179,60 +170,48 @@ function CandleChart({ candles }: { candles: Candle[] }) {
 }
 
 export function MarketDashboard() {
-  const [session, setSession] = useState<DemoSession | null>(null);
-  const [markets, setMarkets] = useState<Market[]>([]);
-  const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [activity, setActivity] = useState<ActivityLog[]>([]);
+  const auth = useTradeLabAuth();
+  const {
+    guestSession,
+    registeredAccount,
+    markets,
+    portfolio,
+    orders,
+    activity,
+    isLoading,
+    isUpgrading,
+    showUpgradePrompt,
+    error,
+    success,
+    activeWalletID,
+    accountModeLabel,
+    shouldShowAuthValuePrompt,
+    clearMessages,
+    setErrorMessage,
+    setSuccessMessage,
+    refreshCoreData,
+    upgradeGuestSession,
+    activeAccessToken
+  } = useAccountSession();
   const [candles, setCandles] = useState<Candle[]>([]);
   const [chartMeta, setChartMeta] = useState<MarketDataMeta | null>(null);
   const [selectedMarket, setSelectedMarket] = useState("XRP/USDT");
   const [selectedInterval, setSelectedInterval] = useState("1h");
   const [quoteAmount, setQuoteAmount] = useState("50");
-  const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  async function ensureDemoSession() {
-    if (typeof window === "undefined") {
-      throw new Error("Demo session can only be created in the browser");
+  const accountSummary = useMemo(() => {
+    if (registeredAccount && auth.user) {
+      return auth.user.displayName;
     }
 
-    const cachedValue = window.localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
-    if (cachedValue) {
-      try {
-        const cachedSession = JSON.parse(cachedValue) as DemoSession;
-        if (new Date(cachedSession.expiresAt).getTime() > Date.now()) {
-          return cachedSession;
-        }
-      } catch {
-        window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
-      }
+    if (guestSession) {
+      return `${guestSession.walletID.slice(0, 8)}...`;
     }
 
-    const nextSession = await createDemoSession();
-    window.localStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify(nextSession));
-    return nextSession;
-  }
-
-  async function loadCoreData(activeSession: DemoSession) {
-    setError(null);
-
-    const [marketList, portfolioSummary, orderHistory, activityHistory] = await Promise.all([
-      fetchMarkets(),
-      fetchPortfolio(activeSession.walletID, activeSession.token),
-      fetchOrders(activeSession.token),
-      fetchActivity(activeSession.token)
-    ]);
-
-    setMarkets(marketList);
-    setPortfolio(portfolioSummary);
-    setOrders(orderHistory);
-    setActivity(activityHistory);
-  }
+    return "--";
+  }, [auth.user, guestSession, registeredAccount]);
 
   async function loadChartData() {
     setChartError(null);
@@ -247,37 +226,7 @@ export function MarketDashboard() {
   useEffect(() => {
     let cancelled = false;
 
-    startTransition(() => {
-      ensureDemoSession()
-        .then((activeSession) => {
-          if (cancelled) {
-            return;
-          }
-
-          setSession(activeSession);
-          return loadCoreData(activeSession);
-        })
-        .catch((loadError: Error) => {
-          if (!cancelled) {
-            setError(loadError.message);
-          }
-        })
-        .finally(() => {
-          if (!cancelled) {
-            setIsLoading(false);
-          }
-        });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!session) {
+    if (!activeWalletID) {
       return;
     }
 
@@ -294,30 +243,30 @@ export function MarketDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [session, selectedMarket, selectedInterval]);
+  }, [activeWalletID, selectedMarket, selectedInterval]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-    setSuccess(null);
+    clearMessages();
     setIsSubmitting(true);
 
     try {
-      if (!session) {
-        throw new Error("Demo session is not ready yet");
+      const token = await activeAccessToken();
+      if (!token || !activeWalletID) {
+        throw new Error("TradeLab session is not ready yet");
       }
 
       await placeMarketBuy({
-        token: session.token,
+        token,
         marketSymbol: selectedMarket,
         quoteAmount: Number(quoteAmount)
       });
 
       // Successful orders need a full data refresh because balances, positions, orders, and chart-linked price hints all change together.
-      await Promise.all([loadCoreData(session), loadChartData()]);
-      setSuccess(`Demo buy executed for ${selectedMarket}.`);
+      await Promise.all([refreshCoreData(), loadChartData()]);
+      setSuccessMessage(`Demo buy executed for ${selectedMarket}.`);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Order failed");
+      setErrorMessage(submitError instanceof Error ? submitError.message : "Order failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -347,8 +296,12 @@ export function MarketDashboard() {
 
             <div className="grid min-w-[300px] gap-4 rounded-[28px] border border-[var(--line)] bg-[rgba(7,17,31,0.78)] p-5 font-[var(--font-mono)] text-sm text-[var(--muted)]">
               <div className="flex items-center justify-between gap-8">
-                <span>Demo wallet</span>
-                <span>{session ? `${session.walletID.slice(0, 8)}...` : "--"}</span>
+                <span>Account mode</span>
+                <span className={registeredAccount ? "text-[var(--accent)]" : "text-[var(--accent-warm)]"}>{accountModeLabel}</span>
+              </div>
+              <div className="flex items-center justify-between gap-8">
+                <span>Account owner</span>
+                <span>{accountSummary}</span>
               </div>
               <div className="flex items-center justify-between gap-8">
                 <span>Total value</span>
@@ -366,6 +319,9 @@ export function MarketDashboard() {
                   {chartMeta?.source === "stale" ? "Stale" : "Fresh"}
                 </span>
               </div>
+              <div className="pt-2">
+                <AuthStatusControls />
+              </div>
             </div>
           </div>
 
@@ -379,6 +335,60 @@ export function MarketDashboard() {
             <div className="mt-6 rounded-2xl border border-[rgba(110,242,211,0.35)] bg-[rgba(110,242,211,0.08)] px-4 py-3 text-sm text-[var(--accent)]">
               {success}
             </div>
+          ) : null}
+
+          {shouldShowAuthValuePrompt ? (
+            <section className="mt-6 rounded-[28px] border border-[var(--line)] bg-[rgba(7,17,31,0.6)] p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                    Durable access
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold">Keep this sandbox beyond the guest session.</h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
+                    Sign up after you have seen the product value. Registered accounts restore the same
+                    demo account across sessions and devices while the product stays demo-only.
+                  </p>
+                </div>
+                <AuthEntryActions />
+              </div>
+            </section>
+          ) : null}
+
+          {showUpgradePrompt ? (
+            <section className="mt-6 rounded-[28px] border border-[rgba(110,242,211,0.28)] bg-[rgba(8,24,38,0.82)] p-5">
+              <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                Guest upgrade
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold">Keep your guest demo data or start fresh?</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
+                You just signed in. Choose whether the current guest wallet, orders, and activity should
+                become your registered demo account, or whether TradeLab should create a clean account for
+                you.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={isUpgrading}
+                  onClick={() => {
+                    void upgradeGuestSession(true);
+                  }}
+                  className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04111a] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isUpgrading ? "Upgrading..." : "Keep guest demo data"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isUpgrading}
+                  onClick={() => {
+                    void upgradeGuestSession(false);
+                  }}
+                  className="rounded-full border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--text)] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Start fresh
+                </button>
+              </div>
+            </section>
           ) : null}
 
           <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -464,7 +474,7 @@ export function MarketDashboard() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || isLoading || !session}
+                  disabled={isSubmitting || isLoading || !activeWalletID}
                   className="mt-2 rounded-2xl bg-[var(--accent)] px-5 py-4 font-semibold text-[#04111a] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? "Executing..." : "Run demo buy"}

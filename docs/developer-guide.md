@@ -48,8 +48,13 @@ Before starting local services, review these only if you are not using the defau
 - `DATABASE_URL` before backend startup or migrations
 - `HTTP_ADDRESS` before backend startup
 - `MARKET_DATA_BASE_URL` before backend startup
+- `TRADESLAB_CLERK_ISSUER_URL` before backend startup when testing real Clerk-backed registered accounts
+- `TRADESLAB_CLERK_JWKS_URL` before backend startup when testing real Clerk-backed registered accounts
+- `TRADESLAB_AUTH_MOCK_MODE` before backend startup when local or CI auth mocking should replace live Clerk verification
 - `TRADESLAB_API_PROXY_TARGET` before frontend startup
 - `NEXT_PUBLIC_API_BASE_URL` before frontend startup if you want direct browser-to-API calls
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` before frontend startup when using real Clerk UI
+- `NEXT_PUBLIC_AUTH_MOCK_MODE` before frontend startup when local or CI auth mocking should replace live Clerk UI
 
 The full environment and deployment parameter reference lives in [deployment.md](deployment.md).
 
@@ -93,11 +98,14 @@ go test ./...
 
 ```bash
 cd frontend
+npm ci
 npm run test
 npm run build
 npm run test:e2e
 npm run docs:screenshots
 ```
+
+The frontend uses [frontend/.npmrc](../frontend/.npmrc) to keep npm resolution aligned across local runs, GitHub Actions, and Docker builds while the current Clerk dependency chain still requires `legacy-peer-deps`.
 
 ### Optional deployment validation
 
@@ -123,6 +131,8 @@ kubectl kustomize deploy/kubernetes/overlays/production
 - `frontend/app`: app entrypoints
 - `frontend/components`: UI components, including the trading dashboard
 - `frontend/lib`: API client code and shared helpers
+- `frontend/lib/tradelab-auth.tsx`: auth provider boundary for guest, mock, and Clerk-backed registered modes
+- `frontend/lib/use-account-session.ts`: guest-plus-registered account orchestration
 - `frontend/__tests__`: component and workflow tests
 - `frontend/scripts`: utility scripts, including documentation screenshot generation
 
@@ -198,7 +208,7 @@ When making changes:
 - `docs/getting-started.md` is the audience-aware entrypoint for setup and first-run success
 - `docs/installation-validation.md` defines the required smoke path for local and deployed environments
 - `docs/onboarding-requirements.md` captures the intended guest-first product onboarding behavior
-- `docs/authentication-model.md`, `docs/clerk-architecture.md`, `docs/auth-flows.md`, and `docs/account-lifecycle.md` define the planned identity surface
+- `docs/authentication-model.md`, `docs/clerk-architecture.md`, `docs/auth-flows.md`, and `docs/account-lifecycle.md` define the implemented guest-plus-registered identity surface
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/user-guide.md` is the user-facing walkthrough with screenshots
@@ -223,4 +233,4 @@ When making changes, consult the `artifact_groups` and `change_management` secti
 - backend request and service flow now emits structured JSON logs through `log/slog`
 - frontend quality gates now include Playwright coverage for core dashboard journeys
 - release-ready Kubernetes output should use immutable release tags, not rely on `latest`
-- protected API routes depend on demo-session bearer tokens
+- protected API routes now accept either guest demo-session bearer tokens or Clerk-backed registered account bearer tokens

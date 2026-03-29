@@ -59,6 +59,9 @@ These environment variables are read by the Go backend in [config.go](../backend
 | `HTTP_ADDRESS` | optional | before starting the backend locally or in a custom runtime | `:8080` | backend HTTP listener |
 | `DATABASE_URL` | optional for local default, required for non-default DBs | before starting the backend or running migrations | `postgres://tradelab:tradelab@localhost:5432/tradelab?sslmode=disable` | backend database connection and migration runner |
 | `MARKET_DATA_BASE_URL` | optional | before starting the backend if you want to use a different upstream market-data provider endpoint | `https://api.binance.com` | backend market-data service |
+| `TRADESLAB_CLERK_ISSUER_URL` | optional | before starting the backend when real Clerk-backed registered accounts should be enabled | empty | backend Clerk JWT issuer validation |
+| `TRADESLAB_CLERK_JWKS_URL` | optional | before starting the backend when real Clerk-backed registered accounts should be enabled | empty | backend Clerk JWKS lookup |
+| `TRADESLAB_AUTH_MOCK_MODE` | optional | before starting the backend in local or CI runs when mock registered-account tokens should be accepted | `false` | backend auth verifier |
 
 ### Local frontend parameters
 
@@ -68,6 +71,8 @@ These environment variables affect the Next.js frontend runtime and rewrites.
 | --- | --- | --- | --- | --- |
 | `TRADESLAB_API_PROXY_TARGET` | optional | before `npm run dev` or `npm run start` if the backend is not available at the default local address | `http://localhost:8080` | frontend rewrite target for `/api/*` requests |
 | `NEXT_PUBLIC_API_BASE_URL` | optional | before frontend startup only if you intentionally want browser calls to go directly to another API origin instead of using the rewrite path | empty string | frontend fetch client in the browser |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | optional | before frontend startup when you want the real Clerk UI and token flow in the browser | empty | frontend Clerk provider |
+| `NEXT_PUBLIC_AUTH_MOCK_MODE` | optional | before frontend startup in local or CI runs when mock Google/Apple auth should replace live Clerk configuration | `false` | frontend auth provider wrapper |
 
 Recommended local default:
 

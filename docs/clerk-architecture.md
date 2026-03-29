@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines how Clerk should integrate with the TradeLab frontend and backend without breaking the current guest-first demo flow.
+This document defines how Clerk integrates with the TradeLab frontend and backend without breaking the current guest-first demo flow.
 
 ## Boundary model
 
@@ -15,31 +15,32 @@ Clerk is responsible for authenticating a user. The TradeLab backend remains res
 
 ## Frontend responsibilities
 
-The Next.js frontend should:
+The Next.js frontend now:
 
-- render Clerk UI for signup, login, account, and logout flows
+- renders Clerk UI for signup, login, account, and logout flows when `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is configured
+- supports a local and CI-friendly mock auth mode through `NEXT_PUBLIC_AUTH_MOCK_MODE=true`
 - distinguish clearly between guest mode and registered mode
 - attach identity context when calling registered-account backend flows
 - continue to support the current guest bootstrap path for first-time use
 
 ## Backend responsibilities
 
-The Go backend should:
+The Go backend now:
 
-- trust only verified Clerk identity data
+- trusts only verified Clerk identity data for registered-account routes
 - map Clerk user IDs to internal TradeLab users
-- create and manage application demo sessions for registered users
+- create or load the primary demo wallet for registered users
 - keep authorization logic server-side
 - avoid trusting raw client claims for wallet ownership or account identity
 
 ## Trust model
 
-The backend should not treat the frontend as the source of truth for identity.
+The backend does not treat the frontend as the source of truth for identity.
 
 Instead:
 
 - Clerk verifies the user at the edge or frontend boundary
-- the backend verifies the authenticated identity context for protected registered-account routes
+- the backend verifies the authenticated identity context for protected registered-account routes through Clerk JWT verification or explicit mock mode
 - TradeLab maps that identity to internal state such as user IDs, wallets, and portfolios
 
 ## Guest mode coexistence
@@ -54,7 +55,7 @@ This implies:
 
 ## Route model
 
-The future route model should distinguish:
+The current route model distinguishes:
 
 - public routes
 - guest demo routes
@@ -72,6 +73,7 @@ Examples:
   - guest demo orders
 - registered:
   - account bootstrap
+  - guest-to-registered upgrade
   - durable portfolio access
   - account-bound trading history
   - future strategies and backtests
@@ -96,12 +98,12 @@ The current bearer-token demo-session model is sufficient for guest mode, but th
 
 ## Implementation notes
 
-When this architecture is implemented:
+Current implementation notes:
 
-- frontend auth libraries and middleware must be added
-- backend user resolution and account mapping must be introduced
-- the API surface must distinguish guest and registered flows explicitly
-- logging and security rules must be reviewed so identity values are useful but not sensitive
+- frontend auth libraries and provider wrappers are in place
+- backend user resolution and account mapping are in place
+- the API surface distinguishes guest and registered flows explicitly
+- Phase 3 will still harden storage, redaction, and secret handling on top of this boundary
 
 ## Related documentation
 

@@ -30,6 +30,7 @@ The UI should communicate, in visible product language, that:
 - the session is a guest demo session
 - balances are virtual
 - trading actions are simulated
+- durable account signup is optional and appears only after the user has seen product value
 
 ### Initial dashboard state
 
@@ -56,6 +57,7 @@ The onboarding UX is acceptable when:
 
 - a first-time user understands they are in demo mode
 - a first-time user does not need credentials to try the product
+- a first-time user can understand why and when the durable-account prompt appears
 - the default market and chart state are understandable
 - the first successful session-to-dashboard path is obvious
 - failure states do not hide the reason or the next action

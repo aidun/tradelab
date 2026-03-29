@@ -27,6 +27,8 @@ jobs:
   frontend-test:
     name: Frontend unit tests
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_AUTH_MOCK_MODE: "true"
 
     steps:
       - name: Check out repository
@@ -50,6 +52,8 @@ jobs:
   frontend-build:
     name: Frontend build
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_AUTH_MOCK_MODE: "true"
 
     steps:
       - name: Check out repository
@@ -73,6 +77,8 @@ jobs:
   frontend-e2e:
     name: Frontend E2E tests
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_AUTH_MOCK_MODE: "true"
 
     steps:
       - name: Check out repository

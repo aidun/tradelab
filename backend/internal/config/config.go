@@ -6,6 +6,9 @@ type Config struct {
 	HTTPAddress       string
 	DatabaseURL       string
 	MarketDataBaseURL string
+	ClerkIssuerURL    string
+	ClerkJWKSURL      string
+	AuthMockMode      bool
 }
 
 func Load() Config {
@@ -13,6 +16,9 @@ func Load() Config {
 		HTTPAddress:       getEnv("HTTP_ADDRESS", ":8080"),
 		DatabaseURL:       getEnv("DATABASE_URL", "postgres://tradelab:tradelab@localhost:5432/tradelab?sslmode=disable"),
 		MarketDataBaseURL: getEnv("MARKET_DATA_BASE_URL", "https://api.binance.com"),
+		ClerkIssuerURL:    getEnv("CLERK_ISSUER_URL", ""),
+		ClerkJWKSURL:      getEnv("CLERK_JWKS_URL", ""),
+		AuthMockMode:      getEnv("TRADESLAB_AUTH_MOCK_MODE", "") == "true",
 	}
 }
 

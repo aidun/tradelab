@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   let orderStateIndex = 0;
+  let accountMode: "guest" | "registered-preserved" | "registered-fresh" = "guest";
 
   await page.addInitScript(() => {
     window.localStorage.clear();
@@ -110,6 +111,45 @@ test.beforeEach(async ({ page }) => {
       return;
     }
 
+    if (url.endsWith("/api/v1/account/bootstrap")) {
+      accountMode = "registered-preserved";
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          account: {
+            user_id: "user-registered",
+            wallet_id: "wallet-registered",
+            clerk_user_id: "mock_google_mock-google-user",
+            email: "google-user@google.mock.tradelab",
+            display_name: "Mock Google User",
+            mode: "registered"
+          }
+        })
+      });
+      return;
+    }
+
+    if (url.endsWith("/api/v1/account/upgrade")) {
+      const payload = request.postDataJSON() as { preserve_guest_data?: boolean };
+      accountMode = payload?.preserve_guest_data ? "registered-preserved" : "registered-fresh";
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          account: {
+            user_id: "user-registered",
+            wallet_id: payload?.preserve_guest_data ? "wallet-1" : "wallet-registered",
+            clerk_user_id: "mock_google_mock-google-user",
+            email: "google-user@google.mock.tradelab",
+            display_name: "Mock Google User",
+            mode: "registered"
+          }
+        })
+      });
+      return;
+    }
+
     if (url.includes("/candles")) {
       const interval = url.includes("interval=15m") ? "15m" : "1h";
       await route.fulfill({
@@ -180,28 +220,46 @@ test.beforeEach(async ({ page }) => {
     }
 
     if (url.endsWith("/api/v1/orders")) {
+      const walletID = accountMode === "registered-fresh" ? "wallet-registered" : "wallet-1";
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ orders: responses[orderStateIndex].orders })
+        body: JSON.stringify({
+          orders: responses[orderStateIndex].orders.map((order) => ({
+            ...order,
+            walletID
+          }))
+        })
       });
       return;
     }
 
     if (url.endsWith("/api/v1/activity")) {
+      const walletID = accountMode === "registered-fresh" ? "wallet-registered" : "wallet-1";
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ activity: responses[orderStateIndex].activity })
+        body: JSON.stringify({
+          activity: responses[orderStateIndex].activity.map((item) => ({
+            ...item,
+            walletID
+          }))
+        })
       });
       return;
     }
 
     if (url.includes("/api/v1/portfolios/")) {
+      const walletID = accountMode === "registered-fresh" ? "wallet-registered" : "wallet-1";
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ portfolio: responses[orderStateIndex].portfolio })
+        body: JSON.stringify({
+          portfolio: {
+            ...responses[orderStateIndex].portfolio,
+            walletID
+          }
+        })
       });
       return;
     }
@@ -237,4 +295,45 @@ test("executes a demo buy and refreshes the wallet panels", async ({ page }) => 
   await expect(page.getByText(/demo buy executed for xrp\/usdt/i)).toBeVisible();
   await expect(page.getByText(/\$10,025.00/)).toBeVisible();
   await expect(page.getByText(/^demo buy executed$/i)).toBeVisible();
+});
+
+test("upgrades a guest session into a registered account while preserving guest data", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByText(/keep this sandbox beyond the guest session/i)).toBeVisible();
+  await page.getByRole("button", { name: /continue with google/i }).click();
+
+  await expect(page.getByText(/keep your guest demo data or start fresh/i)).toBeVisible();
+  await page.getByRole("button", { name: /keep guest demo data/i }).click();
+
+  await expect(page.getByText(/registered demo account/i)).toBeVisible();
+  await expect(page.getByText(/guest demo data moved into the registered account/i)).toBeVisible();
+});
+
+test("upgrades a guest session into a fresh registered account", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: /continue with google/i }).click();
+  await page.getByRole("button", { name: /start fresh/i }).click();
+
+  await expect(page.getByText(/registered demo account/i)).toBeVisible();
+  await expect(page.getByText(/registered demo account created with a fresh start/i)).toBeVisible();
+});
+
+test("restores the registered account for a returning signed-in user", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "tradelab.mock-auth",
+      JSON.stringify({
+        clerkUserID: "mock-google-user",
+        email: "google-user@google.mock.tradelab",
+        displayName: "Mock Google User"
+      })
+    );
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByText(/registered demo account/i)).toBeVisible();
+  await expect(page.getByText(/mock google user/i)).toBeVisible();
 });

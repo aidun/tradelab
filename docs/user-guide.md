@@ -16,9 +16,10 @@ The current user experience centers on one dashboard:
 1. a demo session is created automatically
 2. the market list loads with `XRP/USDT` as the reference pair
 3. live candle data and feed status appear in the chart area
-4. the user can switch intervals or markets
-5. the user can submit a demo market buy
-6. balances, positions, orders, and activity update after execution
+4. after the dashboard shows value, the user can choose to keep going as a guest or sign in with Google or Apple
+5. the user can switch intervals or markets
+6. the user can submit a demo market buy
+7. balances, positions, orders, and activity update after execution
 
 ## Dashboard overview
 
@@ -47,7 +48,22 @@ What this enables:
 - access to protected portfolio and order routes
 - repeat visits without re-creating the session until it expires
 
-### 2. Inspect a market
+### 2. Upgrade to a registered demo account
+
+Once the dashboard has loaded, TradeLab can offer a durable-account prompt.
+
+What this enables:
+
+- Google or Apple sign-in through Clerk
+- a durable registered demo account that can be restored across sessions
+- an explicit choice to keep guest demo data or start with a fresh registered account
+
+If you sign in from a guest session, the upgrade prompt asks whether to:
+
+- keep guest demo data
+- start fresh
+
+### 3. Inspect a market
 
 Use the market list to choose a reference pair such as `XRP/USDT`. The chart updates independently from the rest of the dashboard so you can switch intervals without clearing portfolio panels.
 
@@ -61,7 +77,7 @@ What to watch:
 
 ![TradeLab stale-feed interval view](screenshots/chart-stale-feed.png)
 
-### 3. Execute a demo market buy
+### 4. Execute a demo market buy
 
 Use the demo buy ticket to place a virtual market buy:
 
@@ -80,7 +96,7 @@ TradeLab executes the buy in the backend and then refreshes:
 
 ![TradeLab demo buy success state](screenshots/demo-buy-success.png)
 
-### 4. Review the outcome
+### 5. Review the outcome
 
 After an order succeeds, the dashboard becomes the main review surface.
 
@@ -109,6 +125,7 @@ The current product is still intentionally narrow:
 - no exchange account linking
 - no financial advice
 - no strategy automation in the user workflow yet
+- no live account linking beyond demo-only registered accounts
 
 ## Related documentation
 
