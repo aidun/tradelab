@@ -14,7 +14,7 @@
     "backend": ["Go"],
     "database": ["PostgreSQL"],
     "testing": ["go test", "Vitest", "React Testing Library", "Playwright"],
-    "deployment": ["Kubernetes", "GitHub Actions", "GitHub Container Registry"]
+    "deployment": ["Kubernetes", "Argo CD", "Traefik", "MetalLB", "GitHub Actions", "GitHub Container Registry"]
   },
   "directories": {
     "frontend": "frontend/",
@@ -33,7 +33,9 @@
     "backend API",
     "in-process strategy engine",
     "postgres database",
-    "ingress routing",
+    "Traefik ingress routing",
+    "MetalLB LAN load-balancer allocation",
+    "Argo CD GitOps control plane",
     "migration init container",
     "GitHub release and image publication pipeline"
   ],
@@ -55,6 +57,8 @@
     "structured backend request and service logging",
     "PR-first CI validation",
     "master-triggered release automation",
+    "k3s platform bootstrap with Argo CD app-of-apps",
+    "repo-managed MetalLB and Traefik platform synchronization",
     "immutable release manifest rendering"
   ],
   "documentation": {
@@ -71,6 +75,7 @@
     "product": "docs/PRD.md",
     "roadmap": "docs/roadmap.md",
     "data_model": "docs/data-model.md",
+    "infrastructure_bootstrap": "docs/infrastructure-bootstrap.md",
     "deployment": "docs/deployment.md",
     "system_operations": "docs/system-operations.md",
     "developer_guide": "docs/developer-guide.md",
@@ -87,8 +92,8 @@
     "maintenance_expectations": [
       "Keep tests aligned with behavior changes.",
       "Adjust structured logging when backend control flow changes.",
-      "Update documentation and docs/ai-metadata.json when repository structure, onboarding, or workflows materially change.",
-      "Update GitHub Actions when quality gates or release flow need to evolve."
+      "Update documentation and docs/ai-metadata.json when repository structure, onboarding, workflows, or infrastructure bootstrap materially change.",
+      "Update GitHub Actions when quality gates, delivery behavior, or infrastructure validation need to evolve."
     ]
   },
   "disclaimers": {
@@ -175,6 +180,30 @@
       "Request lifecycle logging in the HTTP layer",
       "Service-level logging for sessions, market data, orders, portfolio, and history"
     ]
+  },
+  "infrastructure": {
+    "bootstrap_root": "deploy/infrastructure/",
+    "bootstrap_steps": [
+      "kubectl apply -k deploy/infrastructure/bootstrap/argocd-install",
+      "kubectl apply -k deploy/infrastructure/bootstrap/root-application"
+    ],
+    "gitops_model": "Argo CD App of Apps",
+    "namespaces": ["argocd", "metallb-system", "traefik-system", "tradelab-dev", "tradelab"],
+    "metallb_address_pool": "192.168.2.200-192.168.2.220",
+    "traefik_load_balancer_ip": "192.168.2.200",
+    "ingress_class": "traefik",
+    "development_host": "tradelab.192.168.2.200.sslip.io",
+    "applications": {
+      "root": "deploy/infrastructure/bootstrap/root-application/root-application.yaml",
+      "platform_apps": [
+        "deploy/infrastructure/applications/platform-namespaces.yaml",
+        "deploy/infrastructure/applications/metallb.yaml",
+        "deploy/infrastructure/applications/traefik.yaml"
+      ],
+      "prepared_next_step": [
+        "deploy/infrastructure/applications/tradelab-dev.yaml"
+      ]
+    }
   },
   "user_workflows": [
     "Open the app and create a guest demo session automatically.",
@@ -353,9 +382,11 @@
       "docs/authentication-model.md",
       "docs/clerk-architecture.md",
       "docs/account-lifecycle.md",
-      "docs/security-model.md"
+      "docs/security-model.md",
+      "docs/infrastructure-bootstrap.md"
     ],
     "operator_docs": [
+      "docs/infrastructure-bootstrap.md",
       "docs/deployment.md",
       "docs/system-operations.md",
       "docs/installation-validation.md"
@@ -397,6 +428,10 @@
     ],
     "workflow_files": [
       ".github/workflows/"
+    ],
+    "infrastructure_manifests": [
+      "deploy/infrastructure/",
+      "deploy/kubernetes/"
     ]
   },
   "change_management": {
@@ -406,13 +441,14 @@
       "frontend_data_flow_change",
       "api_surface_change",
       "identity_or_auth_change",
-      "backend_behavior_change",
-      "domain_or_data_model_change",
-      "configuration_change",
-      "deployment_change",
-      "release_flow_change",
-      "github_process_change",
-      "documentation_structure_change",
+        "backend_behavior_change",
+        "domain_or_data_model_change",
+        "configuration_change",
+        "deployment_change",
+        "infrastructure_bootstrap_change",
+        "release_flow_change",
+        "github_process_change",
+        "documentation_structure_change",
       "testing_strategy_change"
     ],
     "rules": {
@@ -521,7 +557,9 @@
       },
       "deployment_change": {
         "required_followups": [
+          "review infrastructure_manifests",
           "update docs/deployment.md",
+          "update docs/infrastructure-bootstrap.md",
           "update docs/system-operations.md",
           "review workflow_files",
           "update docs/ai-metadata.json"
@@ -532,6 +570,25 @@
         ],
         "validation_expectations": [
           "verify deployment instructions still match manifests and release behavior"
+        ]
+      },
+      "infrastructure_bootstrap_change": {
+        "required_followups": [
+          "review infrastructure_manifests",
+          "update docs/infrastructure-bootstrap.md",
+          "update docs/deployment.md",
+          "update docs/system-operations.md",
+          "update docs/developer-guide.md",
+          "review workflow_files",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update README.md when the public platform story changes",
+          "update deploy/kubernetes overlays when ingress class, hostnames, or cluster assumptions change"
+        ],
+        "validation_expectations": [
+          "verify bootstrap paths render cleanly",
+          "verify MetalLB pool, Traefik ingress class, and Argo applications stay aligned"
         ]
       },
       "release_flow_change": {
@@ -634,6 +691,17 @@
           "update docs/deployment.md",
           "update docs/installation-validation.md",
           "update README.md",
+          "update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Change the cluster bootstrap, ingress controller, or MetalLB pool",
+        "followups": [
+          "update docs/infrastructure-bootstrap.md",
+          "update docs/deployment.md",
+          "update docs/system-operations.md",
+          "update deploy/kubernetes ingress assumptions",
+          "update CI manifest validation",
           "update docs/ai-metadata.json"
         ]
       },
