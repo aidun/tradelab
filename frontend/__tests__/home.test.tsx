@@ -1,13 +1,24 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Hero } from "@/components/hero";
 
 describe("Hero", () => {
+  const fetchCounts: Record<string, number> = {};
+
   beforeEach(() => {
+    for (const key of Object.keys(fetchCounts)) {
+      delete fetchCounts[key];
+    }
+
     vi.spyOn(global, "fetch").mockImplementation((input) => {
       const url = String(input);
 
+      function record(key: string) {
+        fetchCounts[key] = (fetchCounts[key] ?? 0) + 1;
+      }
+
       if (url.includes("/api/v1/sessions/demo")) {
+        record("session");
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -24,6 +35,7 @@ describe("Hero", () => {
       }
 
       if (url.includes("/candles")) {
+        record(`candles:${url.includes("interval=15m") ? "15m" : "1h"}`);
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -50,13 +62,18 @@ describe("Hero", () => {
                   quoteVolume: 896000,
                   trades: 9200
                 }
-              ]
+              ],
+              meta: {
+                source: url.includes("interval=15m") ? "stale" : "fresh",
+                generated_at: "2026-03-29T12:05:00Z"
+              }
             })
           )
         );
       }
 
       if (url.includes("/api/v1/markets")) {
+        record("markets");
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -76,6 +93,7 @@ describe("Hero", () => {
       }
 
       if (url.includes("/api/v1/orders")) {
+        record("orders");
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -96,6 +114,7 @@ describe("Hero", () => {
       }
 
       if (url.includes("/api/v1/activity")) {
+        record("activity");
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -114,6 +133,7 @@ describe("Hero", () => {
         );
       }
 
+      record("portfolio");
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -150,8 +170,31 @@ describe("Hero", () => {
       expect(screen.getAllByText(/xrp\/usdt/i)[0]).toBeInTheDocument();
     });
 
-    expect(screen.getByLabelText(/live market chart/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/live market chart/i)).toBeInTheDocument();
+    });
     expect(screen.getByText(/run demo buy/i)).toBeInTheDocument();
     expect(screen.getByText(/demo buy recorded/i)).toBeInTheDocument();
+  });
+
+  it("refreshes only chart data when the interval changes", async () => {
+    render(<Hero />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/feed fresh/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "15m" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/feed stale fallback/i)).toBeInTheDocument();
+    });
+
+    expect(fetchCounts["markets"]).toBe(1);
+    expect(fetchCounts["portfolio"]).toBe(1);
+    expect(fetchCounts["orders"]).toBe(1);
+    expect(fetchCounts["activity"]).toBe(1);
+    expect(fetchCounts["candles:1h"]).toBe(1);
+    expect(fetchCounts["candles:15m"]).toBe(1);
   });
 });

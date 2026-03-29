@@ -113,3 +113,10 @@ jobs:
 
       - name: Render production overlay
         run: kubectl kustomize deploy/kubernetes/overlays/production > /tmp/tradelab-prod.yaml
+
+      - name: Validate immutable release manifest rendering
+        run: |
+          chmod +x deploy/kubernetes/render-release-manifests.sh
+          ./deploy/kubernetes/render-release-manifests.sh v0.0.ci /tmp/tradelab-release.yaml
+          grep "ghcr.io/aidun/tradelab-backend:v0.0.ci" /tmp/tradelab-release.yaml
+          grep "ghcr.io/aidun/tradelab-frontend:v0.0.ci" /tmp/tradelab-release.yaml

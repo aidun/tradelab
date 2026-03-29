@@ -19,7 +19,9 @@ Every successful `master` release publishes:
 - `ghcr.io/aidun/tradelab-frontend:latest`
 - `ghcr.io/aidun/tradelab-frontend:v0.1.<run-number>`
 
-The Kubernetes manifests default to the `latest` tags so a fresh release can be deployed without patching image references first.
+The release artifact packages Kubernetes manifests with immutable `v0.1.<run-number>` image tags. The
+development overlay keeps using `latest` for convenience, while release deployments should use the packaged
+manifest artifact or render production manifests through the release helper script.
 
 ## Layout
 
@@ -72,6 +74,13 @@ Then deploy:
 
 ```bash
 kubectl apply -k deploy/kubernetes/overlays/production
+```
+
+For immutable production output tied to a release tag, render the packaged manifest shape with:
+
+```bash
+./deploy/kubernetes/render-release-manifests.sh v0.1.123 /tmp/tradelab-kubernetes.yaml
+kubectl apply -f /tmp/tradelab-kubernetes.yaml
 ```
 
 ## Operational notes

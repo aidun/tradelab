@@ -14,7 +14,7 @@ spec:
     spec:
       initContainers:
         - name: migrate
-          image: ghcr.io/aidun/tradelab-backend:latest
+          image: ghcr.io/aidun/tradelab-backend:IMAGE_TAG_PLACEHOLDER
           imagePullPolicy: Always
           command:
             - /app/tradelab-migrate
@@ -27,7 +27,7 @@ spec:
                   key: DATABASE_URL
       containers:
         - name: api
-          image: ghcr.io/aidun/tradelab-backend:latest
+          image: ghcr.io/aidun/tradelab-backend:IMAGE_TAG_PLACEHOLDER
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

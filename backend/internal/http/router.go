@@ -19,7 +19,7 @@ type MarketLister interface {
 }
 
 type MarketCandlesLister interface {
-	ListCandles(ctx context.Context, marketSymbol string, interval string, limit int) ([]domain.Candle, error)
+	ListCandles(ctx context.Context, marketSymbol string, interval string, limit int) (domain.CandleFeed, error)
 }
 
 type OrderPlacer interface {
@@ -81,7 +81,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		candles, err := marketCandles.ListCandles(
+		feed, err := marketCandles.ListCandles(
 			r.Context(),
 			marketSymbol,
 			r.URL.Query().Get("interval"),
@@ -92,7 +92,10 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]any{"candles": candles})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"candles": feed.Candles,
+			"meta":    feed.Meta,
+		})
 	})
 
 	mux.HandleFunc("POST /api/v1/sessions/demo", func(w http.ResponseWriter, r *http.Request) {

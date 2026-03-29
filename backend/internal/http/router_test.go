@@ -144,9 +144,12 @@ func TestListMarketCandlesRoute(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	NewRouter(fakeMarketLister{}, fakeMarketLister{
-		candles: []domain.Candle{
-			{OpenPrice: 0.62, HighPrice: 0.64, LowPrice: 0.61, ClosePrice: 0.63},
-			{OpenPrice: 0.63, HighPrice: 0.65, LowPrice: 0.62, ClosePrice: 0.64},
+		feed: domain.CandleFeed{
+			Candles: []domain.Candle{
+				{OpenPrice: 0.62, HighPrice: 0.64, LowPrice: 0.61, ClosePrice: 0.63},
+				{OpenPrice: 0.63, HighPrice: 0.65, LowPrice: 0.62, ClosePrice: 0.64},
+			},
+			Meta: domain.MarketDataMeta{Source: "stale", GeneratedAt: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)},
 		},
 	}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}).ServeHTTP(recorder, req)
 
@@ -156,6 +159,10 @@ func TestListMarketCandlesRoute(t *testing.T) {
 
 	if !strings.Contains(recorder.Body.String(), "\"candles\"") {
 		t.Fatalf("expected candles payload in response, got %s", recorder.Body.String())
+	}
+
+	if !strings.Contains(recorder.Body.String(), "\"source\":\"stale\"") {
+		t.Fatalf("expected stale candle metadata in response, got %s", recorder.Body.String())
 	}
 }
 
@@ -186,13 +193,13 @@ func TestCreateOrderRoute(t *testing.T) {
 
 type fakeMarketLister struct {
 	markets []domain.Market
-	candles []domain.Candle
+	feed    domain.CandleFeed
 	err     error
 }
 
 func (f fakeMarketLister) List(context.Context) ([]domain.Market, error) { return f.markets, f.err }
-func (f fakeMarketLister) ListCandles(context.Context, string, string, int) ([]domain.Candle, error) {
-	return f.candles, f.err
+func (f fakeMarketLister) ListCandles(context.Context, string, string, int) (domain.CandleFeed, error) {
+	return f.feed, f.err
 }
 
 type fakeOrderPlacer struct {

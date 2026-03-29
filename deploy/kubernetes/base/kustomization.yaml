@@ -12,9 +12,3 @@ resources:
   - frontend-service.yaml
   - frontend-deployment.yaml
   - ingress.yaml
-
-images:
-  - name: ghcr.io/aidun/tradelab-backend
-    newTag: latest
-  - name: ghcr.io/aidun/tradelab-frontend
-    newTag: latest
