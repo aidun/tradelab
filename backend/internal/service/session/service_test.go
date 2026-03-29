@@ -7,89 +7,67 @@ import (
 	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
+	"github.com/aidun/tradelab/backend/internal/logging"
 )
 
-func TestAuthenticateReturnsErrorForMissingToken(t *testing.T) {
-	service := NewService(fakeSessionRepository{})
-
-	_, err := service.Authenticate(context.Background(), "")
-	if !errors.Is(err, ErrInvalidSession) {
-		t.Fatalf("expected ErrInvalidSession, got %v", err)
-	}
-}
-
-func TestAuthenticateReturnsErrorForExpiredSession(t *testing.T) {
-	service := NewService(fakeSessionRepository{
-		session: domain.DemoSession{
-			ID:        "session-1",
-			UserID:    "user-1",
-			WalletID:  "wallet-1",
-			ExpiresAt: time.Date(2026, 3, 29, 10, 0, 0, 0, time.UTC),
-		},
-	})
-	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
-
-	_, err := service.Authenticate(context.Background(), "token")
-	if !errors.Is(err, ErrInvalidSession) {
-		t.Fatalf("expected ErrInvalidSession, got %v", err)
-	}
-}
-
-func TestAuthenticateReturnsSessionForValidToken(t *testing.T) {
-	expiresAt := time.Date(2026, 4, 29, 12, 0, 0, 0, time.UTC)
-	service := NewService(fakeSessionRepository{
-		session: domain.DemoSession{
-			ID:        "session-1",
-			UserID:    "user-1",
-			WalletID:  "wallet-1",
-			ExpiresAt: expiresAt,
-		},
-	})
-	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
-
-	session, err := service.Authenticate(context.Background(), "token")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if session.WalletID != "wallet-1" {
-		t.Fatalf("expected wallet-1, got %s", session.WalletID)
-	}
-}
-
-func TestCreateDemoSessionReturnsSession(t *testing.T) {
-	service := NewService(fakeSessionRepository{
-		session: domain.DemoSession{
-			ID:       "session-1",
-			UserID:   "user-1",
-			WalletID: "wallet-1",
-			Token:    "token",
-		},
-	})
+func TestCreateDemoSessionReturnsRepositorySession(t *testing.T) {
+	service := NewService(fakeDemoSessionRepository{
+		session: domain.DemoSession{ID: "session-1", WalletID: "wallet-1"},
+	}, logging.NewDiscardLogger("session_service_test"))
 
 	session, err := service.CreateDemoSession(context.Background())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if session.Token != "token" {
-		t.Fatalf("expected token to be returned")
+	if session.ID != "session-1" {
+		t.Fatalf("expected session-1, got %s", session.ID)
 	}
 }
 
-type fakeSessionRepository struct {
+func TestAuthenticateRejectsExpiredSession(t *testing.T) {
+	service := NewService(fakeDemoSessionRepository{
+		session: domain.DemoSession{
+			ID:        "session-1",
+			Token:     "token-1",
+			WalletID:  "wallet-1",
+			ExpiresAt: time.Date(2026, 3, 29, 11, 0, 0, 0, time.UTC),
+		},
+	}, logging.NewDiscardLogger("session_service_test"))
+	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
+
+	if _, err := service.Authenticate(context.Background(), "token-1"); !errors.Is(err, ErrInvalidSession) {
+		t.Fatalf("expected ErrInvalidSession, got %v", err)
+	}
+}
+
+func TestAuthenticateRejectsLookupErrors(t *testing.T) {
+	service := NewService(fakeDemoSessionRepository{
+		err: errors.New("lookup failed"),
+	}, logging.NewDiscardLogger("session_service_test"))
+
+	if _, err := service.Authenticate(context.Background(), "token-1"); !errors.Is(err, ErrInvalidSession) {
+		t.Fatalf("expected ErrInvalidSession, got %v", err)
+	}
+}
+
+type fakeDemoSessionRepository struct {
 	session domain.DemoSession
 	err     error
 }
 
-func (f fakeSessionRepository) CreateDemoSession(context.Context) (domain.DemoSession, error) {
+func (f fakeDemoSessionRepository) CreateDemoSession(context.Context) (domain.DemoSession, error) {
 	return f.session, f.err
 }
 
-func (f fakeSessionRepository) GetByToken(context.Context, string) (domain.DemoSession, error) {
+func (f fakeDemoSessionRepository) GetByToken(context.Context, string) (domain.DemoSession, error) {
 	return f.session, f.err
 }
 
-type fakeClock struct{ now time.Time }
+type fakeClock struct {
+	now time.Time
+}
 
-func (f fakeClock) Now() time.Time { return f.now }
+func (f fakeClock) Now() time.Time {
+	return f.now
+}

@@ -3,6 +3,9 @@ package http
 import (
 	"bytes"
 	"context"
+	"errors"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,11 +16,15 @@ import (
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 )
 
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(io.Discard, nil))
+}
+
 func TestHealthRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}).ServeHTTP(recorder, req)
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -36,7 +43,7 @@ func TestCreateDemoSessionRoute(t *testing.T) {
 			Token:     "token-1",
 			ExpiresAt: time.Date(2026, 4, 29, 12, 0, 0, 0, time.UTC),
 		},
-	}).ServeHTTP(recorder, req)
+	}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", recorder.Code)
@@ -55,7 +62,7 @@ func TestListMarketsRoute(t *testing.T) {
 		markets: []domain.Market{
 			{ID: "market-1", Symbol: "XRP/USDT", BaseAsset: "XRP", QuoteAsset: "USDT", Exchange: "demo"},
 		},
-	}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}).ServeHTTP(recorder, req)
+	}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -66,7 +73,7 @@ func TestPortfolioRouteRequiresSession(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/wallet-1", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}).ServeHTTP(recorder, req)
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", recorder.Code)
@@ -80,7 +87,7 @@ func TestPortfolioRouteRejectsForeignWallet(t *testing.T) {
 
 	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
-	}).ServeHTTP(recorder, req)
+	}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", recorder.Code)
@@ -96,7 +103,7 @@ func TestPortfolioRouteReturnsOwnedWallet(t *testing.T) {
 		summary: domain.PortfolioSummary{WalletID: "wallet-1", BaseCurrency: "USDT", TotalValue: 10000},
 	}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
-	}).ServeHTTP(recorder, req)
+	}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -112,7 +119,7 @@ func TestListOrdersRoute(t *testing.T) {
 		orders: []domain.Order{{ID: "order-1", WalletID: "wallet-1", MarketSymbol: "XRP/USDT"}},
 	}, fakeActivityHistoryLister{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
-	}).ServeHTTP(recorder, req)
+	}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -132,7 +139,7 @@ func TestListActivityRoute(t *testing.T) {
 		activity: []domain.ActivityLog{{ID: "log-1", WalletID: "wallet-1", Title: "Demo buy recorded", CreatedAt: time.Now()}},
 	}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
-	}).ServeHTTP(recorder, req)
+	}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -151,7 +158,7 @@ func TestListMarketCandlesRoute(t *testing.T) {
 			},
 			Meta: domain.MarketDataMeta{Source: "stale", GeneratedAt: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)},
 		},
-	}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}).ServeHTTP(recorder, req)
+	}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -184,10 +191,24 @@ func TestCreateOrderRoute(t *testing.T) {
 		},
 	}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
-	}).ServeHTTP(recorder, req)
+	}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", recorder.Code)
+	}
+}
+
+func TestOrdersRouteReturnsInternalErrorForUnexpectedSessionFailure(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders", nil)
+	req.Header.Set("Authorization", "Bearer token-1")
+	recorder := httptest.NewRecorder()
+
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{
+		err: errors.New("store unavailable"),
+	}, discardLogger()).ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", recorder.Code)
 	}
 }
 

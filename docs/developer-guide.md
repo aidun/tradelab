@@ -71,6 +71,7 @@ go test ./...
 cd frontend
 npm run test
 npm run build
+npm run test:e2e
 ```
 
 ### Optional deployment validation
@@ -120,7 +121,9 @@ When making changes:
 
 - keep code and documentation in English
 - add or update tests when behavior changes
+- keep structured logging and operational visibility aligned with the runtime behavior when backend flows change
 - keep documentation aligned with implementation, especially API and deployment behavior
+- update `.github/workflows` when quality gates or delivery behavior need to change
 - reference the relevant issue in the PR where possible
 - prefer updating existing docs over creating redundant parallel explanations
 
@@ -130,9 +133,12 @@ When making changes:
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/ai-metadata.json` exists for machine consumption and should be updated when the human-facing structure materially changes
+- logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
 
 ## Notes for future contributors
 
 - market-data behavior now includes bounded stale fallback semantics
+- backend request and service flow now emits structured JSON logs through `log/slog`
+- frontend quality gates now include Playwright coverage for core dashboard journeys
 - release-ready Kubernetes output should use immutable release tags, not rely on `latest`
 - protected API routes depend on demo-session bearer tokens

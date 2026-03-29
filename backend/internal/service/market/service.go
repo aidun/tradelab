@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -19,6 +20,7 @@ type Service struct {
 	markets           store.MarketRepository
 	marketDataBaseURL string
 	client            *http.Client
+	logger            *slog.Logger
 	clock             Clock
 	cacheMu           sync.RWMutex
 	spotCache         map[string]spotPriceCacheEntry
@@ -56,13 +58,14 @@ const (
 	candleStaleTTL    = 2 * time.Minute
 )
 
-func NewService(markets store.MarketRepository, marketDataBaseURL string) *Service {
+func NewService(markets store.MarketRepository, marketDataBaseURL string, logger *slog.Logger) *Service {
 	return &Service{
 		markets:           markets,
 		marketDataBaseURL: strings.TrimRight(marketDataBaseURL, "/"),
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		logger:      logger,
 		clock:       realClock{},
 		spotCache:   map[string]spotPriceCacheEntry{},
 		candleCache: map[string]candleCacheEntry{},
@@ -76,24 +79,29 @@ func (s *Service) List(ctx context.Context) ([]domain.Market, error) {
 func (s *Service) GetSpotPrice(ctx context.Context, marketSymbol string) (float64, error) {
 	market, err := s.markets.GetBySymbol(ctx, marketSymbol)
 	if err != nil {
+		s.logError("get_spot_price.market_lookup_failed", err, "market_symbol", marketSymbol)
 		return 0, fmt.Errorf("get market: %w", err)
 	}
 
 	now := s.clock.Now()
 	if entry, ok := s.getSpotCacheEntry(market.Symbol); ok && now.Before(entry.freshUntil) {
+		s.logInfo("get_spot_price.cache_hit", "market_symbol", market.Symbol, "source", "fresh")
 		return entry.price, nil
 	}
 
 	price, generatedAt, err := s.fetchSpotPrice(ctx, market.Symbol)
 	if err == nil {
 		s.storeSpotCacheEntry(market.Symbol, price, generatedAt)
+		s.logInfo("get_spot_price.upstream_success", "market_symbol", market.Symbol, "source", "fresh", "generated_at", generatedAt)
 		return price, nil
 	}
 
 	if entry, ok := s.getSpotCacheEntry(market.Symbol); ok && now.Before(entry.staleUntil) {
+		s.logInfo("get_spot_price.cache_fallback", "market_symbol", market.Symbol, "source", "stale", "generated_at", entry.generatedAt, "error", err)
 		return entry.price, nil
 	}
 
+	s.logError("get_spot_price.unavailable", err, "market_symbol", market.Symbol)
 	return 0, err
 }
 
@@ -108,12 +116,14 @@ func (s *Service) ListCandles(ctx context.Context, marketSymbol string, interval
 
 	market, err := s.markets.GetBySymbol(ctx, marketSymbol)
 	if err != nil {
+		s.logError("list_candles.market_lookup_failed", err, "market_symbol", marketSymbol)
 		return domain.CandleFeed{}, fmt.Errorf("get market: %w", err)
 	}
 
 	cacheKey := candleCacheKey(market.Symbol, interval, limit)
 	now := s.clock.Now()
 	if entry, ok := s.getCandleCacheEntry(cacheKey); ok && now.Before(entry.freshUntil) {
+		s.logInfo("list_candles.cache_hit", "market_symbol", market.Symbol, "interval", interval, "limit", limit, "source", "fresh")
 		return domain.CandleFeed{
 			Candles: cloneCandles(entry.candles),
 			Meta: domain.MarketDataMeta{
@@ -126,6 +136,7 @@ func (s *Service) ListCandles(ctx context.Context, marketSymbol string, interval
 	candles, generatedAt, err := s.fetchCandles(ctx, market.Symbol, interval, limit)
 	if err == nil {
 		s.storeCandleCacheEntry(cacheKey, candles, generatedAt)
+		s.logInfo("list_candles.upstream_success", "market_symbol", market.Symbol, "interval", interval, "limit", limit, "source", "fresh", "generated_at", generatedAt)
 		return domain.CandleFeed{
 			Candles: candles,
 			Meta: domain.MarketDataMeta{
@@ -136,6 +147,7 @@ func (s *Service) ListCandles(ctx context.Context, marketSymbol string, interval
 	}
 
 	if entry, ok := s.getCandleCacheEntry(cacheKey); ok && now.Before(entry.staleUntil) {
+		s.logInfo("list_candles.cache_fallback", "market_symbol", market.Symbol, "interval", interval, "limit", limit, "source", "stale", "generated_at", entry.generatedAt, "error", err)
 		return domain.CandleFeed{
 			Candles: cloneCandles(entry.candles),
 			Meta: domain.MarketDataMeta{
@@ -145,6 +157,7 @@ func (s *Service) ListCandles(ctx context.Context, marketSymbol string, interval
 		}, nil
 	}
 
+	s.logError("list_candles.unavailable", err, "market_symbol", market.Symbol, "interval", interval, "limit", limit)
 	return domain.CandleFeed{}, err
 }
 
@@ -264,12 +277,29 @@ func (s *Service) storeCandleCacheEntry(key string, candles []domain.Candle, gen
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
 
+	// Cache a clone so callers cannot mutate the stored fallback copy through a shared slice.
 	s.candleCache[key] = candleCacheEntry{
 		candles:     cloneCandles(candles),
 		generatedAt: generatedAt,
 		freshUntil:  generatedAt.Add(candleFreshTTL),
 		staleUntil:  generatedAt.Add(candleStaleTTL),
 	}
+}
+
+func (s *Service) logInfo(operation string, args ...any) {
+	if s.logger == nil {
+		return
+	}
+
+	s.logger.Info(operation, append([]any{"operation", operation}, args...)...)
+}
+
+func (s *Service) logError(operation string, err error, args ...any) {
+	if s.logger == nil {
+		return
+	}
+
+	s.logger.Error(operation, append([]any{"operation", operation, "error", err}, args...)...)
 }
 
 func parseCandle(row []any) (domain.Candle, error) {

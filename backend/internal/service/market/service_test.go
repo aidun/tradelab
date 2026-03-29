@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
+	"github.com/aidun/tradelab/backend/internal/logging"
 )
 
 func TestListCandlesFetchesRemoteMarketData(t *testing.T) {
@@ -44,7 +45,7 @@ func TestListCandlesFetchesRemoteMarketData(t *testing.T) {
 			BaseAsset:  "XRP",
 			QuoteAsset: "USDT",
 		},
-	}, server.URL)
+	}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
 
@@ -77,7 +78,7 @@ func TestListCandlesUsesFreshCache(t *testing.T) {
 	}))
 	defer server.Close()
 
-	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL)
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	clock := &stepClock{times: []time.Time{
 		time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC),
@@ -124,7 +125,7 @@ func TestListCandlesFallsBackToStaleCacheOnUpstreamFailure(t *testing.T) {
 	}))
 	defer server.Close()
 
-	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL)
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	clock := &stepClock{times: []time.Time{
 		time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC),
@@ -156,7 +157,7 @@ func TestListCandlesReturnsErrorWhenNoFallbackIsAvailable(t *testing.T) {
 	}))
 	defer server.Close()
 
-	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL)
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
 
@@ -173,7 +174,7 @@ func TestListCandlesReturnsErrorForMalformedPayloadWithoutFallback(t *testing.T)
 	}))
 	defer server.Close()
 
-	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL)
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
 
@@ -198,7 +199,7 @@ func TestGetSpotPriceFetchesRemoteMarketPrice(t *testing.T) {
 	}))
 	defer server.Close()
 
-	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL)
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
 
@@ -227,7 +228,7 @@ func TestGetSpotPriceUsesFreshCacheAndStaleFallback(t *testing.T) {
 	}))
 	defer server.Close()
 
-	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL)
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	clock := &stepClock{times: []time.Time{
 		time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC),
@@ -276,7 +277,7 @@ func TestGetSpotPriceReturnsErrorAfterStaleWindowExpires(t *testing.T) {
 	}))
 	defer server.Close()
 
-	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL)
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
 	service.client = server.Client()
 	clock := &stepClock{times: []time.Time{
 		time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC),
