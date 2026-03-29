@@ -1,0 +1,176 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  verify-backend:
+    name: Verify backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Run backend tests
+        working-directory: backend
+        run: go test ./...
+
+  verify-frontend:
+    name: Verify frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend unit tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  build-backend:
+    name: Build backend binaries
+    needs:
+      - verify-backend
+      - verify-frontend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            output: tradelab-api-linux-amd64
+          - goos: windows
+            goarch: amd64
+            output: tradelab-api-windows-amd64.exe
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Build backend binary
+        working-directory: backend
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: go build -o ../dist/${{ matrix.output }} ./cmd/api
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: dist/${{ matrix.output }}
+
+  build-frontend:
+    name: Build frontend artifact
+    needs:
+      - verify-backend
+      - verify-frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Package frontend standalone output
+        run: |
+          mkdir -p dist/tradelab-frontend
+          cp -R frontend/.next/standalone/. dist/tradelab-frontend/
+          cp -R frontend/.next/static dist/tradelab-frontend/.next/static
+          if [ -d frontend/public ]; then cp -R frontend/public dist/tradelab-frontend/public; fi
+          tar -czf dist/tradelab-frontend-standalone.tar.gz -C dist tradelab-frontend
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradelab-frontend-standalone
+          path: dist/tradelab-frontend-standalone.tar.gz
+
+  create-release:
+    name: Create GitHub release
+    needs:
+      - build-backend
+      - build-frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download backend linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tradelab-api-linux-amd64
+          path: dist
+
+      - name: Download backend windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tradelab-api-windows-amd64.exe
+          path: dist
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tradelab-frontend-standalone
+          path: dist
+
+      - name: Generate release metadata
+        id: meta
+        run: |
+          echo "tag=v0.1.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "name=TradeLab Release v0.1.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }}
+          generate_release_notes: true
+          files: |
+            dist/tradelab-api-linux-amd64
+            dist/tradelab-api-windows-amd64.exe
+            dist/tradelab-frontend-standalone.tar.gz

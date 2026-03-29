@@ -89,3 +89,9 @@ npm run test
 cd frontend
 npm run test:e2e
 ```
+
+## Delivery automation
+
+- Pull requests are validated by GitHub Actions.
+- Successful PR checks can be auto-merged into `master`.
+- Every successful `master` run builds release artifacts and creates a GitHub Release.
