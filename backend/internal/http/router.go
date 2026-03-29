@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
+	"github.com/aidun/tradelab/backend/internal/logging"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 	sessionservice "github.com/aidun/tradelab/backend/internal/service/session"
 )
@@ -44,13 +45,17 @@ type ActivityHistoryLister interface {
 type DemoSessionManager interface {
 	CreateDemoSession(ctx context.Context) (domain.DemoSession, error)
 	Authenticate(ctx context.Context, token string) (domain.DemoSession, error)
+	CreateRegisteredSession(ctx context.Context, userID string, walletID string) (domain.AppSession, error)
+	AuthenticateRegistered(ctx context.Context, token string) (domain.AppSession, error)
+	RevokeRegisteredSession(ctx context.Context, token string) error
 }
 
 type RegisteredAccountManager interface {
-	AuthenticateRegistered(ctx context.Context, token string) (domain.RegisteredAccount, error)
 	BootstrapRegisteredAccount(ctx context.Context, token string) (domain.RegisteredAccount, error)
 	UpgradeGuestSession(ctx context.Context, registeredToken string, guestToken string, preserveGuestData bool) (domain.RegisteredAccount, error)
 }
+
+const registeredSessionCookieName = "tradelab_app_session"
 
 func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
@@ -129,19 +134,28 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("POST /api/v1/account/bootstrap", func(w http.ResponseWriter, r *http.Request) {
-		token, ok := bearerToken(r.Header.Get("Authorization"))
+		clerkToken, ok := bearerToken(r.Header.Get("Authorization"))
 		if !ok {
 			logInfo(logger, "auth.registered_missing_bearer_token", "path", r.URL.Path)
 			writeError(w, http.StatusUnauthorized, "missing bearer token")
 			return
 		}
 
-		account, err := registeredAccounts.BootstrapRegisteredAccount(r.Context(), token)
+		account, err := registeredAccounts.BootstrapRegisteredAccount(r.Context(), clerkToken)
 		if err != nil {
 			logError(logger, "account.bootstrap_failed", err, "path", r.URL.Path)
 			writeError(w, http.StatusUnauthorized, "failed to bootstrap registered account")
 			return
 		}
+
+		appSession, err := sessions.CreateRegisteredSession(r.Context(), account.UserID, account.WalletID)
+		if err != nil {
+			logError(logger, "account.bootstrap_session_failed", err, "path", r.URL.Path, "user_id", account.UserID)
+			writeError(w, http.StatusInternalServerError, "failed to establish registered session")
+			return
+		}
+
+		writeRegisteredSessionCookie(w, r, appSession)
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"account": map[string]any{
@@ -156,7 +170,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("POST /api/v1/account/upgrade", func(w http.ResponseWriter, r *http.Request) {
-		token, ok := bearerToken(r.Header.Get("Authorization"))
+		clerkToken, ok := bearerToken(r.Header.Get("Authorization"))
 		if !ok {
 			logInfo(logger, "auth.registered_missing_bearer_token", "path", r.URL.Path)
 			writeError(w, http.StatusUnauthorized, "missing bearer token")
@@ -178,7 +192,7 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			return
 		}
 
-		account, err := registeredAccounts.UpgradeGuestSession(r.Context(), token, guestToken, payload.PreserveGuestData)
+		account, err := registeredAccounts.UpgradeGuestSession(r.Context(), clerkToken, guestToken, payload.PreserveGuestData)
 		if err != nil {
 			statusCode := http.StatusUnauthorized
 			if strings.Contains(err.Error(), "already exists") {
@@ -188,6 +202,15 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			writeError(w, statusCode, err.Error())
 			return
 		}
+
+		appSession, err := sessions.CreateRegisteredSession(r.Context(), account.UserID, account.WalletID)
+		if err != nil {
+			logError(logger, "account.upgrade_session_failed", err, "path", r.URL.Path, "user_id", account.UserID)
+			writeError(w, http.StatusInternalServerError, "failed to establish registered session")
+			return
+		}
+
+		writeRegisteredSessionCookie(w, r, appSession)
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"account": map[string]any{
@@ -199,6 +222,19 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 				"mode":          "registered",
 			},
 		})
+	})
+
+	mux.HandleFunc("POST /api/v1/account/logout", func(w http.ResponseWriter, r *http.Request) {
+		if token, ok := registeredSessionCookieValue(r); ok {
+			if err := sessions.RevokeRegisteredSession(r.Context(), token); err != nil {
+				logError(logger, "account.logout_failed", err, "path", r.URL.Path)
+				writeError(w, http.StatusInternalServerError, "failed to clear registered session")
+				return
+			}
+		}
+
+		clearRegisteredSessionCookie(w, r)
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	mux.HandleFunc("GET /api/v1/portfolios/", func(w http.ResponseWriter, r *http.Request) {
@@ -307,10 +343,29 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 }
 
 func requirePrincipal(w http.ResponseWriter, r *http.Request, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) (domain.Principal, bool) {
+	if registeredToken, ok := registeredSessionCookieValue(r); ok {
+		appSession, err := sessions.AuthenticateRegistered(r.Context(), registeredToken)
+		if err == nil {
+			return domain.Principal{
+				Kind:      domain.PrincipalKindRegistered,
+				UserID:    appSession.UserID,
+				WalletID:  appSession.WalletID,
+				SessionID: appSession.ID,
+			}, true
+		}
+
+		clearRegisteredSessionCookie(w, r)
+		if !errors.Is(err, sessionservice.ErrInvalidAppSession) {
+			logError(logger, "auth.invalid_registered_session", err, "path", r.URL.Path, "status_code", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "invalid registered session")
+			return domain.Principal{}, false
+		}
+	}
+
 	token, ok := bearerToken(r.Header.Get("Authorization"))
 	if !ok {
-		logInfo(logger, "auth.missing_bearer_token", "path", r.URL.Path)
-		writeError(w, http.StatusUnauthorized, "missing bearer token")
+		logInfo(logger, "auth.missing_credentials", "path", r.URL.Path)
+		writeError(w, http.StatusUnauthorized, "missing session credentials")
 		return domain.Principal{}, false
 	}
 
@@ -330,21 +385,9 @@ func requirePrincipal(w http.ResponseWriter, r *http.Request, sessions DemoSessi
 		return domain.Principal{}, false
 	}
 
-	// Guest sessions stay the default path, but once that lookup says "not a guest token"
-	// we fall through to the registered-account verifier so both identity models can coexist.
-	account, registeredErr := registeredAccounts.AuthenticateRegistered(r.Context(), token)
-	if registeredErr != nil {
-		logError(logger, "auth.invalid_registered_account", registeredErr, "path", r.URL.Path, "status_code", http.StatusUnauthorized)
-		writeError(w, http.StatusUnauthorized, "invalid session token")
-		return domain.Principal{}, false
-	}
-
-	return domain.Principal{
-		Kind:        domain.PrincipalKindRegistered,
-		UserID:      account.UserID,
-		WalletID:    account.WalletID,
-		ClerkUserID: account.ClerkUserID,
-	}, true
+	logInfo(logger, "auth.invalid_guest_session", "path", r.URL.Path)
+	writeError(w, http.StatusUnauthorized, "invalid session token")
+	return domain.Principal{}, false
 }
 
 func bearerToken(header string) (string, bool) {
@@ -432,5 +475,47 @@ func logError(logger *slog.Logger, operation string, err error, args ...any) {
 		return
 	}
 
-	logger.Error(operation, append([]any{"operation", operation, "error", err}, args...)...)
+	logger.Error(operation, append([]any{"operation", operation, "error", logging.RedactError(err)}, args...)...)
+}
+
+func registeredSessionCookieValue(r *http.Request) (string, bool) {
+	cookie, err := r.Cookie(registeredSessionCookieName)
+	if err != nil || strings.TrimSpace(cookie.Value) == "" {
+		return "", false
+	}
+
+	return strings.TrimSpace(cookie.Value), true
+}
+
+func writeRegisteredSessionCookie(w http.ResponseWriter, r *http.Request, session domain.AppSession) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     registeredSessionCookieName,
+		Value:    session.Token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   shouldUseSecureCookies(r),
+		SameSite: http.SameSiteLaxMode,
+		Expires:  session.IdleExpiresAt,
+	})
+}
+
+func clearRegisteredSessionCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     registeredSessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   shouldUseSecureCookies(r),
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+	})
+}
+
+func shouldUseSecureCookies(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+
+	return strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 }

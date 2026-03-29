@@ -97,6 +97,16 @@ export type CandleFeed = {
   meta: MarketDataMeta;
 };
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 function apiUrl(path: string) {
@@ -115,6 +125,11 @@ function authHeaders(token?: string) {
   return {
     Authorization: `Bearer ${token}`
   };
+}
+
+async function parseApiError(response: Response, fallback: string) {
+  const payload = await response.json().catch(() => ({ error: fallback }));
+  throw new ApiError(payload.error ?? fallback, response.status);
 }
 
 export async function createDemoSession(): Promise<DemoSession> {
@@ -171,11 +186,12 @@ export async function fetchCandles(marketSymbol: string, interval = "1h", limit 
 export async function fetchPortfolio(walletID: string, token: string): Promise<PortfolioSummary> {
   const response = await fetch(apiUrl(`/api/v1/portfolios/${walletID}`), {
     cache: "no-store",
+    credentials: "include",
     headers: authHeaders(token)
   });
 
   if (!response.ok) {
-    throw new Error("Failed to load portfolio");
+    await parseApiError(response, "Failed to load portfolio");
   }
 
   const data = await response.json();
@@ -185,10 +201,11 @@ export async function fetchPortfolio(walletID: string, token: string): Promise<P
 export async function fetchOrders(token: string): Promise<Order[]> {
   const response = await fetch(apiUrl("/api/v1/orders"), {
     cache: "no-store",
+    credentials: "include",
     headers: authHeaders(token)
   });
   if (!response.ok) {
-    throw new Error("Failed to load orders");
+    await parseApiError(response, "Failed to load orders");
   }
 
   const data = await response.json();
@@ -198,10 +215,11 @@ export async function fetchOrders(token: string): Promise<Order[]> {
 export async function fetchActivity(token: string): Promise<ActivityLog[]> {
   const response = await fetch(apiUrl("/api/v1/activity"), {
     cache: "no-store",
+    credentials: "include",
     headers: authHeaders(token)
   });
   if (!response.ok) {
-    throw new Error("Failed to load activity");
+    await parseApiError(response, "Failed to load activity");
   }
 
   const data = await response.json();
@@ -211,13 +229,14 @@ export async function fetchActivity(token: string): Promise<ActivityLog[]> {
 export async function placeMarketBuy(input: {
   marketSymbol: string;
   quoteAmount: number;
-  token: string;
+  token?: string | null;
 }) {
   const response = await fetch(apiUrl("/api/v1/orders"), {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...authHeaders(input.token)
+      ...authHeaders(input.token ?? undefined)
     },
     body: JSON.stringify({
       market_symbol: input.marketSymbol,
@@ -226,8 +245,7 @@ export async function placeMarketBuy(input: {
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: "Order failed" }));
-    throw new Error(payload.error ?? "Order failed");
+    await parseApiError(response, "Order failed");
   }
 
   return response.json();
@@ -236,12 +254,12 @@ export async function placeMarketBuy(input: {
 export async function bootstrapRegisteredAccount(token: string): Promise<RegisteredAccount> {
   const response = await fetch(apiUrl("/api/v1/account/bootstrap"), {
     method: "POST",
+    credentials: "include",
     headers: authHeaders(token)
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: "Failed to bootstrap account" }));
-    throw new Error(payload.error ?? "Failed to bootstrap account");
+    await parseApiError(response, "Failed to bootstrap account");
   }
 
   const data = await response.json();
@@ -262,6 +280,7 @@ export async function upgradeGuestAccount(input: {
 }): Promise<RegisteredAccount> {
   const response = await fetch(apiUrl("/api/v1/account/upgrade"), {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       "X-TradeLab-Guest-Token": input.guestToken,
@@ -273,8 +292,7 @@ export async function upgradeGuestAccount(input: {
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: "Failed to upgrade guest account" }));
-    throw new Error(payload.error ?? "Failed to upgrade guest account");
+    await parseApiError(response, "Failed to upgrade guest account");
   }
 
   const data = await response.json();
@@ -286,4 +304,15 @@ export async function upgradeGuestAccount(input: {
     displayName: data.account.display_name,
     mode: "registered"
   };
+}
+
+export async function logoutRegisteredAccount(): Promise<void> {
+  const response = await fetch(apiUrl("/api/v1/account/logout"), {
+    method: "POST",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to log out");
+  }
 }

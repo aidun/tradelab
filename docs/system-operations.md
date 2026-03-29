@@ -64,6 +64,8 @@ Secret-bearing values should not be committed directly into base manifests.
 - development secrets come from `deploy/kubernetes/overlays/development/.env.database`
 - production secrets come from the configured external secret store
 - database credentials and `DATABASE_URL` are the primary required runtime secrets today
+- Clerk publishable keys are frontend-safe, but Clerk secret material must remain server-side only
+- mock-auth flags are development and CI-only controls and must not be treated as production runtime settings
 
 ## Deployment flow
 
@@ -173,6 +175,8 @@ For a release-focused view of published artifacts and release meaning, see [rele
   Backend may fall back to stale market data for a bounded period; after that, market-dependent actions can fail explicitly.
 - `identity configuration failure`
   Usually visible as missing registered-account bootstrap, rejected Clerk bearer tokens, or an absent social-login surface when auth was expected.
+- `session security failure`
+  Usually visible as missing or cleared registered app-session cookies, repeated logout loops, or guest-session refresh after an unauthorized response.
 - `release packaging failure`
   Usually visible in GitHub Actions during image publication or manifest rendering.
 

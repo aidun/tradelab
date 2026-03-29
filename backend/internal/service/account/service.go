@@ -8,6 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
+	"github.com/aidun/tradelab/backend/internal/logging"
 	"github.com/aidun/tradelab/backend/internal/store"
 )
 
@@ -105,7 +106,7 @@ func (s *Service) verifyToken(ctx context.Context, token string) (domain.Registe
 
 	identity, err := s.verifier.VerifyToken(ctx, token)
 	if err != nil {
-		s.logInfo("verify_registered_token.failed", "reason", err.Error())
+		s.logInfo("verify_registered_token.failed", "reason", "verification_failed")
 		return domain.RegisteredIdentity{}, fmt.Errorf("%w: %v", ErrInvalidRegisteredToken, err)
 	}
 
@@ -125,5 +126,5 @@ func (s *Service) logError(operation string, err error, args ...any) {
 		return
 	}
 
-	s.logger.Error(operation, append([]any{"operation", operation, "error", err}, args...)...)
+	s.logger.Error(operation, append([]any{"operation", operation, "error", logging.RedactError(err)}, args...)...)
 }

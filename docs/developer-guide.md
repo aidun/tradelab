@@ -132,7 +132,7 @@ kubectl kustomize deploy/kubernetes/overlays/production
 - `frontend/components`: UI components, including the trading dashboard
 - `frontend/lib`: API client code and shared helpers
 - `frontend/lib/tradelab-auth.tsx`: auth provider boundary for guest, mock, and Clerk-backed registered modes
-- `frontend/lib/use-account-session.ts`: guest-plus-registered account orchestration
+- `frontend/lib/use-account-session.ts`: guest-plus-registered account orchestration plus guest session refresh logic
 - `frontend/__tests__`: component and workflow tests
 - `frontend/scripts`: utility scripts, including documentation screenshot generation
 
@@ -209,6 +209,7 @@ When making changes:
 - `docs/installation-validation.md` defines the required smoke path for local and deployed environments
 - `docs/onboarding-requirements.md` captures the intended guest-first product onboarding behavior
 - `docs/authentication-model.md`, `docs/clerk-architecture.md`, `docs/auth-flows.md`, and `docs/account-lifecycle.md` define the implemented guest-plus-registered identity surface
+- `docs/security-model.md` is the source of truth for session, secret, redaction, and sensitive-data boundaries
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/user-guide.md` is the user-facing walkthrough with screenshots
@@ -233,4 +234,4 @@ When making changes, consult the `artifact_groups` and `change_management` secti
 - backend request and service flow now emits structured JSON logs through `log/slog`
 - frontend quality gates now include Playwright coverage for core dashboard journeys
 - release-ready Kubernetes output should use immutable release tags, not rely on `latest`
-- protected API routes now accept either guest demo-session bearer tokens or Clerk-backed registered account bearer tokens
+- protected API routes now accept guest bearer tokens or registered HttpOnly app-session cookies, depending on the principal type

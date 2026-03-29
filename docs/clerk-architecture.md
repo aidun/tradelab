@@ -30,6 +30,7 @@ The Go backend now:
 - trusts only verified Clerk identity data for registered-account routes
 - map Clerk user IDs to internal TradeLab users
 - create or load the primary demo wallet for registered users
+- create TradeLab app sessions for registered users after Clerk verification
 - keep authorization logic server-side
 - avoid trusting raw client claims for wallet ownership or account identity
 
@@ -41,6 +42,7 @@ Instead:
 
 - Clerk verifies the user at the edge or frontend boundary
 - the backend verifies the authenticated identity context for protected registered-account routes through Clerk JWT verification or explicit mock mode
+- the backend then establishes an opaque registered app session for normal product use
 - TradeLab maps that identity to internal state such as user IDs, wallets, and portfolios
 
 ## Guest mode coexistence
@@ -51,7 +53,7 @@ This implies:
 
 - guest session creation remains available
 - guest sessions are treated as temporary and low-trust
-- registered mode uses verified external identity and durable internal ownership
+- registered mode uses verified external identity plus durable internal ownership through HttpOnly app sessions
 
 ## Route model
 

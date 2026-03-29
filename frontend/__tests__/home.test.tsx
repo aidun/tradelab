@@ -226,6 +226,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
 describe("Hero", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -249,6 +250,18 @@ describe("Hero", () => {
 
     expect(screen.getByText(/run demo buy/i)).toBeInTheDocument();
     expect(screen.getByText(/demo buy recorded/i)).toBeInTheDocument();
+  });
+
+  it("stores guest session state in sessionStorage instead of localStorage", async () => {
+    installFetchMock();
+
+    render(<Hero />);
+
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem("tradelab.demo-session")).toBeTruthy();
+    });
+
+    expect(window.localStorage.getItem("tradelab.demo-session")).toBeNull();
   });
 
   it("refreshes only chart data when the interval changes", async () => {

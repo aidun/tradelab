@@ -38,8 +38,10 @@
   ],
   "key_workflows": [
     "demo session creation",
+    "guest session persistence in sessionStorage only",
     "guest-to-registered account upgrade with preserve-or-fresh choice",
-    "registered account bootstrap through Clerk-backed identity",
+    "registered account bootstrap through Clerk-backed identity and HttpOnly app-session establishment",
+    "registered account logout with app-session revocation",
     "authenticated paper-trading API access",
     "server-authoritative market buy execution",
     "market-data fetch with bounded stale fallback",
@@ -58,6 +60,7 @@
     "clerk_architecture": "docs/clerk-architecture.md",
     "auth_flows": "docs/auth-flows.md",
     "account_lifecycle": "docs/account-lifecycle.md",
+    "security_model": "docs/security-model.md",
     "product": "docs/PRD.md",
     "roadmap": "docs/roadmap.md",
     "data_model": "docs/data-model.md",
@@ -100,7 +103,10 @@
       "GET /api/v1/activity",
       "POST /api/v1/orders"
     ],
-    "auth_model": "Bearer token from either a guest demo session or a Clerk-backed registered account, with guest mode as the default entry path"
+    "auth_model": "Guest routes use backend-issued bearer tokens scoped to the browser session, while registered routes use Clerk-backed bootstrap plus a TradeLab HttpOnly app-session cookie",
+    "session_security_routes": [
+      "POST /api/v1/account/logout"
+    ]
   },
   "quality_gates": {
     "ci_jobs": [
@@ -189,15 +195,16 @@
     "product_requirements_doc": "docs/onboarding-requirements.md"
   },
   "identity_roadmap": {
-    "current_state": "guest demo sessions plus Clerk-backed registered accounts",
-    "target_state": "guest mode plus hardened Clerk-backed registered accounts with stronger session security in Phase 3",
+    "current_state": "guest demo sessions plus Clerk-backed registered accounts with TradeLab-managed app sessions",
+    "target_state": "guest mode plus hardened Clerk-backed registered accounts with app-session expiry, revocation, and redaction controls",
     "managed_auth_provider": "Clerk",
     "social_login_targets": ["Google", "Apple"],
     "documentation": [
       "docs/authentication-model.md",
       "docs/clerk-architecture.md",
       "docs/auth-flows.md",
-      "docs/account-lifecycle.md"
+      "docs/account-lifecycle.md",
+      "docs/security-model.md"
     ]
   },
   "documentation_assets": {
@@ -313,7 +320,8 @@
       "docs/ai-metadata.json",
       "docs/authentication-model.md",
       "docs/clerk-architecture.md",
-      "docs/account-lifecycle.md"
+      "docs/account-lifecycle.md",
+      "docs/security-model.md"
     ],
     "operator_docs": [
       "docs/deployment.md",
@@ -425,6 +433,7 @@
           "update docs/clerk-architecture.md",
           "update docs/auth-flows.md",
           "update docs/account-lifecycle.md",
+          "update docs/security-model.md",
           "update docs/ai-metadata.json"
         ],
         "conditional_followups": [
@@ -588,6 +597,7 @@
         "scenario": "Change the authentication model or social login providers",
         "followups": [
           "update auth planning docs",
+          "update docs/security-model.md",
           "update README identity roadmap section",
           "update docs/ai-metadata.json",
           "review onboarding and operator docs for trust-boundary changes"
