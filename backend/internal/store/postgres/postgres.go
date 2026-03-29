@@ -2,10 +2,16 @@ package postgres
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
+	"github.com/google/uuid"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -89,6 +95,100 @@ func (r *BalanceRepository) GetByWalletAndAsset(ctx context.Context, walletID st
 	return balance, nil
 }
 
+type DemoSessionRepository struct {
+	db *sql.DB
+}
+
+func NewDemoSessionRepository(db *sql.DB) *DemoSessionRepository {
+	return &DemoSessionRepository{db: db}
+}
+
+func (r *DemoSessionRepository) CreateDemoSession(ctx context.Context) (domain.DemoSession, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.DemoSession{}, err
+	}
+	defer tx.Rollback()
+
+	now := time.Now().UTC()
+	expiresAt := now.Add(30 * 24 * time.Hour)
+	userID := newUUID()
+	walletID := newUUID()
+	sessionID := newUUID()
+	token, tokenHash, err := newSessionToken()
+	if err != nil {
+		return domain.DemoSession{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO users (id, email, password_hash, display_name, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $5)
+	`, userID, "demo+"+userID+"@tradelab.local", "demo-session", "Demo "+userID[:8], now); err != nil {
+		return domain.DemoSession{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO wallets (id, user_id, wallet_type, base_currency, starting_balance, created_at, updated_at)
+		VALUES ($1, $2, 'paper', 'USDT', 10000, $3, $3)
+	`, walletID, userID, now); err != nil {
+		return domain.DemoSession{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO wallet_balances (id, wallet_id, asset_id, available_amount, locked_amount, average_entry_price, updated_at)
+		SELECT $1, $2, id, 10000, 0, 1, $3
+		FROM assets
+		WHERE symbol = 'USDT'
+	`, newUUID(), walletID, now); err != nil {
+		return domain.DemoSession{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO demo_sessions (id, user_id, wallet_id, token_hash, expires_at, created_at, last_used_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $6)
+	`, sessionID, userID, walletID, tokenHash, expiresAt, now); err != nil {
+		return domain.DemoSession{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return domain.DemoSession{}, err
+	}
+
+	return domain.DemoSession{
+		ID:         sessionID,
+		UserID:     userID,
+		WalletID:   walletID,
+		Token:      token,
+		ExpiresAt:  expiresAt,
+		CreatedAt:  now,
+		LastUsedAt: now,
+	}, nil
+}
+
+func (r *DemoSessionRepository) GetByToken(ctx context.Context, token string) (domain.DemoSession, error) {
+	var session domain.DemoSession
+	tokenHash := hashToken(token)
+
+	err := r.db.QueryRowContext(ctx, `
+		UPDATE demo_sessions
+		SET last_used_at = NOW()
+		WHERE token_hash = $1
+		RETURNING id, user_id, wallet_id, expires_at, created_at, last_used_at
+	`, tokenHash).Scan(
+		&session.ID,
+		&session.UserID,
+		&session.WalletID,
+		&session.ExpiresAt,
+		&session.CreatedAt,
+		&session.LastUsedAt,
+	)
+	if err != nil {
+		return domain.DemoSession{}, err
+	}
+
+	return session, nil
+}
+
 type PortfolioRepository struct {
 	db *sql.DB
 }
@@ -116,13 +216,19 @@ func (r *PortfolioRepository) ApplyMarketBuy(ctx context.Context, order domain.O
 	}
 
 	if _, err := tx.ExecContext(ctx, `
-		UPDATE wallet_balances wb
-		SET available_amount = wb.available_amount + $1, average_entry_price = $2, updated_at = NOW()
+		INSERT INTO wallet_balances (id, wallet_id, asset_id, available_amount, locked_amount, average_entry_price, updated_at)
+		SELECT $1, $2, a.id, $3, 0, $4, NOW()
 		FROM assets a
-		WHERE wb.wallet_id = $3
-		  AND wb.asset_id = a.id
-		  AND a.symbol = $4
-	`, order.BaseQuantity, order.ExpectedPrice, order.WalletID, order.BaseAsset); err != nil {
+		WHERE a.symbol = $5
+		ON CONFLICT (wallet_id, asset_id)
+		DO UPDATE SET
+			available_amount = wallet_balances.available_amount + EXCLUDED.available_amount,
+			average_entry_price = (
+				((wallet_balances.available_amount * wallet_balances.average_entry_price) + (EXCLUDED.available_amount * EXCLUDED.average_entry_price))
+				/ NULLIF(wallet_balances.available_amount + EXCLUDED.available_amount, 0)
+			),
+			updated_at = NOW()
+	`, newUUID(), order.WalletID, order.BaseQuantity, order.ExpectedPrice, order.BaseAsset); err != nil {
 		return domain.Order{}, err
 	}
 
@@ -357,4 +463,23 @@ func (r *PortfolioRepository) ListActivityByWallet(ctx context.Context, walletID
 
 func (r *PortfolioRepository) Create(ctx context.Context, order domain.Order) (domain.Order, error) {
 	return domain.Order{}, fmt.Errorf("unsupported operation: use ApplyMarketBuy")
+}
+
+func newUUID() string {
+	return uuid.NewString()
+}
+
+func newSessionToken() (string, string, error) {
+	entropy := make([]byte, 32)
+	if _, err := rand.Read(entropy); err != nil {
+		return "", "", err
+	}
+
+	token := base64.RawURLEncoding.EncodeToString(entropy)
+	return token, hashToken(token), nil
+}
+
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }

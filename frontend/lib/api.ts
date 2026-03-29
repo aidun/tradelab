@@ -58,6 +58,14 @@ export type ActivityLog = {
   createdAt: string;
 };
 
+export type DemoSession = {
+  id: string;
+  userID: string;
+  walletID: string;
+  token: string;
+  expiresAt: string;
+};
+
 export type Candle = {
   openTime: string;
   closeTime: string;
@@ -78,6 +86,38 @@ function apiUrl(path: string) {
   }
 
   return `${API_BASE_URL}${path}`;
+}
+
+function authHeaders(token?: string) {
+  if (!token) {
+    return undefined;
+  }
+
+  return {
+    Authorization: `Bearer ${token}`
+  };
+}
+
+export async function createDemoSession(): Promise<DemoSession> {
+  const response = await fetch(apiUrl("/api/v1/sessions/demo"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create demo session");
+  }
+
+  const data = await response.json();
+  return {
+    id: data.session.id,
+    userID: data.session.user_id,
+    walletID: data.session.wallet_id,
+    token: data.session.token,
+    expiresAt: data.session.expires_at
+  };
 }
 
 export async function fetchMarkets(): Promise<Market[]> {
@@ -103,9 +143,10 @@ export async function fetchCandles(marketSymbol: string, interval = "1h", limit 
   return data.candles;
 }
 
-export async function fetchPortfolio(walletID: string): Promise<PortfolioSummary> {
+export async function fetchPortfolio(walletID: string, token: string): Promise<PortfolioSummary> {
   const response = await fetch(apiUrl(`/api/v1/portfolios/${walletID}`), {
-    cache: "no-store"
+    cache: "no-store",
+    headers: authHeaders(token)
   });
 
   if (!response.ok) {
@@ -116,9 +157,10 @@ export async function fetchPortfolio(walletID: string): Promise<PortfolioSummary
   return data.portfolio;
 }
 
-export async function fetchOrders(walletID: string): Promise<Order[]> {
-  const response = await fetch(apiUrl(`/api/v1/orders?wallet_id=${walletID}`), {
-    cache: "no-store"
+export async function fetchOrders(token: string): Promise<Order[]> {
+  const response = await fetch(apiUrl("/api/v1/orders"), {
+    cache: "no-store",
+    headers: authHeaders(token)
   });
   if (!response.ok) {
     throw new Error("Failed to load orders");
@@ -128,9 +170,10 @@ export async function fetchOrders(walletID: string): Promise<Order[]> {
   return data.orders;
 }
 
-export async function fetchActivity(walletID: string): Promise<ActivityLog[]> {
-  const response = await fetch(apiUrl(`/api/v1/activity?wallet_id=${walletID}`), {
-    cache: "no-store"
+export async function fetchActivity(token: string): Promise<ActivityLog[]> {
+  const response = await fetch(apiUrl("/api/v1/activity"), {
+    cache: "no-store",
+    headers: authHeaders(token)
   });
   if (!response.ok) {
     throw new Error("Failed to load activity");
@@ -141,20 +184,18 @@ export async function fetchActivity(walletID: string): Promise<ActivityLog[]> {
 }
 
 export async function placeMarketBuy(input: {
-  userID: string;
-  walletID: string;
   marketSymbol: string;
   quoteAmount: number;
   expectedPrice: number;
+  token: string;
 }) {
   const response = await fetch(apiUrl("/api/v1/orders"), {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...authHeaders(input.token)
     },
     body: JSON.stringify({
-      user_id: input.userID,
-      wallet_id: input.walletID,
       market_symbol: input.marketSymbol,
       quote_amount: input.quoteAmount,
       expected_price: input.expectedPrice

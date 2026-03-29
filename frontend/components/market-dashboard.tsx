@@ -2,6 +2,7 @@
 
 import React, { startTransition, useEffect, useState } from "react";
 import {
+  createDemoSession,
   fetchActivity,
   fetchCandles,
   fetchMarkets,
@@ -10,13 +11,13 @@ import {
   placeMarketBuy,
   type ActivityLog,
   type Candle,
+  type DemoSession,
   type Market,
   type Order,
   type PortfolioSummary
 } from "@/lib/api";
 
-const DEMO_USER_ID = "cfbf7c8f-eaf9-47fa-8674-2a29fed1fcc9";
-const DEMO_WALLET_ID = "1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c";
+const DEMO_SESSION_STORAGE_KEY = "tradelab.demo-session";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -168,6 +169,7 @@ function CandleChart({ candles }: { candles: Candle[] }) {
 }
 
 export function MarketDashboard() {
+  const [session, setSession] = useState<DemoSession | null>(null);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -183,15 +185,37 @@ export function MarketDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  async function loadData() {
+  async function ensureDemoSession() {
+    if (typeof window === "undefined") {
+      throw new Error("Demo session can only be created in the browser");
+    }
+
+    const cachedValue = window.localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
+    if (cachedValue) {
+      try {
+        const cachedSession = JSON.parse(cachedValue) as DemoSession;
+        if (new Date(cachedSession.expiresAt).getTime() > Date.now()) {
+          return cachedSession;
+        }
+      } catch {
+        window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+      }
+    }
+
+    const nextSession = await createDemoSession();
+    window.localStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify(nextSession));
+    return nextSession;
+  }
+
+  async function loadData(activeSession: DemoSession) {
     setError(null);
     setIsChartLoading(true);
 
     const [marketList, portfolioSummary, orderHistory, activityHistory, marketCandles] = await Promise.all([
       fetchMarkets(),
-      fetchPortfolio(DEMO_WALLET_ID),
-      fetchOrders(DEMO_WALLET_ID),
-      fetchActivity(DEMO_WALLET_ID),
+      fetchPortfolio(activeSession.walletID, activeSession.token),
+      fetchOrders(activeSession.token),
+      fetchActivity(activeSession.token),
       fetchCandles(selectedMarket, selectedInterval, 48)
     ]);
 
@@ -208,7 +232,15 @@ export function MarketDashboard() {
     let cancelled = false;
 
     startTransition(() => {
-      loadData()
+      ensureDemoSession()
+        .then((activeSession) => {
+          if (cancelled) {
+            return;
+          }
+
+          setSession(activeSession);
+          return loadData(activeSession);
+        })
         .catch((loadError: Error) => {
           if (!cancelled) {
             setError(loadError.message);
@@ -234,15 +266,18 @@ export function MarketDashboard() {
     setIsSubmitting(true);
 
     try {
+      if (!session) {
+        throw new Error("Demo session is not ready yet");
+      }
+
       await placeMarketBuy({
-        userID: DEMO_USER_ID,
-        walletID: DEMO_WALLET_ID,
+        token: session.token,
         marketSymbol: selectedMarket,
         quoteAmount: Number(quoteAmount),
         expectedPrice: Number(expectedPrice)
       });
 
-      await loadData();
+      await loadData(session);
       setSuccess(`Demo buy executed for ${selectedMarket}.`);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Order failed");
@@ -276,7 +311,7 @@ export function MarketDashboard() {
             <div className="grid min-w-[300px] gap-4 rounded-[28px] border border-[var(--line)] bg-[rgba(7,17,31,0.78)] p-5 font-[var(--font-mono)] text-sm text-[var(--muted)]">
               <div className="flex items-center justify-between gap-8">
                 <span>Demo wallet</span>
-                <span>{DEMO_WALLET_ID.slice(0, 8)}...</span>
+                <span>{session ? `${session.walletID.slice(0, 8)}...` : "--"}</span>
               </div>
               <div className="flex items-center justify-between gap-8">
                 <span>Total value</span>
@@ -388,7 +423,7 @@ export function MarketDashboard() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || isLoading}
+                  disabled={isSubmitting || isLoading || !session}
                   className="mt-2 rounded-2xl bg-[var(--accent)] px-5 py-4 font-semibold text-[#04111a] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? "Executing..." : "Run demo buy"}
