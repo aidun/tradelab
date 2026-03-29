@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/aidun/tradelab/backend/internal/domain"
 	"github.com/aidun/tradelab/backend/internal/store"
 )
@@ -42,6 +44,7 @@ func NewService(markets store.MarketRepository, balances store.BalanceRepository
 }
 
 type PlaceMarketBuyInput struct {
+	UserID        string
 	WalletID      string
 	MarketSymbol  string
 	QuoteAmount   float64
@@ -72,7 +75,10 @@ func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput)
 	}
 
 	order := domain.Order{
+		ID:            uuid.NewString(),
+		UserID:        input.UserID,
 		WalletID:      input.WalletID,
+		MarketID:      market.ID,
 		MarketSymbol:  market.Symbol,
 		BaseAsset:     market.BaseAsset,
 		QuoteAsset:    market.QuoteAsset,

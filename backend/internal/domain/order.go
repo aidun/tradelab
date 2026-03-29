@@ -16,7 +16,9 @@ const (
 
 type Order struct {
 	ID            string
+	UserID        string
 	WalletID      string
+	MarketID      string
 	MarketSymbol  string
 	BaseAsset     string
 	QuoteAsset    string

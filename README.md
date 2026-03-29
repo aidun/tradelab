@@ -30,6 +30,13 @@ cd backend
 go run ./cmd/api
 ```
 
+### Apply database migrations
+
+```bash
+cd backend
+go run ./cmd/migrate up
+```
+
 ### Run the frontend
 
 ```bash
@@ -44,6 +51,29 @@ npm run dev
 ```bash
 cd backend
 go test ./...
+```
+
+### Demo seed identifiers
+
+- Demo user ID: `cfbf7c8f-eaf9-47fa-8674-2a29fed1fcc9`
+- Demo wallet ID: `1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c`
+
+### Sample API calls
+
+```bash
+curl http://localhost:8080/api/v1/markets
+```
+
+```bash
+curl -X POST http://localhost:8080/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "cfbf7c8f-eaf9-47fa-8674-2a29fed1fcc9",
+    "wallet_id": "1ddb1c1c-827f-4bf0-b85a-3d5786c3b26c",
+    "market_symbol": "XRP/USDT",
+    "quote_amount": 50,
+    "expected_price": 0.67
+  }'
 ```
 
 ### Frontend unit tests

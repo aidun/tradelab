@@ -7,6 +7,7 @@ import (
 )
 
 type MarketRepository interface {
+	List(ctx context.Context) ([]domain.Market, error)
 	GetBySymbol(ctx context.Context, symbol string) (domain.Market, error)
 }
 

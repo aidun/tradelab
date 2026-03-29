@@ -6,6 +6,8 @@ import (
 
 	"github.com/aidun/tradelab/backend/internal/config"
 	httpapi "github.com/aidun/tradelab/backend/internal/http"
+	marketservice "github.com/aidun/tradelab/backend/internal/service/market"
+	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 	"github.com/aidun/tradelab/backend/internal/store/postgres"
 )
 
@@ -18,9 +20,16 @@ func main() {
 	}
 	defer db.Close()
 
+	marketRepository := postgres.NewMarketRepository(db)
+	balanceRepository := postgres.NewBalanceRepository(db)
+	orderRepository := postgres.NewOrderRepository(db)
+
+	marketService := marketservice.NewService(marketRepository)
+	orderService := orderservice.NewService(marketRepository, balanceRepository, orderRepository)
+
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
-		Handler: httpapi.NewRouter(),
+		Handler: httpapi.NewRouter(marketService, orderService),
 	}
 
 	log.Printf("TradeLab backend listening on %s", cfg.HTTPAddress)

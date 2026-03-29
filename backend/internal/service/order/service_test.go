@@ -13,6 +13,7 @@ func TestPlaceMarketBuyReturnsErrorForZeroQuoteAmount(t *testing.T) {
 	service := &Service{}
 
 	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+		UserID:       "user-1",
 		WalletID:     "wallet-1",
 		MarketSymbol: "XRP/USDT",
 		QuoteAmount:  0,
@@ -27,6 +28,7 @@ func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 	service := NewService(
 		fakeMarketRepository{
 			market: domain.Market{
+				ID:          "market-1",
 				Symbol:      "XRP/USDT",
 				BaseAsset:   "XRP",
 				QuoteAsset:  "USDT",
@@ -43,6 +45,7 @@ func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 	)
 
 	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+		UserID:        "user-1",
 		WalletID:      "wallet-1",
 		MarketSymbol:  "XRP/USDT",
 		QuoteAmount:   200,
@@ -60,6 +63,7 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 	service := NewService(
 		fakeMarketRepository{
 			market: domain.Market{
+				ID:          "market-1",
 				Symbol:      "XRP/USDT",
 				BaseAsset:   "XRP",
 				QuoteAsset:  "USDT",
@@ -77,6 +81,7 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 	service.clock = fakeClock{now: now}
 
 	order, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+		UserID:        "user-1",
 		WalletID:      "wallet-1",
 		MarketSymbol:  "XRP/USDT",
 		QuoteAmount:   100,
@@ -88,6 +93,10 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 
 	if order.Status != domain.OrderStatusPending {
 		t.Fatalf("expected pending status, got %s", order.Status)
+	}
+
+	if order.UserID != "user-1" {
+		t.Fatalf("expected user-1, got %s", order.UserID)
 	}
 
 	if order.MarketSymbol != "XRP/USDT" {
@@ -108,8 +117,13 @@ func (f fakeClock) Now() time.Time {
 }
 
 type fakeMarketRepository struct {
+	markets []domain.Market
 	market domain.Market
 	err    error
+}
+
+func (f fakeMarketRepository) List(context.Context) ([]domain.Market, error) {
+	return f.markets, f.err
 }
 
 func (f fakeMarketRepository) GetBySymbol(context.Context, string) (domain.Market, error) {
