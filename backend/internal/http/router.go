@@ -11,6 +11,7 @@ import (
 
 	"github.com/aidun/tradelab/backend/internal/domain"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
+	sessionservice "github.com/aidun/tradelab/backend/internal/service/session"
 )
 
 type MarketLister interface {
@@ -37,7 +38,12 @@ type ActivityHistoryLister interface {
 	ListActivity(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)
 }
 
-func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister) http.Handler {
+type DemoSessionManager interface {
+	CreateDemoSession(ctx context.Context) (domain.DemoSession, error)
+	Authenticate(ctx context.Context, token string) (domain.DemoSession, error)
+}
+
+func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, sessions DemoSessionManager) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -89,10 +95,38 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		writeJSON(w, http.StatusOK, map[string]any{"candles": candles})
 	})
 
+	mux.HandleFunc("POST /api/v1/sessions/demo", func(w http.ResponseWriter, r *http.Request) {
+		demoSession, err := sessions.CreateDemoSession(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to create demo session")
+			return
+		}
+
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"session": map[string]any{
+				"id":         demoSession.ID,
+				"user_id":    demoSession.UserID,
+				"wallet_id":  demoSession.WalletID,
+				"token":      demoSession.Token,
+				"expires_at": demoSession.ExpiresAt,
+			},
+		})
+	})
+
 	mux.HandleFunc("GET /api/v1/portfolios/", func(w http.ResponseWriter, r *http.Request) {
+		demoSession, ok := requireSession(w, r, sessions)
+		if !ok {
+			return
+		}
+
 		walletID := strings.TrimPrefix(r.URL.Path, "/api/v1/portfolios/")
 		if walletID == "" {
 			writeError(w, http.StatusBadRequest, "wallet ID is required")
+			return
+		}
+
+		if walletID != demoSession.WalletID {
+			writeError(w, http.StatusForbidden, "wallet access denied")
 			return
 		}
 
@@ -106,13 +140,12 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("GET /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
-		walletID := r.URL.Query().Get("wallet_id")
-		if walletID == "" {
-			writeError(w, http.StatusBadRequest, "wallet_id is required")
+		demoSession, ok := requireSession(w, r, sessions)
+		if !ok {
 			return
 		}
 
-		items, err := orderHistory.ListOrders(r.Context(), walletID, parseLimit(r.URL.Query().Get("limit")))
+		items, err := orderHistory.ListOrders(r.Context(), demoSession.WalletID, parseLimit(r.URL.Query().Get("limit")))
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to load orders")
 			return
@@ -122,13 +155,12 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("GET /api/v1/activity", func(w http.ResponseWriter, r *http.Request) {
-		walletID := r.URL.Query().Get("wallet_id")
-		if walletID == "" {
-			writeError(w, http.StatusBadRequest, "wallet_id is required")
+		demoSession, ok := requireSession(w, r, sessions)
+		if !ok {
 			return
 		}
 
-		items, err := activityHistory.ListActivity(r.Context(), walletID, parseLimit(r.URL.Query().Get("limit")))
+		items, err := activityHistory.ListActivity(r.Context(), demoSession.WalletID, parseLimit(r.URL.Query().Get("limit")))
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to load activity")
 			return
@@ -138,9 +170,12 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	mux.HandleFunc("POST /api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
+		demoSession, ok := requireSession(w, r, sessions)
+		if !ok {
+			return
+		}
+
 		var payload struct {
-			UserID        string  `json:"user_id"`
-			WalletID      string  `json:"wallet_id"`
 			MarketSymbol  string  `json:"market_symbol"`
 			QuoteAmount   float64 `json:"quote_amount"`
 			ExpectedPrice float64 `json:"expected_price"`
@@ -152,8 +187,8 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		}
 
 		order, err := orders.PlaceMarketBuy(r.Context(), orderservice.PlaceMarketBuyInput{
-			UserID:        payload.UserID,
-			WalletID:      payload.WalletID,
+			UserID:        demoSession.UserID,
+			WalletID:      demoSession.WalletID,
 			MarketSymbol:  payload.MarketSymbol,
 			QuoteAmount:   payload.QuoteAmount,
 			ExpectedPrice: payload.ExpectedPrice,
@@ -176,6 +211,40 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 	})
 
 	return mux
+}
+
+func requireSession(w http.ResponseWriter, r *http.Request, sessions DemoSessionManager) (domain.DemoSession, bool) {
+	token, ok := bearerToken(r.Header.Get("Authorization"))
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "missing bearer token")
+		return domain.DemoSession{}, false
+	}
+
+	demoSession, err := sessions.Authenticate(r.Context(), token)
+	if err != nil {
+		statusCode := http.StatusUnauthorized
+		if !errors.Is(err, sessionservice.ErrInvalidSession) {
+			statusCode = http.StatusInternalServerError
+		}
+		writeError(w, statusCode, "invalid session token")
+		return domain.DemoSession{}, false
+	}
+
+	return demoSession, true
+}
+
+func bearerToken(header string) (string, bool) {
+	const prefix = "Bearer "
+	if !strings.HasPrefix(header, prefix) {
+		return "", false
+	}
+
+	token := strings.TrimSpace(strings.TrimPrefix(header, prefix))
+	if token == "" {
+		return "", false
+	}
+
+	return token, true
 }
 
 func parseLimit(raw string) int {

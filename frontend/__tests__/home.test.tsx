@@ -7,6 +7,22 @@ describe("Hero", () => {
     vi.spyOn(global, "fetch").mockImplementation((input) => {
       const url = String(input);
 
+      if (url.includes("/api/v1/sessions/demo")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              session: {
+                id: "session-1",
+                user_id: "user-1",
+                wallet_id: "wallet-1",
+                token: "token-1",
+                expires_at: "2026-04-29T12:00:00Z"
+              }
+            })
+          )
+        );
+      }
+
       if (url.includes("/candles")) {
         return Promise.resolve(
           new Response(
