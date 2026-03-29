@@ -8,7 +8,7 @@ This document explains what a TradeLab release means, how it is triggered, and h
 
 TradeLab releases are driven by the GitHub workflow chain:
 
-`pull request -> CI -> auto-merge -> master -> manual release workflow`
+`pull request -> CI -> auto-merge -> master -> publish master images for development -> manual release workflow`
 
 The release workflow is intentionally manual and is triggered through GitHub Actions `workflow_dispatch`.
 
@@ -41,12 +41,16 @@ Each successful release currently publishes:
 
 ## Image tagging
 
-TradeLab publishes:
+TradeLab publishes two image classes:
 
-- convenience tag: `latest`
-- immutable release tag: `v0.1.<run-number>`
+- development tags from merged `master` commits:
+  - `master`
+  - `master-<shortsha>`
+- official release tags:
+  - `latest`
+  - `v0.1.<run-number>`
 
-Release-ready deployment should prefer the immutable tag or the packaged manifest artifact.
+`tradelab-dev` should use immutable `master-<shortsha>` image tags through its Argo CD application manifest. `tradelab-prod` should use immutable official release tags or the packaged manifest artifact.
 
 ## Environment policy
 

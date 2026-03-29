@@ -24,8 +24,15 @@ jobs:
       tag: ${{ steps.meta.outputs.tag }}
       name: ${{ steps.meta.outputs.name }}
       source_ref: ${{ steps.meta.outputs.source_ref }}
+      branch_name: ${{ steps.meta.outputs.branch_name }}
+      source_commit: ${{ steps.commit.outputs.source_commit }}
 
     steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
       - name: Generate release metadata
         id: meta
         run: |
@@ -36,6 +43,13 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "name=TradeLab Release $tag" >> "$GITHUB_OUTPUT"
           echo "source_ref=${{ inputs.source_ref }}" >> "$GITHUB_OUTPUT"
+          branch_name="${{ inputs.source_ref }}"
+          echo "branch_name=${branch_name#refs/heads/}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve source commit
+        id: commit
+        shell: bash
+        run: echo "source_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   verify-backend:
     name: Verify backend
@@ -87,6 +101,10 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_BUILD_RELEASE: ${{ needs.release-metadata.outputs.tag }}
+          NEXT_PUBLIC_BUILD_BRANCH: ${{ needs.release-metadata.outputs.branch_name }}
+          NEXT_PUBLIC_BUILD_COMMIT: ${{ needs.release-metadata.outputs.source_commit }}
         run: npm run build
 
   build-backend:
@@ -232,9 +250,17 @@ jobs:
           context: .
           file: frontend/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_BUILD_RELEASE=${{ needs.release-metadata.outputs.tag }}
+            NEXT_PUBLIC_BUILD_BRANCH=${{ needs.release-metadata.outputs.branch_name }}
+            NEXT_PUBLIC_BUILD_COMMIT=${{ needs.release-metadata.outputs.source_commit }}
           tags: |
             ghcr.io/aidun/tradelab-frontend:latest
             ghcr.io/aidun/tradelab-frontend:${{ needs.release-metadata.outputs.tag }}
+          labels: |
+            org.opencontainers.image.revision=${{ needs.release-metadata.outputs.source_commit }}
+            org.opencontainers.image.version=${{ needs.release-metadata.outputs.tag }}
+            org.opencontainers.image.source=https://github.com/aidun/tradelab
 
   package-kubernetes-manifests:
     name: Package Kubernetes manifests

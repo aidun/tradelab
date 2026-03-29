@@ -166,12 +166,13 @@ TradeLab currently follows a PR-first workflow:
 
 ## GitHub Actions flow
 
-TradeLab uses four workflows:
+TradeLab uses five workflows:
 
 1. `CI`
 2. `Auto Merge PR`
-3. `Release`
-4. `Promote Production`
+3. `Publish Master Images`
+4. `Release`
+5. `Promote Production`
 
 ### CI
 
@@ -206,9 +207,21 @@ The production promotion workflow is also manual.
 
 It resolves the requested or latest official GitHub release and updates the production Argo CD application to that release tag.
 
+### Publish Master Images
+
+Every merge to `master` builds and publishes backend and frontend development images with both:
+
+- `master`
+- `master-<shortsha>`
+
+It then commits the exact deployed development revision back into [tradelab-dev.yaml](../deploy/infrastructure/applications/tradelab-dev.yaml), setting:
+
+- the Argo CD `targetRevision` to the source commit SHA
+- backend and frontend image overrides to the matching immutable `master-<shortsha>` tags
+
 This is the expected delivery chain for normal feature work:
 
-`feature branch -> pull request -> CI -> auto-merge -> master -> manual release -> manual production promotion`
+`feature branch -> pull request -> CI -> auto-merge -> master -> publish master images and update Argo dev -> manual release -> manual production promotion`
 
 ## Contribution expectations
 
@@ -240,6 +253,7 @@ When making changes:
 - `docs/github-rollout.md` captures manual GitHub repository settings and presentation steps
 - `docs/ai-metadata.json` exists for machine consumption, acts as the dependency map for repo-facing follow-up work, and should be updated when the human-facing structure materially changes
 - logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
+- development delivery must keep Git revision, Argo targetRevision, and GHCR image tags aligned; do not reintroduce mutable `latest`-based dev deployment
 
 ## AI metadata contract
 

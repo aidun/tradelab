@@ -25,8 +25,8 @@ TradeLab currently consists of these runtime components:
 ### Development
 
 - Kubernetes namespace: `tradelab-dev`
-- image tags: `latest`
-- Argo CD source revision: `master`
+- image tags: immutable `master-<shortsha>` tags published from merged `master` commits
+- Argo CD source revision: exact merged `master` commit that produced the currently deployed images
 - database secret source: generated bootstrap secret unless `tradelab-database` already exists
 - ingress class: `traefik`
 - default development ingress entrypoint: `http://192.168.2.200/tradelab-dev`
@@ -102,8 +102,9 @@ TradeLab uses a PR-first delivery model:
 
 1. Feature work lands through pull requests.
 2. CI validates backend tests, frontend tests, frontend build, container builds, and Kubernetes rendering.
-3. An operator manually triggers the release workflow from `master`.
-4. The release workflow:
+3. Every merge to `master` automatically builds and publishes development images, then updates the Argo CD development application to the exact source commit plus matching immutable image tags.
+4. An operator manually triggers the release workflow from `master`.
+5. The release workflow:
    - verifies backend and frontend again
    - builds release artifacts
    - publishes GHCR images
@@ -112,12 +113,13 @@ TradeLab uses a PR-first delivery model:
 
 ## GitHub Actions sequence
 
-TradeLab currently uses four GitHub Actions workflows:
+TradeLab currently uses five GitHub Actions workflows:
 
 1. `CI`
 2. `Auto Merge PR`
-3. `Release`
-4. `Promote Production`
+3. `Publish Master Images`
+4. `Release`
+5. `Promote Production`
 
 ### CI workflow
 
@@ -177,7 +179,7 @@ It:
 
 This means the effective repository delivery path is:
 
-`pull request -> CI -> auto-merge into master -> manual release verification/build/publish/package -> GitHub release -> manual production promotion`
+`pull request -> CI -> auto-merge into master -> master image publication and Argo dev update -> manual release verification/build/publish/package -> GitHub release -> manual production promotion`
 
 For a release-focused view of published artifacts and release meaning, see [release-process.md](release-process.md).
 

@@ -11,6 +11,10 @@ spec:
     repoURL: https://github.com/aidun/tradelab.git
     targetRevision: v0.1.22
     path: deploy/kubernetes/overlays/production
+    kustomize:
+      images:
+        - ghcr.io/aidun/tradelab-backend:v0.1.22
+        - ghcr.io/aidun/tradelab-frontend:v0.1.22
   destination:
     server: https://kubernetes.default.svc
     namespace: tradelab

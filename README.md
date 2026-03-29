@@ -42,7 +42,7 @@ It helps teams and individual builders:
 - built-in `dip_buy`, `take_profit`, and `stop_loss` automation in the market detail experience
 - market candle rendering with bounded stale-feed fallback behavior
 - Kubernetes deployment assets, repo-managed Traefik and MetalLB bootstrap, generated first-run database credentials, CI validation, and release automation
-- GitOps environment promotion with `dev -> master` and `prod -> official release tag`
+- GitOps environment promotion with deterministic `dev -> master commit image` and `prod -> official release tag`
 
 ## Product walkthrough
 
@@ -78,7 +78,7 @@ TradeLab is maintained with a product-style engineering workflow:
 - frontend end-to-end coverage via Playwright
 - container build validation for backend and frontend
 - Kubernetes manifest rendering validation
-- automated PR validation, squash merges, manual release execution, and explicit production promotion
+- automated PR validation, immutable master-image publication for development, squash merges, manual release execution, and explicit production promotion
 
 For the exact PR -> CI -> merge -> release sequence, see:
 

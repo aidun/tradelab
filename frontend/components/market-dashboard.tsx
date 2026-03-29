@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { startTransition, useEffect, useMemo, useState } from "react";
 
 import { fetchCandles, patchStrategy, placeMarketOrder, saveStrategy, type AccountingMode, type Candle, type MarketDataMeta, type Strategy, type StrategyConfig } from "@/lib/api";
+import { resolveBuildInfo } from "@/lib/build-info";
 import { AuthEntryActions, AuthStatusControls, useTradeLabAuth } from "@/lib/tradelab-auth";
 import { useAccountSession } from "@/lib/use-account-session";
 
@@ -91,6 +92,7 @@ function CandleChart({ candles }: { candles: Candle[] }) {
 
 export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT" }: MarketDashboardProps) {
   const auth = useTradeLabAuth();
+  const buildInfo = resolveBuildInfo();
   const {
     guestSession, registeredAccount, markets, portfolio, orders, activity, strategies, accountingMode, isLoading, isUpgrading,
     showUpgradePrompt, error, success, activeWalletID, accountModeLabel, shouldShowAuthValuePrompt,
@@ -230,6 +232,9 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
               <div className="flex items-center justify-between gap-8"><span>Accounting mode</span><span className="text-[var(--accent)]">{accountingModeLabel(accountingMode)}</span></div>
               <div className="flex items-center justify-between gap-8"><span>Total value</span><span className="text-[var(--accent)]">{portfolio ? formatCurrency(portfolio.totalValue) : "--"}</span></div>
               <div className="flex items-center justify-between gap-8"><span>Feed state</span><span className={chartMeta?.source === "stale" ? "text-[var(--accent-hot)]" : "text-[var(--accent)]"}>{chartMeta?.source === "stale" ? "Stale" : "Fresh"}</span></div>
+              <div className="flex items-center justify-between gap-8"><span>Release</span><span>{buildInfo.release}</span></div>
+              <div className="flex items-center justify-between gap-8"><span>Branch</span><span>{buildInfo.branch}</span></div>
+              <div className="flex items-center justify-between gap-8"><span>Commit</span><span>{buildInfo.shortCommit}</span></div>
               <div className="pt-2"><AuthStatusControls /></div>
             </div>
           </div>

@@ -54,13 +54,40 @@ jobs:
 
           release_tag = os.environ["RELEASE_TAG"]
           prod_file = Path("deploy/infrastructure/applications/tradelab-prod.yaml")
-          text = prod_file.read_text(encoding="utf-8")
           lines = []
-          for line in text.splitlines():
-            if line.strip().startswith("targetRevision:"):
+          in_source = False
+          in_kustomize = False
+          backend_image = f"ghcr.io/aidun/tradelab-backend:{release_tag}"
+          frontend_image = f"ghcr.io/aidun/tradelab-frontend:{release_tag}"
+          for line in prod_file.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped == "source:":
+              in_source = True
+            elif in_source and line.startswith("  ") and not line.startswith("    "):
+              in_source = False
+
+            if in_source and stripped.startswith("targetRevision:"):
               lines.append(f"    targetRevision: {release_tag}")
-            else:
+              continue
+
+            if in_source and stripped == "kustomize:":
+              in_kustomize = True
               lines.append(line)
+              continue
+
+            if in_kustomize and stripped.startswith("- ghcr.io/aidun/tradelab-backend:"):
+              lines.append(f"        - {backend_image}")
+              continue
+
+            if in_kustomize and stripped.startswith("- ghcr.io/aidun/tradelab-frontend:"):
+              lines.append(f"        - {frontend_image}")
+              continue
+
+            if in_kustomize and line.startswith("  ") and not line.startswith("      "):
+              in_kustomize = False
+
+            lines.append(line)
+
           prod_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
           kustomization = Path("deploy/infrastructure/applications/kustomization.yaml")
