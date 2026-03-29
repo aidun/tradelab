@@ -5,6 +5,7 @@
     "reference_market": "XRP/USDT",
     "status": "demo-only",
     "financial_advice": false,
+    "live_trading": false,
     "ai_assisted_repository": true,
     "github_positioning": "product-first serious startup repository"
   },
@@ -42,7 +43,10 @@
   ],
   "documentation": {
     "readme": "README.md",
+    "getting_started": "docs/getting-started.md",
     "user_guide": "docs/user-guide.md",
+    "installation_validation": "docs/installation-validation.md",
+    "onboarding_requirements": "docs/onboarding-requirements.md",
     "product": "docs/PRD.md",
     "roadmap": "docs/roadmap.md",
     "data_model": "docs/data-model.md",
@@ -62,7 +66,7 @@
     "maintenance_expectations": [
       "Keep tests aligned with behavior changes.",
       "Adjust structured logging when backend control flow changes.",
-      "Update documentation and docs/ai-metadata.json when repository structure or workflows materially change.",
+      "Update documentation and docs/ai-metadata.json when repository structure, onboarding, or workflows materially change.",
       "Update GitHub Actions when quality gates or release flow need to evolve."
     ]
   },
@@ -141,12 +145,35 @@
     ]
   },
   "user_workflows": [
-    "Open the app and create a demo session automatically.",
+    "Open the app and create a guest demo session automatically.",
     "Inspect the default XRP/USDT reference market and chart feed state.",
     "Switch intervals or markets without clearing portfolio panels.",
     "Execute a demo market buy.",
     "Review balances, positions, orders, and activity after execution."
   ],
+  "onboarding": {
+    "audiences": [
+      "developer local setup",
+      "operator deployment setup",
+      "first-time product review"
+    ],
+    "local_first_run_order": [
+      "start PostgreSQL",
+      "apply database migrations",
+      "start the backend",
+      "start the frontend",
+      "open the app and confirm guest demo session creation"
+    ],
+    "first_run_acceptance": [
+      "backend health endpoint responds",
+      "frontend renders the dashboard",
+      "a guest demo session is created automatically",
+      "markets and chart data load",
+      "portfolio panels load",
+      "a demo buy updates balances, positions, orders, and activity"
+    ],
+    "product_requirements_doc": "docs/onboarding-requirements.md"
+  },
   "documentation_assets": {
     "screenshots_directory": "docs/screenshots/",
     "screenshot_generation": "frontend/scripts/capture-doc-screenshots.mjs",
@@ -199,6 +226,312 @@
       "DATABASE_URL"
     ],
     "parameter_reference_doc": "docs/deployment.md"
+  },
+  "phase_tracking": {
+    "phase_1": {
+      "epic_issue": 30,
+      "focus": "Installation, first configuration, and first run",
+      "child_issues": [36, 37, 38, 39, 40]
+    },
+    "phase_2": {
+      "epic_issue": 31,
+      "focus": "Authentication and account model",
+      "child_issues": [41, 42, 43, 44, 45],
+      "locked_decisions": {
+        "managed_auth_provider": "Clerk",
+        "guest_mode": true,
+        "social_login_targets": ["Google", "Apple"]
+      }
+    },
+    "phase_3": {
+      "epic_issue": 32,
+      "focus": "Security posture for sessions, credentials, and secrets",
+      "child_issues": [46, 47, 48, 49, 50]
+    },
+    "phase_4": {
+      "epic_issue": 33,
+      "focus": "Core trading completion",
+      "child_issues": [51, 52, 53, 54, 55]
+    },
+    "phase_5": {
+      "epic_issue": 34,
+      "focus": "Strategy automation v1",
+      "child_issues": [56, 57, 58, 59, 60]
+    },
+    "phase_6": {
+      "epic_issue": 35,
+      "focus": "Backtesting v1",
+      "child_issues": [61, 62, 63, 64]
+    }
+  },
+  "artifact_groups": {
+    "public_docs": [
+      "README.md",
+      "docs/getting-started.md",
+      "docs/user-guide.md"
+    ],
+    "user_docs": [
+      "docs/getting-started.md",
+      "docs/user-guide.md",
+      "docs/onboarding-requirements.md"
+    ],
+    "developer_docs": [
+      "docs/developer-guide.md",
+      "docs/data-model.md",
+      "docs/ai-metadata.json"
+    ],
+    "operator_docs": [
+      "docs/deployment.md",
+      "docs/system-operations.md",
+      "docs/installation-validation.md"
+    ],
+    "planning_docs": [
+      "docs/PRD.md",
+      "docs/roadmap.md"
+    ],
+    "community_health_docs": [
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "CODE_OF_CONDUCT.md",
+      "SUPPORT.md",
+      "CODEOWNERS"
+    ],
+    "github_templates": [
+      ".github/pull_request_template.md",
+      ".github/ISSUE_TEMPLATE/"
+    ],
+    "visual_docs": [
+      "docs/screenshots/",
+      "docs/assets/github-social-preview.svg"
+    ],
+    "frontend_tests": [
+      "frontend/__tests__/",
+      "frontend/components/"
+    ],
+    "backend_tests": [
+      "backend/internal/",
+      "backend/cmd/"
+    ],
+    "e2e_tests": [
+      "frontend/e2e/"
+    ],
+    "release_and_delivery_docs": [
+      "docs/system-operations.md",
+      "docs/release-process.md",
+      "docs/github-rollout.md"
+    ],
+    "workflow_files": [
+      ".github/workflows/"
+    ]
+  },
+  "change_management": {
+    "change_categories": [
+      "ui_visual_change",
+      "ui_user_flow_change",
+      "frontend_data_flow_change",
+      "api_surface_change",
+      "backend_behavior_change",
+      "domain_or_data_model_change",
+      "configuration_change",
+      "deployment_change",
+      "release_flow_change",
+      "github_process_change",
+      "documentation_structure_change",
+      "testing_strategy_change"
+    ],
+    "rules": {
+      "ui_visual_change": {
+        "required_followups": [
+          "review public_docs",
+          "review user_docs",
+          "review visual_docs",
+          "review frontend_tests"
+        ],
+        "conditional_followups": [
+          "refresh screenshots when visible dashboard or workflow visuals change materially"
+        ],
+        "validation_expectations": [
+          "verify screenshots still match the visible UI",
+          "verify user-guide workflow text still matches the screen"
+        ]
+      },
+      "ui_user_flow_change": {
+        "required_followups": [
+          "update docs/user-guide.md",
+          "update docs/getting-started.md",
+          "review README.md",
+          "review e2e_tests"
+        ],
+        "conditional_followups": [
+          "update docs/onboarding-requirements.md when the first-run or guest-flow behavior changes"
+        ],
+        "validation_expectations": [
+          "verify the documented user path matches the actual UI flow"
+        ]
+      },
+      "api_surface_change": {
+        "required_followups": [
+          "update README.md sample API flow if public usage changes",
+          "update backend_tests",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update frontend_tests and e2e_tests if the frontend consumes the new or changed route",
+          "update docs/getting-started.md or docs/installation-validation.md if the first-run smoke path changes"
+        ],
+        "validation_expectations": [
+          "verify API examples and protected-route expectations remain correct"
+        ]
+      },
+      "backend_behavior_change": {
+        "required_followups": [
+          "review backend_tests",
+          "review structured logging expectations",
+          "review docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update user and operator docs if visible or operational behavior changes"
+        ],
+        "validation_expectations": [
+          "verify behavior and logging remain aligned"
+        ]
+      },
+      "domain_or_data_model_change": {
+        "required_followups": [
+          "update docs/data-model.md",
+          "review backend_tests",
+          "review docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update API, user, or operator docs if the model change becomes externally visible"
+        ],
+        "validation_expectations": [
+          "verify docs/data-model.md matches the persisted model"
+        ]
+      },
+      "configuration_change": {
+        "required_followups": [
+          "update README.md",
+          "update docs/getting-started.md",
+          "update docs/deployment.md",
+          "update docs/developer-guide.md",
+          "update docs/installation-validation.md",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update docs/system-operations.md when runtime responsibilities or operator checks change"
+        ],
+        "validation_expectations": [
+          "verify required versus optional parameters are still documented correctly"
+        ]
+      },
+      "deployment_change": {
+        "required_followups": [
+          "update docs/deployment.md",
+          "update docs/system-operations.md",
+          "review workflow_files",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update docs/installation-validation.md when smoke validation changes",
+          "update README.md when the public delivery story changes"
+        ],
+        "validation_expectations": [
+          "verify deployment instructions still match manifests and release behavior"
+        ]
+      },
+      "release_flow_change": {
+        "required_followups": [
+          "update README.md",
+          "update docs/system-operations.md",
+          "review workflow_files",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update docs/getting-started.md or docs/developer-guide.md when contributor steps change"
+        ],
+        "validation_expectations": [
+          "verify PR -> CI -> merge -> release documentation remains accurate"
+        ]
+      },
+      "github_process_change": {
+        "required_followups": [
+          "review community_health_docs",
+          "review github_templates",
+          "update docs/github-rollout.md",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update README.md or docs/developer-guide.md if public contribution expectations change"
+        ],
+        "validation_expectations": [
+          "verify public repository standards still match GitHub configuration"
+        ]
+      },
+      "documentation_structure_change": {
+        "required_followups": [
+          "update README.md doc index and links",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update other docs that link to moved or new sources of truth"
+        ],
+        "validation_expectations": [
+          "verify all documentation links resolve"
+        ]
+      },
+      "testing_strategy_change": {
+        "required_followups": [
+          "update docs/developer-guide.md",
+          "review workflow_files",
+          "update docs/ai-metadata.json"
+        ],
+        "conditional_followups": [
+          "update README.md when public quality gates or trust signals change"
+        ],
+        "validation_expectations": [
+          "verify documented quality gates match CI"
+        ]
+      }
+    },
+    "examples": [
+      {
+        "scenario": "Change the dashboard layout",
+        "followups": [
+          "review screenshots",
+          "update docs/user-guide.md",
+          "review README.md workflow description",
+          "review frontend tests"
+        ]
+      },
+      {
+        "scenario": "Add a new API endpoint",
+        "followups": [
+          "update API examples or public docs if relevant",
+          "update backend tests",
+          "update frontend tests if consumed",
+          "update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Change first-run setup or required environment variables",
+        "followups": [
+          "update docs/getting-started.md",
+          "update docs/deployment.md",
+          "update docs/installation-validation.md",
+          "update README.md",
+          "update docs/ai-metadata.json"
+        ]
+      },
+      {
+        "scenario": "Add a new GitHub template or process",
+        "followups": [
+          "update docs/github-rollout.md",
+          "update docs/developer-guide.md",
+          "update docs/ai-metadata.json"
+        ]
+      }
+    ]
   },
   "github_rollout": {
     "manual_settings_doc": "docs/github-rollout.md",

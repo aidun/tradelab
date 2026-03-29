@@ -2,7 +2,7 @@
 
 TradeLab ships with a Kubernetes deployment layout under `deploy/kubernetes` and publishes ready-to-run container images to GitHub Container Registry on every successful `master` release.
 
-For the broader runtime model and operator workflow, see [system-operations.md](system-operations.md). For contributor workflow and local setup, see [developer-guide.md](developer-guide.md).
+For the broader runtime model and operator workflow, see [system-operations.md](system-operations.md). For contributor workflow and local setup, see [developer-guide.md](developer-guide.md). For a first successful run by audience, start with [getting-started.md](getting-started.md).
 
 ## What gets deployed
 
@@ -38,6 +38,14 @@ manifest artifact or render production manifests through the release helper scri
 - `kubectl` with `kustomize` support
 - access to the published `ghcr.io/aidun/*` images
 
+## Audience-specific use
+
+Use this document differently depending on your role:
+
+- developers should use it as the parameter reference after reading [getting-started.md](getting-started.md)
+- operators should use it as the deployment execution guide together with [system-operations.md](system-operations.md)
+- first-time product reviewers usually do not need this document and should start with [user-guide.md](user-guide.md)
+
 ## Parameter reference
 
 This section explains which parameters exist, when they need to be set, and where they are consumed.
@@ -66,6 +74,13 @@ Recommended local default:
 - leave `NEXT_PUBLIC_API_BASE_URL` unset
 - leave `TRADESLAB_API_PROXY_TARGET` unset if the backend runs on `http://localhost:8080`
 - only set `DATABASE_URL` if your local PostgreSQL credentials or host differ from the default
+
+First local run order:
+
+1. start PostgreSQL
+2. apply migrations
+3. start the backend
+4. start the frontend
 
 ### Kubernetes development parameters
 
@@ -148,6 +163,14 @@ Then apply it:
 kubectl apply -k deploy/kubernetes/overlays/development
 ```
 
+After apply, validate:
+
+- PostgreSQL pod is healthy
+- migration init container completed
+- backend `/healthz` responds
+- frontend loads through ingress
+- a guest demo session can be created
+
 If you are testing locally with an ingress controller, map `tradelab.localtest.me` to your cluster ingress IP or use a wildcard resolver such as `localtest.me`.
 
 ## Production deployment
@@ -176,9 +199,12 @@ For immutable production output tied to a release tag, render the packaged manif
 kubectl apply -f /tmp/tradelab-kubernetes.yaml
 ```
 
+After apply, validate the first protected product flow with [installation-validation.md](installation-validation.md).
+
 ## Operational notes
 
 - The backend waits on database connectivity implicitly through the migration init container.
 - Frontend requests can stay same-origin because the ingress sends `/api` traffic to the backend service.
 - The frontend also includes a rewrite fallback to `TRADESLAB_API_PROXY_TARGET`, which keeps local standalone runs aligned with the Kubernetes topology.
 - If you deploy outside the included ingress setup, re-check both `TRADESLAB_API_PROXY_TARGET` and `NEXT_PUBLIC_API_BASE_URL` so frontend requests still resolve correctly.
+- First-time install and smoke-test expectations live in [getting-started.md](getting-started.md) and [installation-validation.md](installation-validation.md).

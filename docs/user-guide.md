@@ -114,8 +114,12 @@ The current product is still intentionally narrow:
 
 - Repository overview:
   [README.md](../README.md)
+- Getting started:
+  [getting-started.md](getting-started.md)
 - Product intent:
   [PRD.md](PRD.md)
+- First-launch behavior:
+  [onboarding-requirements.md](onboarding-requirements.md)
 - Runtime and operations:
   [system-operations.md](system-operations.md)
 - Developer onboarding:

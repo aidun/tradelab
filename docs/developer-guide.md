@@ -20,6 +20,10 @@ This guide explains how to work in the TradeLab repository safely and efficientl
   [release-process.md](release-process.md)
 - GitHub rollout:
   [github-rollout.md](github-rollout.md)
+- First run and onboarding:
+  [getting-started.md](getting-started.md)
+- Installation validation:
+  [installation-validation.md](installation-validation.md)
 - Machine-readable repo metadata:
   [ai-metadata.json](ai-metadata.json)
 
@@ -35,7 +39,7 @@ This guide explains how to work in the TradeLab repository safely and efficientl
 
 ## Local workflow
 
-## Configuration checkpoints
+### Configuration checkpoints
 
 Before starting local services, review these only if you are not using the defaults:
 
@@ -53,18 +57,18 @@ The full environment and deployment parameter reference lives in [deployment.md]
 docker compose up -d postgres
 ```
 
-### Run backend
-
-```bash
-cd backend
-go run ./cmd/api
-```
-
 ### Run migrations
 
 ```bash
 cd backend
 go run ./cmd/migrate up
+```
+
+### Run backend
+
+```bash
+cd backend
+go run ./cmd/api
 ```
 
 ### Run frontend
@@ -189,13 +193,16 @@ When making changes:
 ## Documentation expectations
 
 - the root README is for repository landing-page readers
+- `docs/getting-started.md` is the audience-aware entrypoint for setup and first-run success
+- `docs/installation-validation.md` defines the required smoke path for local and deployed environments
+- `docs/onboarding-requirements.md` captures the intended guest-first product onboarding behavior
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/user-guide.md` is the user-facing walkthrough with screenshots
 - `docs/roadmap.md` is the public product direction summary
 - `docs/release-process.md` describes release artifacts and workflow meaning
 - `docs/github-rollout.md` captures manual GitHub repository settings and presentation steps
-- `docs/ai-metadata.json` exists for machine consumption and should be updated when the human-facing structure materially changes
+- `docs/ai-metadata.json` exists for machine consumption, acts as the dependency map for repo-facing follow-up work, and should be updated when the human-facing structure materially changes
 - logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
 
 ## AI metadata contract
