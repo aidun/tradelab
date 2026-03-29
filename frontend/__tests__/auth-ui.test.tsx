@@ -5,6 +5,14 @@ import { MarketDashboard } from "@/components/market-dashboard";
 
 const upgradeGuestSession = vi.fn();
 const clearMessages = vi.fn();
+const { mockUseTradeLabAuth } = vi.hoisted(() => ({
+  mockUseTradeLabAuth: vi.fn(() => ({
+    available: true,
+    provider: "mock",
+    status: "signed_out",
+    user: null
+  }))
+}));
 
 vi.mock("@/lib/api", () => ({
   fetchCandles: vi.fn(async () => ({
@@ -30,14 +38,20 @@ vi.mock("@/lib/api", () => ({
 }));
 
 vi.mock("@/lib/tradelab-auth", () => ({
-  useTradeLabAuth: vi.fn(() => ({
-    available: true,
-    provider: "mock",
-    status: "signed_out",
-    user: null
-  })),
+  useTradeLabAuth: mockUseTradeLabAuth,
   AuthEntryActions: () => <div>Mock auth actions</div>,
-  AuthStatusControls: () => <div>Mock auth controls</div>
+  AuthStatusControls: () => {
+    const auth = mockUseTradeLabAuth();
+    if (!auth.available || auth.status !== "signed_in") {
+      return null;
+    }
+
+    return (
+      <button type="button" onClick={() => void auth.signOut()}>
+        Log out
+      </button>
+    );
+  }
 }));
 
 vi.mock("@/lib/use-account-session", () => ({
@@ -90,6 +104,12 @@ vi.mock("@/lib/use-account-session", () => ({
 describe("MarketDashboard auth UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTradeLabAuth.mockReturnValue({
+      available: true,
+      provider: "mock",
+      status: "signed_out",
+      user: null
+    });
   });
 
   it("shows the durable access prompt after guest users reach the dashboard", async () => {
@@ -153,5 +173,27 @@ describe("MarketDashboard auth UI", () => {
 
     expect(upgradeGuestSession).toHaveBeenNthCalledWith(1, true);
     expect(upgradeGuestSession).toHaveBeenNthCalledWith(2, false);
+  });
+
+  it("routes signed-in clerk logout through the shared auth signOut path", async () => {
+    const signOut = vi.fn(async () => undefined);
+    mockUseTradeLabAuth.mockReturnValue({
+      available: true,
+      provider: "clerk",
+      status: "signed_in",
+      user: {
+        clerkUserID: "clerk-user-1",
+        email: "trader@example.com",
+        displayName: "Trader Example"
+      },
+      signOut
+    });
+
+    const { AuthStatusControls } = await import("@/lib/tradelab-auth");
+    render(<AuthStatusControls />);
+
+    fireEvent.click(screen.getByRole("button", { name: /log out/i }));
+
+    expect(signOut).toHaveBeenCalledTimes(1);
   });
 });
