@@ -14,7 +14,9 @@ TradeLab currently consists of these runtime components:
 - `backend`: Go HTTP API that owns session handling, portfolio logic, order execution, and market-data access
 - `strategy engine`: in-process scheduler inside the backend that evaluates active strategy bundles
 - `postgres`: PostgreSQL database for persistent application state
-- `ingress`: routes `/` to the frontend and `/api` to the backend
+- `traefik`: managed ingress controller that routes `/` to the frontend and `/api` to the backend
+- `metallb`: assigns LAN LoadBalancer IPs to cluster entry services such as Traefik
+- `argocd`: GitOps controller for platform and application synchronization
 - `migration initContainer`: applies schema migrations before the backend starts
 - `GitHub Actions + GHCR`: build, verify, publish, and package release artifacts
 
@@ -25,6 +27,8 @@ TradeLab currently consists of these runtime components:
 - Kubernetes namespace: `tradelab-dev`
 - image tags: `latest`
 - database secret source: local ignored `.env.database`
+- ingress class: `traefik`
+- default ingress host: `tradelab.192.168.2.200.sslip.io`
 - intended for fast local or shared-dev iteration
 
 ### Production
@@ -76,8 +80,9 @@ Secret-bearing values should not be committed directly into base manifests.
 ### Development deploy
 
 1. Create `deploy/kubernetes/overlays/development/.env.database`.
-2. Render or apply the development overlay.
-3. Verify ingress, backend health, and frontend availability.
+2. Bootstrap the cluster platform through [infrastructure-bootstrap.md](infrastructure-bootstrap.md) if Traefik, MetalLB, and Argo CD are not already present.
+3. Render or apply the development overlay.
+4. Verify ingress, backend health, and frontend availability.
 
 ### Production deploy
 
@@ -224,3 +229,4 @@ The public repository surface is part of the operating model for TradeLab. Keep 
 - support, contributing, and security guidance
 - release-process documentation
 - GitHub repository settings captured in [github-rollout.md](github-rollout.md)
+- infrastructure bootstrap guidance in [infrastructure-bootstrap.md](infrastructure-bootstrap.md)

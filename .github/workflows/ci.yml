@@ -141,6 +141,21 @@ jobs:
       - name: Prepare development secret inputs
         run: cp deploy/kubernetes/overlays/development/.env.database.example deploy/kubernetes/overlays/development/.env.database
 
+      - name: Render Argo CD bootstrap install
+        run: kubectl kustomize deploy/infrastructure/bootstrap/argocd-install > /tmp/tradelab-argocd-install.yaml
+
+      - name: Render Argo CD root application
+        run: kubectl kustomize deploy/infrastructure/bootstrap/root-application > /tmp/tradelab-argocd-root.yaml
+
+      - name: Render infrastructure applications
+        run: kubectl kustomize deploy/infrastructure/applications > /tmp/tradelab-infra-apps.yaml
+
+      - name: Render platform namespaces
+        run: kubectl kustomize deploy/infrastructure/platform/namespaces > /tmp/tradelab-platform-namespaces.yaml
+
+      - name: Render MetalLB config
+        run: kubectl kustomize deploy/infrastructure/platform/metallb/config > /tmp/tradelab-metallb-config.yaml
+
       - name: Render development overlay
         run: kubectl kustomize deploy/kubernetes/overlays/development > /tmp/tradelab-dev.yaml
 

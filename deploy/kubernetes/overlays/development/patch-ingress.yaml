@@ -3,8 +3,9 @@ kind: Ingress
 metadata:
   name: tradelab
 spec:
+  ingressClassName: traefik
   rules:
-    - host: tradelab.localtest.me
+    - host: tradelab.192.168.2.200.sslip.io
       http:
         paths:
           - path: /api

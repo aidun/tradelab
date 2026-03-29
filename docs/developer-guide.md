@@ -18,6 +18,8 @@ This guide explains how to work in the TradeLab repository safely and efficientl
   [system-operations.md](system-operations.md)
 - Deployment details:
   [deployment.md](deployment.md)
+- Infrastructure bootstrap:
+  [infrastructure-bootstrap.md](infrastructure-bootstrap.md)
 - Release process:
   [release-process.md](release-process.md)
 - GitHub rollout:
@@ -112,6 +114,11 @@ The frontend uses [frontend/.npmrc](../frontend/.npmrc) to keep npm resolution a
 ### Optional deployment validation
 
 ```bash
+kubectl kustomize deploy/infrastructure/bootstrap/argocd-install
+kubectl kustomize deploy/infrastructure/bootstrap/root-application
+kubectl kustomize deploy/infrastructure/applications
+kubectl kustomize deploy/infrastructure/platform/namespaces
+kubectl kustomize deploy/infrastructure/platform/metallb/config
 kubectl kustomize deploy/kubernetes/overlays/development
 kubectl kustomize deploy/kubernetes/overlays/production
 ```
@@ -142,6 +149,7 @@ kubectl kustomize deploy/kubernetes/overlays/production
 ### Delivery and deployment
 
 - `.github/workflows`: CI, auto-merge, and release automation
+- `deploy/infrastructure`: Argo CD bootstrap, platform apps, and MetalLB configuration
 - `deploy/kubernetes`: base manifests, overlays, and release rendering helper
 
 ## Contribution model
@@ -214,6 +222,7 @@ When making changes:
 - `docs/authentication-model.md`, `docs/clerk-architecture.md`, `docs/auth-flows.md`, and `docs/account-lifecycle.md` define the implemented guest-plus-registered identity surface
 - `docs/security-model.md` is the source of truth for session, secret, redaction, and sensitive-data boundaries
 - `docs/system-operations.md` is the runtime and operator source of truth
+- `docs/infrastructure-bootstrap.md` is the source of truth for the k3s platform bootstrap and Argo CD app-of-apps layout
 - `docs/developer-guide.md` is the contributor source of truth
 - `docs/user-guide.md` is the user-facing walkthrough with screenshots
 - `docs/roadmap.md` is the public product direction summary

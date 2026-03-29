@@ -1,8 +1,8 @@
 # Kubernetes Deployment
 
-TradeLab ships with a Kubernetes deployment layout under `deploy/kubernetes` and publishes ready-to-run container images to GitHub Container Registry on every successful `master` release.
+TradeLab ships with a Kubernetes deployment layout under `deploy/kubernetes`, a GitOps infrastructure bootstrap under `deploy/infrastructure`, and publishes ready-to-run container images to GitHub Container Registry on every successful `master` release.
 
-For the broader runtime model and operator workflow, see [system-operations.md](system-operations.md). For contributor workflow and local setup, see [developer-guide.md](developer-guide.md). For a first successful run by audience, start with [getting-started.md](getting-started.md).
+For the broader runtime model and operator workflow, see [system-operations.md](system-operations.md). For contributor workflow and local setup, see [developer-guide.md](developer-guide.md). For the GitOps platform bootstrap, see [infrastructure-bootstrap.md](infrastructure-bootstrap.md). For a first successful run by audience, start with [getting-started.md](getting-started.md).
 
 ## What gets deployed
 
@@ -27,6 +27,7 @@ manifest artifact or render production manifests through the release helper scri
 
 ## Layout
 
+- `deploy/infrastructure`: Argo CD bootstrap plus platform applications for MetalLB and Traefik
 - `deploy/kubernetes/base`: shared manifests
 - `deploy/kubernetes/overlays/development`: single-replica development environment
 - `deploy/kubernetes/overlays/production`: production defaults with two app replicas and larger database storage
@@ -34,7 +35,7 @@ manifest artifact or render production manifests through the release helper scri
 ## Prerequisites
 
 - a Kubernetes cluster
-- an NGINX-compatible ingress controller
+- the infrastructure bootstrap from [infrastructure-bootstrap.md](infrastructure-bootstrap.md), or an equivalent `Traefik + MetalLB + Argo CD` foundation
 - `kubectl` with `kustomize` support
 - access to the published `ghcr.io/aidun/*` images
 
@@ -119,7 +120,7 @@ Additional development values defined in manifests:
 | `PORT` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `3000` | internal frontend container port |
 | `HOSTNAME` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `0.0.0.0` | internal frontend bind host |
 | `TRADESLAB_API_PROXY_TARGET` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `http://tradelab-backend:8080` | keeps frontend `/api` rewrite inside the cluster |
-| development host | [patch-ingress.yaml](../deploy/kubernetes/overlays/development/patch-ingress.yaml) | `tradelab.localtest.me` | update if you use another local host name |
+| development host | [patch-ingress.yaml](../deploy/kubernetes/overlays/development/patch-ingress.yaml) | `tradelab.192.168.2.200.sslip.io` | assumes Traefik is exposed on `192.168.2.200` through MetalLB |
 
 ### Kubernetes production parameters
 
@@ -148,7 +149,7 @@ Production values that usually need review before deployment:
 The development overlay uses:
 
 - namespace: `tradelab-dev`
-- host: `tradelab.localtest.me`
+- host: `tradelab.192.168.2.200.sslip.io`
 - a local `.env.database` file that is generated outside Git
 
 Create the development secret input once:
@@ -182,7 +183,7 @@ After apply, validate:
 - frontend loads through ingress
 - a guest demo session can be created
 
-If you are testing locally with an ingress controller, map `tradelab.localtest.me` to your cluster ingress IP or use a wildcard resolver such as `localtest.me`.
+If you are using the committed platform bootstrap, `sslip.io` resolves the development host directly to the reserved Traefik IP. If you use another ingress IP or another DNS strategy, update the development ingress patch before apply.
 
 ## Production deployment
 
@@ -218,4 +219,6 @@ After apply, validate the first protected product flow with [installation-valida
 - Frontend requests can stay same-origin because the ingress sends `/api` traffic to the backend service.
 - The frontend also includes a rewrite fallback to `TRADESLAB_API_PROXY_TARGET`, which keeps local standalone runs aligned with the Kubernetes topology.
 - If you deploy outside the included ingress setup, re-check both `TRADESLAB_API_PROXY_TARGET` and `NEXT_PUBLIC_API_BASE_URL` so frontend requests still resolve correctly.
+- The committed application overlays now assume the `traefik` ingress class.
+- The recommended cluster entrypoint is the GitOps platform bootstrap in [infrastructure-bootstrap.md](infrastructure-bootstrap.md).
 - First-time install and smoke-test expectations live in [getting-started.md](getting-started.md) and [installation-validation.md](installation-validation.md).

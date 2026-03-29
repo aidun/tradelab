@@ -41,7 +41,7 @@ It helps teams and individual builders:
 - rule-based strategy automation with one bundle per wallet and market
 - built-in `dip_buy`, `take_profit`, and `stop_loss` automation in the market detail experience
 - market candle rendering with bounded stale-feed fallback behavior
-- Kubernetes deployment assets, CI validation, and release automation
+- Kubernetes deployment assets, repo-managed Traefik and MetalLB bootstrap, CI validation, and release automation
 
 ## Product walkthrough
 
@@ -110,6 +110,7 @@ TradeLab is intentionally developed in the open with a curated product roadmap.
   [docs/developer-guide.md](docs/developer-guide.md),
   [docs/data-model.md](docs/data-model.md)
 - operators:
+  [docs/infrastructure-bootstrap.md](docs/infrastructure-bootstrap.md),
   [docs/system-operations.md](docs/system-operations.md),
   [docs/deployment.md](docs/deployment.md),
   [docs/installation-validation.md](docs/installation-validation.md),
