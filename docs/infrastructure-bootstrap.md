@@ -97,7 +97,7 @@ Sync waves are used so the cluster is built in a predictable order:
 - Traefik is the only ingress class assumed by the committed TradeLab overlays.
 - The repo does not yet bootstrap `cert-manager`, `External Secrets Operator`, or TLS automation in this infrastructure layer.
 - TradeLab application overlays now generate initial database credentials automatically when `tradelab-database` is absent.
-- Later production secret management can switch to the optional `production-external-secrets` overlay without changing the workload secret contract.
+- Later production secret management can switch to the optional `production-external-secrets` overlay without changing the workload secret contract. That overlay removes the bootstrap job so the external secret backend remains the single writer for `tradelab-database`.
 
 ## Validation checklist
 

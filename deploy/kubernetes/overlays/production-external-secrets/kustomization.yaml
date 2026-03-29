@@ -6,3 +6,6 @@ namespace: tradelab
 resources:
   - ../production
   - external-secret.yaml
+
+patches:
+  - path: patch-remove-database-bootstrap.yaml

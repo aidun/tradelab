@@ -130,7 +130,7 @@ For a later operator-managed secret flow, TradeLab also ships:
 
 - [production-external-secrets](../deploy/kubernetes/overlays/production-external-secrets/kustomization.yaml)
 
-That overlay adds an `ExternalSecret` on top of the normal production deployment.
+That overlay adds an `ExternalSecret` on top of the normal production deployment and explicitly removes the bootstrap job so the external secret store stays authoritative.
 
 Required remote secret properties for the external-secret variant:
 
@@ -193,6 +193,12 @@ If you want operator-managed credentials from External Secrets, make sure the ex
 ```bash
 kubectl apply -k deploy/kubernetes/overlays/production-external-secrets
 ```
+
+This variant is the recommended long-term production shape because:
+
+- generated first-run credentials are useful for bootstrap and review environments
+- the external-secret variant keeps secret ownership in the secret store
+- Argo CD can manage both overlays without the bootstrap job racing the external secret controller
 
 For immutable production output tied to a release tag, render the packaged manifest shape with:
 
