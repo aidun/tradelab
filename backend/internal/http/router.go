@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
@@ -18,7 +19,11 @@ type OrderPlacer interface {
 	PlaceMarketBuy(ctx context.Context, input orderservice.PlaceMarketBuyInput) (domain.Order, error)
 }
 
-func NewRouter(markets MarketLister, orders OrderPlacer) http.Handler {
+type PortfolioGetter interface {
+	GetSummary(ctx context.Context, walletID string) (domain.PortfolioSummary, error)
+}
+
+func NewRouter(markets MarketLister, orders OrderPlacer, portfolios PortfolioGetter) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -37,6 +42,24 @@ func NewRouter(markets MarketLister, orders OrderPlacer) http.Handler {
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"markets": items,
+		})
+	})
+
+	mux.HandleFunc("GET /api/v1/portfolios/", func(w http.ResponseWriter, r *http.Request) {
+		walletID := strings.TrimPrefix(r.URL.Path, "/api/v1/portfolios/")
+		if walletID == "" {
+			writeError(w, http.StatusBadRequest, "wallet ID is required")
+			return
+		}
+
+		summary, err := portfolios.GetSummary(r.Context(), walletID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load portfolio")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"portfolio": summary,
 		})
 	})
 
@@ -65,7 +88,7 @@ func NewRouter(markets MarketLister, orders OrderPlacer) http.Handler {
 			statusCode := http.StatusInternalServerError
 
 			switch {
-			case errors.Is(err, orderservice.ErrQuoteAmountTooLow):
+			case errors.Is(err, orderservice.ErrQuoteAmountTooLow), errors.Is(err, orderservice.ErrExpectedPriceLow):
 				statusCode = http.StatusBadRequest
 			case errors.Is(err, orderservice.ErrInsufficientFunds):
 				statusCode = http.StatusUnprocessableEntity

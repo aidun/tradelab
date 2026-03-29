@@ -24,6 +24,22 @@ func TestPlaceMarketBuyReturnsErrorForZeroQuoteAmount(t *testing.T) {
 	}
 }
 
+func TestPlaceMarketBuyReturnsErrorForZeroExpectedPrice(t *testing.T) {
+	service := &Service{}
+
+	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
+		UserID:        "user-1",
+		WalletID:      "wallet-1",
+		MarketSymbol:  "XRP/USDT",
+		QuoteAmount:   10,
+		ExpectedPrice: 0,
+	})
+
+	if !errors.Is(err, ErrExpectedPriceLow) {
+		t.Fatalf("expected ErrExpectedPriceLow, got %v", err)
+	}
+}
+
 func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 	service := NewService(
 		fakeMarketRepository{
@@ -41,7 +57,7 @@ func TestPlaceMarketBuyReturnsErrorWhenFundsAreInsufficient(t *testing.T) {
 				Available:   50,
 			},
 		},
-		fakeOrderRepository{},
+		fakePortfolioRepository{},
 	)
 
 	_, err := service.PlaceMarketBuy(context.Background(), PlaceMarketBuyInput{
@@ -76,7 +92,7 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 				Available:   500,
 			},
 		},
-		fakeOrderRepository{},
+		fakePortfolioRepository{},
 	)
 	service.clock = fakeClock{now: now}
 
@@ -91,8 +107,8 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if order.Status != domain.OrderStatusPending {
-		t.Fatalf("expected pending status, got %s", order.Status)
+	if order.Status != domain.OrderStatusFilled {
+		t.Fatalf("expected filled status, got %s", order.Status)
 	}
 
 	if order.UserID != "user-1" {
@@ -101,6 +117,10 @@ func TestPlaceMarketBuyCreatesPendingOrder(t *testing.T) {
 
 	if order.MarketSymbol != "XRP/USDT" {
 		t.Fatalf("expected XRP/USDT market, got %s", order.MarketSymbol)
+	}
+
+	if order.BaseQuantity <= 0 {
+		t.Fatalf("expected positive base quantity, got %f", order.BaseQuantity)
 	}
 
 	if !order.CreatedAt.Equal(now) {
@@ -139,15 +159,18 @@ func (f fakeBalanceRepository) GetByWalletAndAsset(context.Context, string, stri
 	return f.balance, f.err
 }
 
-type fakeOrderRepository struct {
+type fakePortfolioRepository struct {
 	err error
 }
 
-func (f fakeOrderRepository) Create(_ context.Context, order domain.Order) (domain.Order, error) {
+func (f fakePortfolioRepository) ApplyMarketBuy(_ context.Context, order domain.Order) (domain.Order, error) {
 	if f.err != nil {
 		return domain.Order{}, f.err
 	}
 
-	order.ID = "order-1"
 	return order, nil
+}
+
+func (f fakePortfolioRepository) GetSummary(context.Context, string) (domain.PortfolioSummary, error) {
+	return domain.PortfolioSummary{}, f.err
 }
