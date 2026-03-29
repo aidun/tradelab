@@ -98,11 +98,14 @@ go test ./...
 
 ```bash
 cd frontend
+npm ci
 npm run test
 npm run build
 npm run test:e2e
 npm run docs:screenshots
 ```
+
+The frontend uses [frontend/.npmrc](../frontend/.npmrc) to keep npm resolution aligned across local runs, GitHub Actions, and Docker builds while the current Clerk dependency chain still requires `legacy-peer-deps`.
 
 ### Optional deployment validation
 

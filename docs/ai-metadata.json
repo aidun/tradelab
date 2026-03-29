@@ -23,6 +23,11 @@
     "docs": "docs/",
     "github": ".github/"
   },
+  "package_management": {
+    "frontend_install_command": "npm ci",
+    "frontend_resolution_policy_file": "frontend/.npmrc",
+    "frontend_resolution_note": "legacy-peer-deps is pinned to keep local installs, GitHub Actions, and Docker builds aligned while the current Clerk dependency chain remains stricter than the repo's React patch level."
+  },
   "runtime_components": [
     "frontend web application",
     "backend API",
