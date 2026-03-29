@@ -22,3 +22,13 @@ type Candle struct {
 	QuoteVolume float64
 	Trades      int64
 }
+
+type MarketDataMeta struct {
+	Source      string    `json:"source"`
+	GeneratedAt time.Time `json:"generated_at"`
+}
+
+type CandleFeed struct {
+	Candles []Candle
+	Meta    MarketDataMeta
+}

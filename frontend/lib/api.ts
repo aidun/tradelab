@@ -78,6 +78,16 @@ export type Candle = {
   trades: number;
 };
 
+export type MarketDataMeta = {
+  source: "fresh" | "stale";
+  generatedAt: string;
+};
+
+export type CandleFeed = {
+  candles: Candle[];
+  meta: MarketDataMeta;
+};
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 function apiUrl(path: string) {
@@ -130,7 +140,7 @@ export async function fetchMarkets(): Promise<Market[]> {
   return data.markets;
 }
 
-export async function fetchCandles(marketSymbol: string, interval = "1h", limit = 48): Promise<Candle[]> {
+export async function fetchCandles(marketSymbol: string, interval = "1h", limit = 48): Promise<CandleFeed> {
   const encodedSymbol = encodeURIComponent(marketSymbol);
   const response = await fetch(apiUrl(`/api/v1/markets/${encodedSymbol}/candles?interval=${interval}&limit=${limit}`), {
     cache: "no-store"
@@ -140,7 +150,13 @@ export async function fetchCandles(marketSymbol: string, interval = "1h", limit 
   }
 
   const data = await response.json();
-  return data.candles;
+  return {
+    candles: data.candles,
+    meta: {
+      source: data.meta.source,
+      generatedAt: data.meta.generated_at ?? data.meta.generatedAt
+    }
+  };
 }
 
 export async function fetchPortfolio(walletID: string, token: string): Promise<PortfolioSummary> {

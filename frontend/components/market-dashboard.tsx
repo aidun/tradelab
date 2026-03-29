@@ -11,8 +11,10 @@ import {
   placeMarketBuy,
   type ActivityLog,
   type Candle,
+  type CandleFeed,
   type DemoSession,
   type Market,
+  type MarketDataMeta,
   type Order,
   type PortfolioSummary
 } from "@/lib/api";
@@ -60,6 +62,14 @@ function getLastItem<T>(items: T[]) {
   }
 
   return items[items.length - 1];
+}
+
+function formatFeedTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(new Date(value));
 }
 
 function CandleChart({ candles }: { candles: Candle[] }) {
@@ -175,6 +185,7 @@ export function MarketDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
   const [candles, setCandles] = useState<Candle[]>([]);
+  const [chartMeta, setChartMeta] = useState<MarketDataMeta | null>(null);
   const [selectedMarket, setSelectedMarket] = useState("XRP/USDT");
   const [selectedInterval, setSelectedInterval] = useState("1h");
   const [quoteAmount, setQuoteAmount] = useState("50");
@@ -182,6 +193,7 @@ export function MarketDashboard() {
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chartError, setChartError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   async function ensureDemoSession() {
@@ -206,23 +218,29 @@ export function MarketDashboard() {
     return nextSession;
   }
 
-  async function loadData(activeSession: DemoSession) {
+  async function loadCoreData(activeSession: DemoSession) {
     setError(null);
-    setIsChartLoading(true);
 
-    const [marketList, portfolioSummary, orderHistory, activityHistory, marketCandles] = await Promise.all([
+    const [marketList, portfolioSummary, orderHistory, activityHistory] = await Promise.all([
       fetchMarkets(),
       fetchPortfolio(activeSession.walletID, activeSession.token),
       fetchOrders(activeSession.token),
-      fetchActivity(activeSession.token),
-      fetchCandles(selectedMarket, selectedInterval, 48)
+      fetchActivity(activeSession.token)
     ]);
 
     setMarkets(marketList);
     setPortfolio(portfolioSummary);
     setOrders(orderHistory);
     setActivity(activityHistory);
-    setCandles(marketCandles);
+  }
+
+  async function loadChartData() {
+    setChartError(null);
+    setIsChartLoading(true);
+
+    const feed: CandleFeed = await fetchCandles(selectedMarket, selectedInterval, 48);
+    setCandles(feed.candles);
+    setChartMeta(feed.meta);
     setIsChartLoading(false);
   }
 
@@ -237,12 +255,11 @@ export function MarketDashboard() {
           }
 
           setSession(activeSession);
-          return loadData(activeSession);
+          return loadCoreData(activeSession);
         })
         .catch((loadError: Error) => {
           if (!cancelled) {
             setError(loadError.message);
-            setIsChartLoading(false);
           }
         })
         .finally(() => {
@@ -255,7 +272,28 @@ export function MarketDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [selectedInterval, selectedMarket]);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session) {
+      return;
+    }
+
+    startTransition(() => {
+      loadChartData().catch((loadError: Error) => {
+        if (!cancelled) {
+          setChartError(loadError.message);
+          setIsChartLoading(false);
+        }
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, selectedMarket, selectedInterval]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -274,7 +312,7 @@ export function MarketDashboard() {
         quoteAmount: Number(quoteAmount)
       });
 
-      await loadData(session);
+      await Promise.all([loadCoreData(session), loadChartData()]);
       setSuccess(`Demo buy executed for ${selectedMarket}.`);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Order failed");
@@ -319,6 +357,12 @@ export function MarketDashboard() {
               <div className="flex items-center justify-between gap-8">
                 <span>Last price</span>
                 <span>{latestCandle ? formatCurrency(latestCandle.closePrice) : "--"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-8">
+                <span>Feed state</span>
+                <span className={chartMeta?.source === "stale" ? "text-[var(--accent-hot)]" : "text-[var(--accent)]"}>
+                  {chartMeta?.source === "stale" ? "Stale" : "Fresh"}
+                </span>
               </div>
             </div>
           </div>
@@ -462,9 +506,24 @@ export function MarketDashboard() {
                 <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-12 text-sm text-[var(--muted)]">
                   Loading candle data...
                 </div>
+              ) : chartError ? (
+                <div className="rounded-2xl border border-[rgba(255,107,120,0.35)] bg-[rgba(255,107,120,0.08)] px-4 py-12 text-sm text-[var(--accent-hot)]">
+                  {chartError}
+                </div>
               ) : (
                 <CandleChart candles={candles} />
               )}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+              <span className="rounded-full border border-[var(--line)] px-3 py-2">
+                Feed {chartMeta?.source === "stale" ? "stale fallback" : "fresh"}
+              </span>
+              {chartMeta ? (
+                <span className="rounded-full border border-[var(--line)] px-3 py-2">
+                  Updated {formatFeedTime(chartMeta.generatedAt)}
+                </span>
+              ) : null}
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-3">

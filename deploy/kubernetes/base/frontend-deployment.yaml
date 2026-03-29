@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/aidun/tradelab-frontend:latest
+          image: ghcr.io/aidun/tradelab-frontend:IMAGE_TAG_PLACEHOLDER
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

@@ -15,5 +15,11 @@ secretGenerator:
 generatorOptions:
   disableNameSuffixHash: true
 
+images:
+  - name: ghcr.io/aidun/tradelab-backend
+    newTag: latest
+  - name: ghcr.io/aidun/tradelab-frontend
+    newTag: latest
+
 patches:
   - path: patch-ingress.yaml
