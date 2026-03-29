@@ -14,6 +14,7 @@ import (
 
 var (
 	ErrQuoteAmountTooLow = errors.New("quote amount must be greater than zero")
+	ErrExpectedPriceLow  = errors.New("expected price must be greater than zero")
 	ErrInsufficientFunds = errors.New("insufficient quote balance")
 )
 
@@ -30,11 +31,11 @@ func (realClock) Now() time.Time {
 type Service struct {
 	markets  store.MarketRepository
 	balances store.BalanceRepository
-	orders   store.OrderRepository
+	orders   store.PortfolioRepository
 	clock    Clock
 }
 
-func NewService(markets store.MarketRepository, balances store.BalanceRepository, orders store.OrderRepository) *Service {
+func NewService(markets store.MarketRepository, balances store.BalanceRepository, orders store.PortfolioRepository) *Service {
 	return &Service{
 		markets:  markets,
 		balances: balances,
@@ -54,6 +55,10 @@ type PlaceMarketBuyInput struct {
 func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput) (domain.Order, error) {
 	if input.QuoteAmount <= 0 {
 		return domain.Order{}, ErrQuoteAmountTooLow
+	}
+
+	if input.ExpectedPrice <= 0 {
+		return domain.Order{}, ErrExpectedPriceLow
 	}
 
 	market, err := s.markets.GetBySymbol(ctx, input.MarketSymbol)
@@ -83,14 +88,16 @@ func (s *Service) PlaceMarketBuy(ctx context.Context, input PlaceMarketBuyInput)
 		BaseAsset:     market.BaseAsset,
 		QuoteAsset:    market.QuoteAsset,
 		QuoteAmount:   input.QuoteAmount,
+		BaseQuantity:  input.QuoteAmount / input.ExpectedPrice,
 		ExpectedPrice: input.ExpectedPrice,
 		Side:          domain.OrderSideBuy,
 		Type:          domain.OrderTypeMarket,
-		Status:        domain.OrderStatusPending,
+		Status:        domain.OrderStatusFilled,
 		CreatedAt:     s.clock.Now(),
+		ExecutedAt:    s.clock.Now(),
 	}
 
-	createdOrder, err := s.orders.Create(ctx, order)
+	createdOrder, err := s.orders.ApplyMarketBuy(ctx, order)
 	if err != nil {
 		return domain.Order{}, fmt.Errorf("create order: %w", err)
 	}

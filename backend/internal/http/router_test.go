@@ -16,7 +16,7 @@ func TestHealthRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeOrderPlacer{}).ServeHTTP(recorder, req)
+	NewRouter(fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -31,7 +31,7 @@ func TestListMarketsRoute(t *testing.T) {
 		markets: []domain.Market{
 			{ID: "market-1", Symbol: "XRP/USDT", BaseAsset: "XRP", QuoteAsset: "USDT", Exchange: "demo"},
 		},
-	}, fakeOrderPlacer{}).ServeHTTP(recorder, req)
+	}, fakeOrderPlacer{}, fakePortfolioGetter{}).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -39,6 +39,27 @@ func TestListMarketsRoute(t *testing.T) {
 
 	if body := recorder.Body.String(); !strings.Contains(body, "XRP/USDT") {
 		t.Fatalf("expected market symbol in response body, got %s", body)
+	}
+}
+
+func TestPortfolioRoute(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/wallet-1", nil)
+	recorder := httptest.NewRecorder()
+
+	NewRouter(fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{
+		summary: domain.PortfolioSummary{
+			WalletID:     "wallet-1",
+			BaseCurrency: "USDT",
+			TotalValue:   10000,
+		},
+	}).ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+
+	if body := recorder.Body.String(); !strings.Contains(body, "wallet-1") {
+		t.Fatalf("expected wallet ID in response body, got %s", body)
 	}
 }
 
@@ -55,9 +76,9 @@ func TestCreateOrderRoute(t *testing.T) {
 			MarketID:     "market-1",
 			MarketSymbol: "XRP/USDT",
 			QuoteAmount:  50,
-			Status:       domain.OrderStatusPending,
+			Status:       domain.OrderStatusFilled,
 		},
-	}).ServeHTTP(recorder, req)
+	}, fakePortfolioGetter{}).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", recorder.Code)
@@ -84,4 +105,13 @@ type fakeOrderPlacer struct {
 
 func (f fakeOrderPlacer) PlaceMarketBuy(context.Context, orderservice.PlaceMarketBuyInput) (domain.Order, error) {
 	return f.order, f.err
+}
+
+type fakePortfolioGetter struct {
+	summary domain.PortfolioSummary
+	err     error
+}
+
+func (f fakePortfolioGetter) GetSummary(context.Context, string) (domain.PortfolioSummary, error) {
+	return f.summary, f.err
 }
