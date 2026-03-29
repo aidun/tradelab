@@ -40,6 +40,7 @@
   ],
   "documentation": {
     "readme": "README.md",
+    "user_guide": "docs/user-guide.md",
     "product": "docs/PRD.md",
     "data_model": "docs/data-model.md",
     "deployment": "docs/deployment.md",
@@ -133,5 +134,16 @@
       "Request lifecycle logging in the HTTP layer",
       "Service-level logging for sessions, market data, orders, portfolio, and history"
     ]
+  },
+  "user_workflows": [
+    "Open the app and create a demo session automatically.",
+    "Inspect the default XRP/USDT reference market and chart feed state.",
+    "Switch intervals or markets without clearing portfolio panels.",
+    "Execute a demo market buy.",
+    "Review balances, positions, orders, and activity after execution."
+  ],
+  "documentation_assets": {
+    "screenshots_directory": "docs/screenshots/",
+    "screenshot_generation": "frontend/scripts/capture-doc-screenshots.mjs"
   }
 }

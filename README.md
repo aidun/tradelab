@@ -29,6 +29,7 @@ The current system is still a demo environment. It is not a live brokerage, not 
 
 - Users and first-time readers:
   [README](README.md),
+  [user-guide.md](docs/user-guide.md),
   [PRD.md](docs/PRD.md)
 - Operators:
   [system-operations.md](docs/system-operations.md),
@@ -45,6 +46,19 @@ The current system is still a demo environment. It is not a live brokerage, not 
 - `backend/` API, domain logic, repositories, and migrations
 - `deploy/` Kubernetes manifests and release-render helpers
 - `docs/` product, operational, developer, and machine-readable documentation
+
+## User workflows
+
+TradeLab currently supports a compact end-user flow:
+
+1. open the app and let it create a demo session
+2. inspect the default `XRP/USDT` reference market
+3. switch intervals or markets while keeping the portfolio panels visible
+4. place a demo market buy
+5. review balances, positions, orders, and activity
+
+The full end-user walkthrough with screenshots is available here:
+[user-guide.md](docs/user-guide.md)
 
 ## Local development
 

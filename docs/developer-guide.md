@@ -72,6 +72,7 @@ cd frontend
 npm run test
 npm run build
 npm run test:e2e
+npm run docs:screenshots
 ```
 
 ### Optional deployment validation
@@ -99,6 +100,7 @@ kubectl kustomize deploy/kubernetes/overlays/production
 - `frontend/components`: UI components, including the trading dashboard
 - `frontend/lib`: API client code and shared helpers
 - `frontend/__tests__`: component and workflow tests
+- `frontend/scripts`: utility scripts, including documentation screenshot generation
 
 ### Delivery and deployment
 
@@ -171,6 +173,7 @@ When making changes:
 - the root README is for repository landing-page readers
 - `docs/system-operations.md` is the runtime and operator source of truth
 - `docs/developer-guide.md` is the contributor source of truth
+- `docs/user-guide.md` is the user-facing walkthrough with screenshots
 - `docs/ai-metadata.json` exists for machine consumption and should be updated when the human-facing structure materially changes
 - logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
 
