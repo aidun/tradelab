@@ -33,6 +33,7 @@ func main() {
 	balanceRepository := postgres.NewBalanceRepository(db)
 	portfolioRepository := postgres.NewPortfolioRepository(db)
 	sessionRepository := postgres.NewDemoSessionRepository(db)
+	appSessionRepository := postgres.NewAppSessionRepository(db)
 	registeredAccountRepository := postgres.NewRegisteredAccountRepository(db)
 
 	clerkVerifier, err := accountservice.NewClerkTokenVerifier(context.Background(), accountservice.ClerkVerifierConfig{
@@ -49,7 +50,7 @@ func main() {
 	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository, marketService, logging.NewJSONLogger("order_service"))
 	portfolioService := portfolioservice.NewService(portfolioRepository, logging.NewJSONLogger("portfolio_service"))
 	historyService := historyservice.NewService(portfolioRepository, logging.NewJSONLogger("history_service"))
-	sessionService := sessionservice.NewService(sessionRepository, logging.NewJSONLogger("session_service"))
+	sessionService := sessionservice.NewService(sessionRepository, appSessionRepository, logging.NewJSONLogger("session_service"))
 	accountService := accountservice.NewService(registeredAccountRepository, clerkVerifier, logging.NewJSONLogger("account_service"))
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,

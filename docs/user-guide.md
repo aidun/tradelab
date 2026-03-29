@@ -40,13 +40,13 @@ The dashboard combines the main trading surfaces in one place:
 
 ### 1. Start a demo session
 
-When the app opens, TradeLab creates a demo session in the background and stores it locally in the browser for the current user journey.
+When the app opens, TradeLab creates a demo session in the background and keeps it only for the current browser session.
 
 What this enables:
 
 - access to a demo wallet
 - access to protected portfolio and order routes
-- repeat visits without re-creating the session until it expires
+- repeat use during the current browser session until it expires
 
 ### 2. Upgrade to a registered demo account
 
@@ -62,6 +62,8 @@ If you sign in from a guest session, the upgrade prompt asks whether to:
 
 - keep guest demo data
 - start fresh
+
+Registered access uses a secure server-managed session after sign-in. The browser UI does not need a visible registered account token.
 
 ### 3. Inspect a market
 

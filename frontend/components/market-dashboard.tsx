@@ -6,8 +6,7 @@ import {
   placeMarketBuy,
   type Candle,
   type CandleFeed,
-  type MarketDataMeta,
-  type RegisteredAccount
+  type MarketDataMeta
 } from "@/lib/api";
 import { AuthEntryActions, AuthStatusControls, useTradeLabAuth } from "@/lib/tradelab-auth";
 import { useAccountSession } from "@/lib/use-account-session";
@@ -252,7 +251,7 @@ export function MarketDashboard() {
 
     try {
       const token = await activeAccessToken();
-      if (!token || !activeWalletID) {
+      if (!activeWalletID) {
         throw new Error("TradeLab session is not ready yet");
       }
 

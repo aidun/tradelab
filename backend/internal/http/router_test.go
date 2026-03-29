@@ -14,7 +14,6 @@ import (
 
 	"github.com/aidun/tradelab/backend/internal/domain"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
-	sessionservice "github.com/aidun/tradelab/backend/internal/service/session"
 )
 
 func discardLogger() *slog.Logger {
@@ -218,7 +217,17 @@ func TestBootstrapRegisteredAccountRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer registered-token")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}, fakeRegisteredAccountManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{
+		appSession: domain.AppSession{
+			ID:            "app-session-1",
+			Token:         "cookie-token",
+			IdleExpiresAt: time.Date(2026, 4, 29, 12, 0, 0, 0, time.UTC),
+			LastUsedAt:    time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC),
+			PrincipalKind: domain.PrincipalKindRegistered,
+			UserID:        "user-registered",
+			WalletID:      "wallet-registered",
+		},
+	}, fakeRegisteredAccountManager{
 		account: domain.RegisteredAccount{
 			UserID:      "user-registered",
 			WalletID:    "wallet-registered",
@@ -235,6 +244,10 @@ func TestBootstrapRegisteredAccountRoute(t *testing.T) {
 	if !strings.Contains(recorder.Body.String(), `"mode":"registered"`) {
 		t.Fatalf("expected registered mode in response, got %s", recorder.Body.String())
 	}
+
+	if !strings.Contains(recorder.Header().Get("Set-Cookie"), registeredSessionCookieName+"=cookie-token") {
+		t.Fatalf("expected registered session cookie to be set, got %s", recorder.Header().Get("Set-Cookie"))
+	}
 }
 
 func TestUpgradeGuestAccountRoute(t *testing.T) {
@@ -244,7 +257,17 @@ func TestUpgradeGuestAccountRoute(t *testing.T) {
 	req.Header.Set("X-TradeLab-Guest-Token", "guest-token")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}, fakeRegisteredAccountManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{
+		appSession: domain.AppSession{
+			ID:            "app-session-1",
+			Token:         "cookie-token",
+			IdleExpiresAt: time.Date(2026, 4, 29, 12, 0, 0, 0, time.UTC),
+			LastUsedAt:    time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC),
+			PrincipalKind: domain.PrincipalKindRegistered,
+			UserID:        "user-registered",
+			WalletID:      "wallet-registered",
+		},
+	}, fakeRegisteredAccountManager{
 		account: domain.RegisteredAccount{
 			UserID:      "user-registered",
 			WalletID:    "wallet-registered",
@@ -261,23 +284,40 @@ func TestUpgradeGuestAccountRoute(t *testing.T) {
 
 func TestOrdersRouteSupportsRegisteredAccounts(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders", nil)
-	req.Header.Set("Authorization", "Bearer registered-token")
+	req.AddCookie(&http.Cookie{Name: registeredSessionCookieName, Value: "cookie-token"})
 	recorder := httptest.NewRecorder()
 
 	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{
 		orders: []domain.Order{{ID: "order-registered", WalletID: "wallet-registered", MarketSymbol: "BTC/USDT"}},
 	}, fakeActivityHistoryLister{}, fakeSessionManager{
-		err: sessionservice.ErrInvalidSession,
-	}, fakeRegisteredAccountManager{
-		account: domain.RegisteredAccount{
-			UserID:      "user-registered",
-			WalletID:    "wallet-registered",
-			ClerkUserID: "clerk-user-1",
+		appSession: domain.AppSession{
+			ID:                "app-session-1",
+			UserID:            "user-registered",
+			WalletID:          "wallet-registered",
+			PrincipalKind:     domain.PrincipalKindRegistered,
+			IdleExpiresAt:     time.Date(2026, 4, 29, 11, 0, 0, 0, time.UTC),
+			AbsoluteExpiresAt: time.Date(2026, 4, 29, 11, 0, 0, 0, time.UTC),
 		},
-	}, discardLogger()).ServeHTTP(recorder, req)
+	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+}
+
+func TestLogoutRouteRevokesRegisteredCookie(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/account/logout", nil)
+	req.AddCookie(&http.Cookie{Name: registeredSessionCookieName, Value: "cookie-token"})
+	recorder := httptest.NewRecorder()
+
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", recorder.Code)
+	}
+
+	if !strings.Contains(recorder.Header().Get("Set-Cookie"), registeredSessionCookieName+"=") {
+		t.Fatalf("expected registered session cookie to be cleared, got %s", recorder.Header().Get("Set-Cookie"))
 	}
 }
 
@@ -329,8 +369,12 @@ func (f fakeActivityHistoryLister) ListActivity(context.Context, string, int) ([
 }
 
 type fakeSessionManager struct {
-	session domain.DemoSession
-	err     error
+	session      domain.DemoSession
+	appSession   domain.AppSession
+	err          error
+	appErr       error
+	revokeErr    error
+	revokedToken string
 }
 
 func (f fakeSessionManager) CreateDemoSession(context.Context) (domain.DemoSession, error) {
@@ -341,13 +385,22 @@ func (f fakeSessionManager) Authenticate(context.Context, string) (domain.DemoSe
 	return f.session, f.err
 }
 
+func (f fakeSessionManager) CreateRegisteredSession(context.Context, string, string) (domain.AppSession, error) {
+	return f.appSession, f.appErr
+}
+
+func (f fakeSessionManager) AuthenticateRegistered(context.Context, string) (domain.AppSession, error) {
+	return f.appSession, f.appErr
+}
+
+func (f fakeSessionManager) RevokeRegisteredSession(_ context.Context, token string) error {
+	f.revokedToken = token
+	return f.revokeErr
+}
+
 type fakeRegisteredAccountManager struct {
 	account domain.RegisteredAccount
 	err     error
-}
-
-func (f fakeRegisteredAccountManager) AuthenticateRegistered(context.Context, string) (domain.RegisteredAccount, error) {
-	return f.account, f.err
 }
 
 func (f fakeRegisteredAccountManager) BootstrapRegisteredAccount(context.Context, string) (domain.RegisteredAccount, error) {

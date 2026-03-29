@@ -6,6 +6,7 @@ test.beforeEach(async ({ page }) => {
 
   await page.addInitScript(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   await page.route("**/api/v1/**", async (route) => {
@@ -116,6 +117,9 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
+        headers: {
+          "Set-Cookie": "tradelab_app_session=cookie-token; Path=/; HttpOnly; SameSite=Lax"
+        },
         body: JSON.stringify({
           account: {
             user_id: "user-registered",
@@ -136,6 +140,9 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
+        headers: {
+          "Set-Cookie": "tradelab_app_session=cookie-token; Path=/; HttpOnly; SameSite=Lax"
+        },
         body: JSON.stringify({
           account: {
             user_id: "user-registered",
@@ -146,6 +153,18 @@ test.beforeEach(async ({ page }) => {
             mode: "registered"
           }
         })
+      });
+      return;
+    }
+
+    if (url.endsWith("/api/v1/account/logout")) {
+      accountMode = "guest";
+      await route.fulfill({
+        status: 204,
+        headers: {
+          "Set-Cookie": "tradelab_app_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
+        },
+        body: ""
       });
       return;
     }
@@ -274,6 +293,8 @@ test("creates a demo session and renders the dashboard", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /demo execution with/i })).toBeVisible();
   await expect(page.getByText("XRP/USDT").first()).toBeVisible();
   await expect(page.getByText(/feed fresh/i)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("tradelab.demo-session"))).not.toBeNull();
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("tradelab.demo-session"))).toBeNull();
 });
 
 test("switches interval without clearing the portfolio panels", async ({ page }) => {
@@ -336,4 +357,25 @@ test("restores the registered account for a returning signed-in user", async ({ 
 
   await expect(page.getByText(/registered demo account/i)).toBeVisible();
   await expect(page.getByText(/mock google user/i)).toBeVisible();
+});
+
+test("logs out of a registered account and falls back to a guest session", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "tradelab.mock-auth",
+      JSON.stringify({
+        clerkUserID: "mock-google-user",
+        email: "google-user@google.mock.tradelab",
+        displayName: "Mock Google User"
+      })
+    );
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByText(/registered demo account/i)).toBeVisible();
+  await page.getByRole("button", { name: /log out/i }).click();
+
+  await expect(page.getByText(/guest demo session/i)).toBeVisible();
+  await expect(page.getByText(/keep this sandbox beyond the guest session/i)).toBeVisible();
 });

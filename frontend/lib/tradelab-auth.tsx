@@ -10,6 +10,7 @@ import {
   useClerk,
   useUser
 } from "@clerk/nextjs";
+import { logoutRegisteredAccount } from "@/lib/api";
 
 type TradeLabAuthUser = {
   clerkUserID: string;
@@ -185,6 +186,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
         setUser(nextUser);
       },
       signOut: async () => {
+        await logoutRegisteredAccount().catch(() => undefined);
         window.localStorage.removeItem(MOCK_STORAGE_KEY);
         setUser(null);
       }
@@ -216,6 +218,7 @@ function ClerkStateProvider({ children }: { children: React.ReactNode }) {
       getToken: async () => auth.getToken(),
       signInWithProvider: () => undefined,
       signOut: async () => {
+        await logoutRegisteredAccount().catch(() => undefined);
         await clerk.signOut();
       }
     }),

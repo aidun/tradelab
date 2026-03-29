@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  ApiError,
   bootstrapRegisteredAccount,
   createDemoSession,
   fetchActivity,
@@ -39,7 +40,7 @@ type CoreDataState = {
   clearMessages: () => void;
   setErrorMessage: (message: string | null) => void;
   setSuccessMessage: (message: string | null) => void;
-  refreshCoreData: () => Promise<{ walletID: string; token: string } | null>;
+  refreshCoreData: () => Promise<{ walletID: string; token: string | null } | null>;
   upgradeGuestSession: (preserveGuestData: boolean) => Promise<void>;
   activeAccessToken: () => Promise<string | null>;
 };
@@ -69,7 +70,7 @@ export function useAccountSession(): CoreDataState {
       throw new Error("Demo session can only be created in the browser");
     }
 
-    const cachedValue = window.localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
+    const cachedValue = window.sessionStorage.getItem(DEMO_SESSION_STORAGE_KEY);
     if (cachedValue) {
       try {
         const cachedSession = JSON.parse(cachedValue) as DemoSession;
@@ -77,30 +78,30 @@ export function useAccountSession(): CoreDataState {
           return cachedSession;
         }
       } catch {
-        window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+        window.sessionStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
       }
     }
 
     const nextSession = await createDemoSession();
-    window.localStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify(nextSession));
+    window.sessionStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify(nextSession));
     return nextSession;
   }
 
   function clearGuestSession() {
     if (typeof window !== "undefined") {
-      window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+      window.sessionStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
     }
     setGuestSession(null);
   }
 
-  async function loadCoreData(walletID: string, token: string) {
+  async function loadCoreData(walletID: string, token?: string | null) {
     setError(null);
 
     const [marketList, portfolioSummary, orderHistory, activityHistory] = await Promise.all([
       fetchMarkets(),
-      fetchPortfolio(walletID, token),
-      fetchOrders(token),
-      fetchActivity(token)
+      fetchPortfolio(walletID, token ?? ""),
+      fetchOrders(token ?? ""),
+      fetchActivity(token ?? "")
     ]);
 
     setMarkets(marketList);
@@ -117,9 +118,8 @@ export function useAccountSession(): CoreDataState {
 
     const account = await bootstrapRegisteredAccount(token);
     setRegisteredAccount(account);
-    setGuestSession(null);
-    await loadCoreData(account.walletID, token);
-    return { walletID: account.walletID, token };
+    await loadCoreData(account.walletID);
+    return { walletID: account.walletID, token: null };
   }
 
   async function activateGuestExperience() {
@@ -154,8 +154,14 @@ export function useAccountSession(): CoreDataState {
       };
 
       run()
-        .catch((loadError: Error) => {
+        .catch(async (loadError: Error) => {
           if (!cancelled) {
+            if (loadError instanceof ApiError && loadError.status === 401 && auth.status === "signed_in") {
+              await auth.signOut();
+              setError("Registered session expired. Please sign in again.");
+              return;
+            }
+
             setError(loadError.message);
           }
         })
@@ -191,18 +197,25 @@ export function useAccountSession(): CoreDataState {
 
   async function refreshCoreData() {
     if (registeredAccount) {
-      const token = await auth.getToken();
-      if (!token) {
-        throw new Error("Registered session token is unavailable");
-      }
-
-      await loadCoreData(registeredAccount.walletID, token);
-      return { walletID: registeredAccount.walletID, token };
+      await loadCoreData(registeredAccount.walletID);
+      return { walletID: registeredAccount.walletID, token: null };
     }
 
     if (guestSession) {
-      await loadCoreData(guestSession.walletID, guestSession.token);
-      return { walletID: guestSession.walletID, token: guestSession.token };
+      try {
+        await loadCoreData(guestSession.walletID, guestSession.token);
+        return { walletID: guestSession.walletID, token: guestSession.token };
+      } catch (refreshError) {
+        if (refreshError instanceof ApiError && refreshError.status === 401) {
+          const nextSession = await ensureGuestSession();
+          setGuestSession(nextSession);
+          await loadCoreData(nextSession.walletID, nextSession.token);
+          setSuccess("Guest session refreshed.");
+          return { walletID: nextSession.walletID, token: nextSession.token };
+        }
+
+        throw refreshError;
+      }
     }
 
     return null;
@@ -246,7 +259,7 @@ export function useAccountSession(): CoreDataState {
 
   async function activeAccessToken() {
     if (registeredAccount) {
-      return auth.getToken();
+      return null;
     }
 
     return guestSession?.token ?? null;

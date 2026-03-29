@@ -20,6 +20,12 @@ type DemoSessionRepository interface {
 	GetByToken(ctx context.Context, token string) (domain.DemoSession, error)
 }
 
+type AppSessionRepository interface {
+	CreateRegisteredSession(ctx context.Context, userID string, walletID string) (domain.AppSession, error)
+	GetRegisteredSessionByToken(ctx context.Context, token string) (domain.AppSession, error)
+	RevokeRegisteredSessionByToken(ctx context.Context, token string) error
+}
+
 type RegisteredAccountRepository interface {
 	GetByClerkUserID(ctx context.Context, clerkUserID string) (domain.RegisteredAccount, error)
 	BootstrapRegisteredAccount(ctx context.Context, identity domain.RegisteredIdentity) (domain.RegisteredAccount, error)

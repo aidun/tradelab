@@ -54,6 +54,7 @@ The upgrade path now lets the user choose whether:
 
 - identity re-authentication happens through Clerk
 - durable product data remains attached to the registered account
+- TradeLab app-session loss does not destroy account ownership, but it does require re-authentication
 
 ### Logout
 

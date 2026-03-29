@@ -33,6 +33,7 @@ It helps teams and individual builders:
 - demo-session based trading with isolated wallet state
 - Clerk-backed registered demo accounts with Google and Apple as the initial social-login targets
 - explicit guest-to-registered upgrade flow with preserve-versus-fresh account choice
+- HttpOnly registered app sessions plus session-scoped guest storage
 - server-authoritative market-buy execution in the Go backend
 - portfolio, balances, orders, positions, and activity history
 - market candle rendering with bounded stale-feed fallback behavior
@@ -95,7 +96,8 @@ TradeLab is intentionally developed in the open with a curated product roadmap.
 - product and planning:
   [docs/PRD.md](docs/PRD.md),
   [docs/authentication-model.md](docs/authentication-model.md),
-  [docs/roadmap.md](docs/roadmap.md)
+  [docs/roadmap.md](docs/roadmap.md),
+  [docs/security-model.md](docs/security-model.md)
 - developers:
   [docs/developer-guide.md](docs/developer-guide.md),
   [docs/data-model.md](docs/data-model.md)
@@ -147,6 +149,8 @@ Only set parameters if you are deviating from the defaults:
 | `NEXT_PUBLIC_API_BASE_URL` | before frontend startup only if the browser should call another API origin directly | empty |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | before frontend startup when you want real Clerk UI instead of guest-only or mock auth mode | empty |
 | `NEXT_PUBLIC_AUTH_MOCK_MODE` | before frontend startup for local or CI auth mocking without live Clerk setup | `false` |
+
+For the current auth/session security posture and sensitive-data boundaries, see [docs/security-model.md](docs/security-model.md).
 
 For the full parameter matrix, including Kubernetes development and production values, see [docs/deployment.md](docs/deployment.md).
 

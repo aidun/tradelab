@@ -74,6 +74,12 @@ These environment variables affect the Next.js frontend runtime and rewrites.
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | optional | before frontend startup when you want the real Clerk UI and token flow in the browser | empty | frontend Clerk provider |
 | `NEXT_PUBLIC_AUTH_MOCK_MODE` | optional | before frontend startup in local or CI runs when mock Google/Apple auth should replace live Clerk configuration | `false` | frontend auth provider wrapper |
 
+Security notes:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is frontend-safe
+- Clerk secret material must stay server-side and must not be committed or exposed through browser env vars
+- `TRADESLAB_AUTH_MOCK_MODE` and `NEXT_PUBLIC_AUTH_MOCK_MODE` are development and CI switches only and must not be enabled in production manifests
+
 Recommended local default:
 
 - leave `NEXT_PUBLIC_API_BASE_URL` unset

@@ -100,9 +100,14 @@ Registered accounts should own:
 TradeLab separates:
 
 - `identity`: handled by Clerk
-- `application demo session`: handled by the TradeLab backend
+- `application session`: handled by the TradeLab backend
 
-This means a registered user still works inside a demo account context, but that context is linked to a durable Clerk identity instead of existing only as an anonymous guest token.
+This means:
+
+- guest users continue to work through a browser-visible guest token
+- registered users work through a backend-issued app session stored in an `HttpOnly` cookie
+
+The product keeps Clerk as the identity provider, but TradeLab now owns the authorization session for registered users.
 
 ## Future compatibility
 

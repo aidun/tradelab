@@ -190,6 +190,98 @@ func (r *DemoSessionRepository) GetByToken(ctx context.Context, token string) (d
 	return session, nil
 }
 
+type AppSessionRepository struct {
+	db *sql.DB
+}
+
+func NewAppSessionRepository(db *sql.DB) *AppSessionRepository {
+	return &AppSessionRepository{db: db}
+}
+
+func (r *AppSessionRepository) CreateRegisteredSession(ctx context.Context, userID string, walletID string) (domain.AppSession, error) {
+	now := time.Now().UTC()
+	idleExpiresAt := now.Add(7 * 24 * time.Hour)
+	absoluteExpiresAt := now.Add(30 * 24 * time.Hour)
+	sessionID := newUUID()
+	token, tokenHash, err := newSessionToken()
+	if err != nil {
+		return domain.AppSession{}, err
+	}
+
+	if _, err := r.db.ExecContext(ctx, `
+		UPDATE app_sessions
+		SET revoked_at = NOW()
+		WHERE user_id = $1 AND principal_kind = $2 AND revoked_at IS NULL
+	`, userID, domain.PrincipalKindRegistered); err != nil {
+		return domain.AppSession{}, err
+	}
+
+	if _, err := r.db.ExecContext(ctx, `
+		INSERT INTO app_sessions (
+			id,
+			user_id,
+			wallet_id,
+			principal_kind,
+			token_hash,
+			idle_expires_at,
+			absolute_expires_at,
+			created_at,
+			last_used_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+	`, sessionID, userID, walletID, domain.PrincipalKindRegistered, tokenHash, idleExpiresAt, absoluteExpiresAt, now); err != nil {
+		return domain.AppSession{}, err
+	}
+
+	return domain.AppSession{
+		ID:                sessionID,
+		UserID:            userID,
+		WalletID:          walletID,
+		PrincipalKind:     domain.PrincipalKindRegistered,
+		Token:             token,
+		IdleExpiresAt:     idleExpiresAt,
+		AbsoluteExpiresAt: absoluteExpiresAt,
+		CreatedAt:         now,
+		LastUsedAt:        now,
+	}, nil
+}
+
+func (r *AppSessionRepository) GetRegisteredSessionByToken(ctx context.Context, token string) (domain.AppSession, error) {
+	var session domain.AppSession
+	tokenHash := hashToken(token)
+
+	err := r.db.QueryRowContext(ctx, `
+		UPDATE app_sessions
+		SET last_used_at = NOW(), idle_expires_at = NOW() + INTERVAL '7 days'
+		WHERE token_hash = $1
+		  AND revoked_at IS NULL
+		RETURNING id, user_id, wallet_id, principal_kind, idle_expires_at, absolute_expires_at, created_at, last_used_at, revoked_at
+	`, tokenHash).Scan(
+		&session.ID,
+		&session.UserID,
+		&session.WalletID,
+		&session.PrincipalKind,
+		&session.IdleExpiresAt,
+		&session.AbsoluteExpiresAt,
+		&session.CreatedAt,
+		&session.LastUsedAt,
+		&session.RevokedAt,
+	)
+	if err != nil {
+		return domain.AppSession{}, err
+	}
+
+	return session, nil
+}
+
+func (r *AppSessionRepository) RevokeRegisteredSessionByToken(ctx context.Context, token string) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE app_sessions
+		SET revoked_at = NOW()
+		WHERE token_hash = $1 AND revoked_at IS NULL
+	`, hashToken(token))
+	return err
+}
+
 type RegisteredAccountRepository struct {
 	db *sql.DB
 }
