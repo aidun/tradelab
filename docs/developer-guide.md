@@ -198,6 +198,15 @@ When making changes:
 - `docs/ai-metadata.json` exists for machine consumption and should be updated when the human-facing structure materially changes
 - logging, tests, documentation, and GitHub Actions are treated as part of the feature surface and should be adjusted together when needed
 
+## AI metadata contract
+
+`docs/ai-metadata.json` now does two jobs:
+
+- it describes the repository and its public engineering surface
+- it defines the dependency rules for follow-up work when something changes
+
+When making changes, consult the `artifact_groups` and `change_management` sections to decide which documentation, screenshots, tests, workflow files, or GitHub-facing artifacts must also be reviewed or updated.
+
 ## Notes for future contributors
 
 - market-data behavior now includes bounded stale fallback semantics

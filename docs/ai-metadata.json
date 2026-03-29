@@ -19,7 +19,8 @@
     "frontend": "frontend/",
     "backend": "backend/",
     "deploy": "deploy/",
-    "docs": "docs/"
+    "docs": "docs/",
+    "github": ".github/"
   },
   "runtime_components": [
     "frontend web application",
