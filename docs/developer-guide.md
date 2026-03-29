@@ -219,6 +219,8 @@ It then commits the exact deployed development revision back into [tradelab-dev.
 - the Argo CD `targetRevision` to the source commit SHA
 - backend and frontend image overrides to the matching immutable `master-<shortsha>` tags
 
+If the workflow was introduced after the current merged `master` state or a publish run needs to be repeated, manually dispatch `Publish Master Images` with `source_ref=master`. That backfills GHCR with the missing immutable dev images and updates `tradelab-dev.yaml` to the matching source commit.
+
 This is the expected delivery chain for normal feature work:
 
 `feature branch -> pull request -> CI -> auto-merge -> master -> publish master images and update Argo dev -> manual release -> manual production promotion`
