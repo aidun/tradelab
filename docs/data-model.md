@@ -1,23 +1,21 @@
-# Datenmodell: Multi-Asset Trading Sandbox
+# Data model: TradeLab
 
-## 1. Modellprinzipien
+## 1. Design principles
 
-Das Modell ist asset-agnostisch aufgebaut. XRP ist ein Beispiel-Asset, aber alle Kerntabellen arbeiten generisch mit Assets, Maerkten, Orders, Positionen und Strategien.
+The model is asset-agnostic. XRP is a reference asset, but all core entities are designed around generic assets, markets, wallets, orders, positions, and strategies.
 
-Wichtige Prinzipien:
+Key principles:
 
-- Asset getrennt von Markt behandeln
-- Wallet-Bestaende getrennt von Trades und Positionen fuehren
-- jede Strategie-Auswertung nachvollziehbar protokollieren
-- manuelle und automatische Orders im selben Modell abbilden
+- model assets separately from markets
+- keep wallet balances separate from trades and positions
+- log every strategy evaluation for traceability
+- represent manual and automated orders with the same model
 
-## 2. Kernentitaeten
+## 2. Core entities
 
 ### users
 
-Speichert Benutzerkonten.
-
-Vorschlag:
+Stores user accounts.
 
 - id
 - email
@@ -28,7 +26,7 @@ Vorschlag:
 
 ### wallets
 
-Ein Demo-Wallet pro Nutzer, spaeter optional mehrere Wallets.
+One demo wallet per user in the MVP, with support for more later.
 
 - id
 - user_id
@@ -40,7 +38,7 @@ Ein Demo-Wallet pro Nutzer, spaeter optional mehrere Wallets.
 
 ### wallet_balances
 
-Aktuelle Bestaende je Asset innerhalb eines Wallets.
+Current balances per asset inside a wallet.
 
 - id
 - wallet_id
@@ -52,7 +50,7 @@ Aktuelle Bestaende je Asset innerhalb eines Wallets.
 
 ### assets
 
-Stammdaten einzelner Coins oder Tokens.
+Master records for supported coins or tokens.
 
 - id
 - symbol
@@ -61,7 +59,7 @@ Stammdaten einzelner Coins oder Tokens.
 - is_active
 - created_at
 
-Beispiele:
+Examples:
 
 - XRP
 - BTC
@@ -69,7 +67,7 @@ Beispiele:
 
 ### markets
 
-Handelspaare wie XRP/USDT oder BTC/USDT.
+Trading pairs such as XRP/USDT or BTC/USDT.
 
 - id
 - base_asset_id
@@ -81,9 +79,9 @@ Handelspaare wie XRP/USDT oder BTC/USDT.
 - is_active
 - created_at
 
-### price_ticks
+### price_candles
 
-Zeitserien fuer Marktpreise.
+Persisted market time series for charting and backtesting.
 
 - id
 - market_id
@@ -95,12 +93,11 @@ Zeitserien fuer Marktpreise.
 - close
 - volume
 
-Hinweis:
-Fuer Realtime kann spaeter ein separater Feed-Store oder Cache genutzt werden. Fuer das MVP reicht persistierte Kerzendatenhaltung.
+For the MVP, candle persistence is enough. Real-time caching can be added later.
 
 ### orders
 
-Speichert alle Order-Anfragen und Ausfuehrungen, egal ob manuell oder durch Strategie erzeugt.
+Stores every order request and execution, whether manual or strategy-driven.
 
 - id
 - user_id
@@ -122,7 +119,7 @@ Speichert alle Order-Anfragen und Ausfuehrungen, egal ob manuell oder durch Stra
 - executed_at nullable
 - cancelled_at nullable
 
-Empfohlene Werte:
+Suggested values:
 
 - order_source: manual, strategy, system
 - side: buy, sell
@@ -131,7 +128,7 @@ Empfohlene Werte:
 
 ### trades
 
-Feingranulare Ausfuehrungen je Order, falls spaeter Split-Fills noetig sind.
+Granular executions per order if split fills are needed later.
 
 - id
 - order_id
@@ -143,11 +140,11 @@ Feingranulare Ausfuehrungen je Order, falls spaeter Split-Fills noetig sind.
 - fee_asset_id
 - executed_at
 
-Fuer das MVP koennte eine Order zunaechst genau einen Trade erzeugen.
+The MVP can start with one trade per order.
 
 ### positions
 
-Aggregierte Sicht auf geoeffnete oder geschlossene Handelspositionen.
+Aggregated view of open and closed market exposure.
 
 - id
 - user_id
@@ -164,13 +161,13 @@ Aggregierte Sicht auf geoeffnete oder geschlossene Handelspositionen.
 - realized_pnl
 - unrealized_pnl nullable
 
-Empfohlene Werte:
+Suggested values:
 
 - status: open, closed
 
 ### strategies
 
-Definition der Bot-Regeln pro Nutzer.
+User-defined bot rules.
 
 - id
 - user_id
@@ -185,7 +182,7 @@ Definition der Bot-Regeln pro Nutzer.
 - updated_at
 - last_run_at nullable
 
-Empfohlene strategy_type-Werte:
+Suggested strategy types:
 
 - dip_buy
 - take_profit_stop_loss
@@ -193,7 +190,7 @@ Empfohlene strategy_type-Werte:
 - sma_crossover
 - rsi_trigger
 
-Empfohlene status-Werte:
+Suggested status values:
 
 - draft
 - active
@@ -202,7 +199,7 @@ Empfohlene status-Werte:
 
 ### strategy_runs
 
-Protokolliert einzelne Bewertungslaeufe der Strategie-Engine.
+Logs each strategy evaluation by the engine.
 
 - id
 - strategy_id
@@ -213,14 +210,14 @@ Protokolliert einzelne Bewertungslaeufe der Strategie-Engine.
 - signal_strength nullable
 - details_json
 
-Beispiele:
+Examples:
 
 - outcome: executed, skipped, errored
 - decision: buy, sell, hold
 
 ### backtests
 
-Speichert Backtest-Definitionen und Ergebnisse.
+Stores backtest definitions and results.
 
 - id
 - user_id
@@ -236,7 +233,7 @@ Speichert Backtest-Definitionen und Ergebnisse.
 
 ### activity_logs
 
-Klartext- und System-Log fuer Nutzeraktionen und Bot-Entscheidungen.
+Stores user-facing and system-facing audit events.
 
 - id
 - user_id
@@ -249,39 +246,39 @@ Klartext- und System-Log fuer Nutzeraktionen und Bot-Entscheidungen.
 - metadata_json nullable
 - created_at
 
-Empfohlene Werte:
+Suggested values:
 
 - log_type: info, warning, trade, strategy, system
 
-## 3. Beziehungen
+## 3. Relationships
 
-- user hat viele wallets
-- wallet hat viele wallet_balances
-- asset hat viele markets als base oder quote
-- market hat viele price_ticks
-- wallet hat viele orders
-- order kann zu genau einer strategy gehoeren
-- order kann einen oder mehrere trades haben
-- user und wallet haben viele positions
-- user hat viele strategies
-- strategy hat viele strategy_runs
-- strategy oder market kann viele backtests haben
-- user hat viele activity_logs
+- a user has many wallets
+- a wallet has many wallet balances
+- an asset can appear in many markets as base or quote
+- a market has many price candles
+- a wallet has many orders
+- an order can belong to one strategy
+- an order can have one or more trades
+- a user and wallet can have many positions
+- a user has many strategies
+- a strategy has many strategy runs
+- a strategy or market can have many backtests
+- a user has many activity logs
 
-## 4. Beispiel: XRP-Trade
+## 4. Example: XRP demo trade
 
-1. Nutzer hat 10.000 USDT im Demo-Wallet.
-2. Markt XRP/USDT ist in `markets` vorhanden.
-3. Nutzer sendet Market Buy fuer XRP.
-4. In `orders` entsteht ein Eintrag mit source `manual`.
-5. In `trades` wird die Ausfuehrung gespeichert.
-6. `wallet_balances` fuer USDT sinkt, XRP steigt.
-7. Eine `position` wird geoeffnet oder vergroessert.
-8. Ein `activity_log` dokumentiert die Aktion.
+1. The user has 10,000 USDT in a demo wallet.
+2. XRP/USDT exists in `markets`.
+3. The user sends a market buy order.
+4. A record is created in `orders` with source `manual`.
+5. The execution is stored in `trades`.
+6. `wallet_balances` is updated for USDT and XRP.
+7. A `position` is opened or increased.
+8. An `activity_log` captures the reason.
 
-## 5. API-Sicht auf das Modell
+## 5. API surface implied by the model
 
-Fuer das MVP werden voraussichtlich folgende API-Bereiche benoetigt:
+The MVP will likely need these API areas:
 
 - /auth
 - /markets
@@ -293,23 +290,97 @@ Fuer das MVP werden voraussichtlich folgende API-Bereiche benoetigt:
 - /backtests
 - /activity
 
-## 6. Offene Entscheidungen
+## 6. Recommended backend architecture
 
-- ob Positionen strikt FIFO, Durchschnittskosten oder Hybrid-Logik nutzen
-- ob Gebuehren immer in Quote-Asset simuliert werden
-- welche Timeframes fuer price_ticks persistiert werden
-- ob Realtime-Daten direkt in die Datenbank geschrieben oder ueber Cache verarbeitet werden
-- wie fein die Backtest-Ergebnisse gespeichert werden sollen
+### Go backend
 
-## 7. Empfehlung fuer den Start
+Suggested layout:
 
-Fuer das erste Build wuerde ich es bewusst einfach halten:
+- `cmd/api` for the HTTP entrypoint
+- `internal/domain` for domain entities and rules
+- `internal/service` for order execution, portfolios, strategies, and backtests
+- `internal/store` for repository interfaces
+- `internal/store/postgres` for PostgreSQL implementations
+- `internal/http` for handlers, validation, and response mapping
+- `internal/testutil` for fixtures and helpers
 
-- ein Demo-Wallet pro Nutzer
-- Market Orders zuerst
-- eine Ausfuehrung pro Order
-- Kerzendaten statt Tick-by-Tick
-- Strategiekonfiguration als JSON
-- Logs immer mit menschenlesbarer Begruendung
+Important rule:
+Order logic, position logic, PnL, and strategy rules must live in isolated services, not in handlers or SQL snippets.
 
-Damit bleibt das System simpel genug fuer ein MVP, aber offen genug fuer spaetere Boersenanbindung, weitere Assets und komplexere Strategien.
+### Persistence strategy
+
+- target system: PostgreSQL
+- development environment: local PostgreSQL
+- all data access should go through an abstraction layer with explicit interfaces
+
+Suggested approach:
+
+- services depend on interfaces such as `OrderRepository`, `MarketRepository`, and `StrategyRepository`
+- PostgreSQL implements those interfaces in `internal/store/postgres`
+- SQL, migrations, and query details stay in the store layer
+- domain logic stays testable with mocks, fakes, and test doubles
+
+Useful repository interfaces:
+
+- `UserRepository`
+- `WalletRepository`
+- `MarketRepository`
+- `OrderRepository`
+- `PositionRepository`
+- `StrategyRepository`
+- `BacktestRepository`
+
+### Test strategy
+
+- Go unit tests for:
+  - order execution
+  - fee and slippage calculations
+  - position and PnL updates
+  - strategy signal logic
+  - backtesting calculations
+- repository tests against a test database
+- integration tests against a local PostgreSQL instance
+- API tests for order creation and strategy activation flows
+
+### Frontend recommendation
+
+Suggested stack:
+
+- Next.js with TypeScript
+- React Testing Library for component tests
+- Playwright for end-to-end tests
+- Storybook later for visual component development if needed
+
+UI direction:
+
+- a distinct trading interface instead of a generic admin look
+- a strong token-based visual system for color, spacing, type, and motion
+- small, focused, testable components
+
+## 7. Open decisions
+
+- whether positions should use FIFO, average cost, or a hybrid model
+- whether fees should always be simulated in the quote asset
+- which timeframes should be persisted for candles
+- whether real-time data should be cached before persistence
+- how detailed backtest result storage should be
+- which Go HTTP approach to use long term: stdlib only or a router package
+- whether strategy workers should run inside the API binary or as a separate process
+- whether local PostgreSQL should be native or container-based for the whole team
+
+## 8. Recommended starting point
+
+Keep the first build intentionally small:
+
+- one demo wallet per user
+- market orders first
+- one execution per order
+- candle data instead of tick-level data
+- strategy configuration as JSON
+- always log a human-readable reason
+- put domain logic behind unit tests first
+- start the frontend with a small but deliberate design system
+- use local PostgreSQL with migrations from day one
+- keep storage behind repository interfaces
+
+That gives us a system that is simple enough for an MVP and still open for more assets, exchange connectors, and more advanced trading logic.
