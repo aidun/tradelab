@@ -7,13 +7,6 @@ spec:
   rules:
     - http:
         paths:
-          - path: /tradelab/api
-            pathType: Prefix
-            backend:
-              service:
-                name: tradelab-backend
-                port:
-                  number: 8080
           - path: /api
             pathType: Prefix
             backend:
@@ -21,13 +14,6 @@ spec:
                 name: tradelab-backend
                 port:
                   number: 8080
-          - path: /tradelab
-            pathType: Prefix
-            backend:
-              service:
-                name: tradelab-frontend
-                port:
-                  number: 3000
           - path: /
             pathType: Prefix
             backend:

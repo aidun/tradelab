@@ -99,6 +99,7 @@ Sync waves are used so the cluster is built in a predictable order:
 - MetalLB must advertise only addresses that are actually free on the LAN.
 - Traefik is the only ingress class assumed by the committed TradeLab overlays.
 - Argo CD is exposed through Traefik on `/argocd`.
+- TradeLab environment aliases are exposed through Traefik strip-prefix middlewares so the same application can be entered through `/tradelab-dev` and later `/tradelab`.
 - The repo does not yet bootstrap `cert-manager`, `External Secrets Operator`, or TLS automation in this infrastructure layer.
 - TradeLab application overlays now generate initial database credentials automatically when `tradelab-database` is absent.
 - Later production secret management can switch to the optional `production-external-secrets` overlay without changing the workload secret contract. That overlay removes the bootstrap job so the external secret backend remains the single writer for `tradelab-database`.

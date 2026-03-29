@@ -6,6 +6,8 @@ namespace: tradelab-dev
 resources:
   - ../../base
   - namespace.yaml
+  - ingress-entrypoint.yaml
+  - middleware-strip-prefix.yaml
 
 images:
   - name: ghcr.io/aidun/tradelab-backend

@@ -174,7 +174,7 @@ After apply, validate:
 - frontend loads through ingress
 - a guest demo session can be created
 
-If you are using the committed platform bootstrap, Traefik is reachable directly on the reserved MetalLB IP. The development ingress is intentionally hostless so the app does not depend on local DNS. The alternate `/tradelab-dev` path is a convenient cluster entrypoint, while the current frontend generation still serves its canonical routes from `/`.
+If you are using the committed platform bootstrap, Traefik is reachable directly on the reserved MetalLB IP. The development ingress is intentionally hostless so the app does not depend on local DNS. The `/tradelab-dev` entrypoint is implemented through a Traefik strip-prefix middleware and lands on the same canonical application as `/`.
 
 ## Production deployment
 
@@ -188,7 +188,7 @@ The production overlay is prepared for these IP-based entrypoints:
 - primary entrypoint: `http://<traefik-ip>/`
 - alternate entrypoint: `http://<traefik-ip>/tradelab`
 
-As with development, the current frontend image still serves its canonical routes from `/`. The `/tradelab` path is therefore an operator-friendly entrypoint on the shared Traefik IP, not yet a fully isolated subpath build.
+As with development, the `/tradelab` production entrypoint is implemented through a Traefik strip-prefix middleware and lands on the same canonical application as `/`.
 
 If you want generated first-run credentials, apply the default production overlay:
 

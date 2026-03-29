@@ -201,6 +201,11 @@
       "http://<traefik-ip>/tradelab"
     ],
     "argocd_entrypoint": "http://192.168.2.200/argocd",
+    "path_aliasing": {
+      "development": "/tradelab-dev",
+      "production": "/tradelab",
+      "mechanism": "Traefik strip-prefix middleware entrypoints landing on the canonical root-served application"
+    },
     "applications": {
       "root": "deploy/infrastructure/bootstrap/root-application/root-application.yaml",
       "platform_apps": [
