@@ -15,7 +15,7 @@ func TestListOrdersReturnsRepositoryOrders(t *testing.T) {
 		orders: []domain.Order{{ID: "order-1", WalletID: "wallet-1"}},
 	}, logging.NewDiscardLogger("history_service_test"))
 
-	orders, err := service.ListOrders(context.Background(), "wallet-1", 10)
+	orders, err := service.ListOrders(context.Background(), "wallet-1", 10, "", domain.AccountingModeAverageCost)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -30,7 +30,7 @@ func TestListActivityReturnsRepositoryEntries(t *testing.T) {
 		activity: []domain.ActivityLog{{ID: "log-1", WalletID: "wallet-1", CreatedAt: time.Now()}},
 	}, logging.NewDiscardLogger("history_service_test"))
 
-	activity, err := service.ListActivity(context.Background(), "wallet-1", 10)
+	activity, err := service.ListActivity(context.Background(), "wallet-1", 10, "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -45,7 +45,7 @@ func TestListOrdersReturnsRepositoryError(t *testing.T) {
 		err: errors.New("db unavailable"),
 	}, logging.NewDiscardLogger("history_service_test"))
 
-	if _, err := service.ListOrders(context.Background(), "wallet-1", 10); err == nil {
+	if _, err := service.ListOrders(context.Background(), "wallet-1", 10, "", domain.AccountingModeAverageCost); err == nil {
 		t.Fatal("expected an error, got nil")
 	}
 }
@@ -57,6 +57,10 @@ type fakePortfolioRepository struct {
 }
 
 func (f fakePortfolioRepository) ApplyMarketBuy(context.Context, domain.Order) (domain.Order, error) {
+	return domain.Order{}, nil
+}
+
+func (f fakePortfolioRepository) ApplyMarketSell(context.Context, domain.Order) (domain.Order, error) {
 	return domain.Order{}, nil
 }
 

@@ -22,9 +22,13 @@ function installFetchMock(scenario: FetchScenario = {}) {
           id: "order-1",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          side: "buy",
+          baseQuantity: 74.62,
           quoteAmount: 50,
           expectedPrice: 0.67,
           status: "filled",
+          realizedPnL: 0,
+          positionAfter: 74.62,
           createdAt: "2026-03-29T12:00:00Z"
         }
       ],
@@ -32,6 +36,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
         {
           id: "log-1",
           walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
           logType: "trade",
           title: "Demo buy recorded",
           message: "A demo market buy was created for XRP/USDT.",
@@ -41,8 +46,12 @@ function installFetchMock(scenario: FetchScenario = {}) {
       portfolio: {
         walletID: "wallet-1",
         baseCurrency: "USDT",
+        accountingMode: "average_cost",
         totalValue: 10000,
         cashBalance: 9950,
+        positionValue: 0,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
         balances: [
           {
             walletID: "wallet-1",
@@ -50,7 +59,8 @@ function installFetchMock(scenario: FetchScenario = {}) {
             available: 9950
           }
         ],
-        positions: []
+        positions: [],
+        allocations: []
       }
     },
     {
@@ -59,9 +69,13 @@ function installFetchMock(scenario: FetchScenario = {}) {
           id: "order-2",
           walletID: "wallet-1",
           marketSymbol: "XRP/USDT",
+          side: "buy",
+          baseQuantity: 108.7,
           quoteAmount: 75,
           expectedPrice: 0.69,
           status: "filled",
+          realizedPnL: 0,
+          positionAfter: 108.7,
           createdAt: "2026-03-29T12:02:00Z"
         }
       ],
@@ -69,6 +83,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
         {
           id: "log-2",
           walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
           logType: "trade",
           title: "Demo buy executed",
           message: "A second demo market buy was created for XRP/USDT.",
@@ -78,8 +93,12 @@ function installFetchMock(scenario: FetchScenario = {}) {
       portfolio: {
         walletID: "wallet-1",
         baseCurrency: "USDT",
+        accountingMode: "average_cost",
         totalValue: 10025,
         cashBalance: 9875,
+        positionValue: 75,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
         balances: [
           {
             walletID: "wallet-1",
@@ -97,14 +116,18 @@ function installFetchMock(scenario: FetchScenario = {}) {
             baseAsset: "XRP",
             quoteAsset: "USDT",
             status: "open",
+            openQuantity: 108.7,
             entryQuantity: 108.7,
             entryPriceAvg: 0.69,
             currentPrice: 0.69,
+            costBasisValue: 75,
             positionValue: 75,
+            realizedPnL: 0,
             unrealizedPnL: 0,
             openedAt: "2026-03-29T12:02:00Z"
           }
-        ]
+        ],
+        allocations: [{ marketSymbol: "XRP/USDT", value: 75, weight: 1 }]
       }
     }
   ];

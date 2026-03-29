@@ -40,6 +40,7 @@ type OrderRepository interface {
 
 type PortfolioRepository interface {
 	ApplyMarketBuy(ctx context.Context, order domain.Order) (domain.Order, error)
+	ApplyMarketSell(ctx context.Context, order domain.Order) (domain.Order, error)
 	GetSummary(ctx context.Context, walletID string) (domain.PortfolioSummary, error)
 	ListByWallet(ctx context.Context, walletID string, limit int) ([]domain.Order, error)
 	ListActivityByWallet(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error)

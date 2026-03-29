@@ -34,8 +34,10 @@ It helps teams and individual builders:
 - Clerk-backed registered demo accounts with Google and Apple as the initial social-login targets
 - explicit guest-to-registered upgrade flow with preserve-versus-fresh account choice
 - HttpOnly registered app sessions plus session-scoped guest storage
-- server-authoritative market-buy execution in the Go backend
-- portfolio, balances, orders, positions, and activity history
+- server-authoritative market buy and sell execution in the Go backend
+- portfolio, balances, orders, positions, realized PnL, unrealized PnL, and activity history
+- selectable accounting modes across the portfolio surface: `Average cost`, `FIFO`, and `Hybrid`
+- dedicated market detail routes for focused trading flows
 - market candle rendering with bounded stale-feed fallback behavior
 - Kubernetes deployment assets, CI validation, and release automation
 
@@ -47,14 +49,16 @@ TradeLab currently supports a compact but realistic user journey:
 2. inspect the default market and feed state
 3. optionally sign in with Google or Apple after first value appears
 4. choose whether to preserve guest demo data or start with a fresh registered account
-5. execute a demo market buy
-6. review balances, positions, orders, and activity in one screen
+5. execute a demo buy or sell
+6. switch accounting modes globally to inspect valuation and PnL
+7. review balances, positions, orders, and activity across overview and market detail screens
 
 Visual walkthrough:
 
 ![Dashboard overview](docs/screenshots/dashboard-overview.png)
-![Stale feed state](docs/screenshots/chart-stale-feed.png)
-![Demo buy success](docs/screenshots/demo-buy-success.png)
+![Market detail](docs/screenshots/market-detail-page.png)
+![Demo sell success](docs/screenshots/demo-sell-success.png)
+![Accounting mode switch](docs/screenshots/accounting-mode-switch.png)
 
 The full user-facing walkthrough lives in [docs/user-guide.md](docs/user-guide.md).
 

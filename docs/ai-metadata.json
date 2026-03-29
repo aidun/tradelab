@@ -43,7 +43,9 @@
     "registered account bootstrap through Clerk-backed identity and HttpOnly app-session establishment",
     "registered account logout with app-session revocation",
     "authenticated paper-trading API access",
-    "server-authoritative market buy execution",
+    "server-authoritative market buy and sell execution",
+    "global accounting-mode selection across portfolio and history",
+    "focused trading flow through /markets/[symbol]",
     "market-data fetch with bounded stale fallback",
     "structured backend request and service logging",
     "PR-first CI validation",
@@ -104,6 +106,8 @@
       "POST /api/v1/orders"
     ],
     "auth_model": "Guest routes use backend-issued bearer tokens scoped to the browser session, while registered routes use Clerk-backed bootstrap plus a TradeLab HttpOnly app-session cookie",
+    "order_contract": "POST /api/v1/orders accepts explicit side-specific payloads for buy and sell execution",
+    "portfolio_query_contract": "Portfolio and order-history reads accept accounting_mode, with orders and activity also supporting market_symbol filtering for focused screens",
     "session_security_routes": [
       "POST /api/v1/account/logout"
     ]
@@ -166,9 +170,10 @@
   "user_workflows": [
     "Open the app and create a guest demo session automatically.",
     "Inspect the default XRP/USDT reference market and chart feed state.",
-    "Switch intervals or markets without clearing portfolio panels.",
-    "Execute a demo market buy.",
-    "Review balances, positions, orders, and activity after execution."
+    "Switch the global accounting mode between average cost, FIFO, and hybrid.",
+    "Open the dedicated /markets/[symbol] screen for focused trading.",
+    "Execute demo buys and sells.",
+    "Review balances, positions, realized PnL, unrealized PnL, orders, and activity after execution."
   ],
   "onboarding": {
     "audiences": [
@@ -190,7 +195,9 @@
       "the durable account prompt appears after the dashboard has loaded when auth is available",
       "markets and chart data load",
       "portfolio panels load",
-      "a demo buy updates balances, positions, orders, and activity"
+      "a demo buy updates balances, positions, orders, and activity",
+      "a market detail route opens for the selected pair",
+      "a demo sell updates positions and PnL"
     ],
     "product_requirements_doc": "docs/onboarding-requirements.md"
   },
@@ -289,7 +296,12 @@
     "phase_4": {
       "epic_issue": 33,
       "focus": "Core trading completion",
-      "child_issues": [51, 52, 53, 54, 55]
+      "child_issues": [51, 52, 53, 54, 55],
+      "locked_decisions": {
+        "market_detail_route": "/markets/[symbol]",
+        "accounting_modes": ["average_cost", "fifo", "hybrid"],
+        "accounting_scope": "global portfolio setting"
+      }
     },
     "phase_5": {
       "epic_issue": 34,
@@ -564,6 +576,15 @@
           "update docs/user-guide.md",
           "review README.md workflow description",
           "review frontend tests"
+        ]
+      },
+      {
+        "scenario": "Add or change trading actions such as buy, sell, or market detail flows",
+        "followups": [
+          "update docs/user-guide.md",
+          "refresh screenshots",
+          "update frontend tests and e2e tests",
+          "update docs/ai-metadata.json"
         ]
       },
       {

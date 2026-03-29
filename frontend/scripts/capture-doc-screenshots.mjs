@@ -5,93 +5,147 @@ import path from "node:path";
 const docsScreenshotDir = path.resolve(process.cwd(), "..", "docs", "screenshots");
 const appBaseUrl = process.env.DOCS_SCREENSHOT_BASE_URL ?? "http://127.0.0.1:3000";
 
-const responses = [
-  {
-    orders: [
-      {
-        id: "order-1",
+function state(index) {
+  const states = [
+    {
+      portfolio: {
         walletID: "wallet-1",
-        marketSymbol: "XRP/USDT",
-        quoteAmount: 50,
-        expectedPrice: 0.67,
-        status: "filled",
-        createdAt: "2026-03-29T12:00:00Z"
-      }
-    ],
-    activity: [
-      {
-        id: "log-1",
-        walletID: "wallet-1",
-        logType: "trade",
-        title: "Demo buy recorded",
-        message: "A demo market buy was created for XRP/USDT.",
-        createdAt: "2026-03-29T12:01:00Z"
-      }
-    ],
-    portfolio: {
-      walletID: "wallet-1",
-      baseCurrency: "USDT",
-      totalValue: 10000,
-      cashBalance: 9950,
-      balances: [{ walletID: "wallet-1", assetSymbol: "USDT", available: 9950 }],
-      positions: []
-    }
-  },
-  {
-    orders: [
-      {
-        id: "order-2",
-        walletID: "wallet-1",
-        marketSymbol: "XRP/USDT",
-        quoteAmount: 75,
-        expectedPrice: 0.69,
-        status: "filled",
-        createdAt: "2026-03-29T12:02:00Z"
-      }
-    ],
-    activity: [
-      {
-        id: "log-2",
-        walletID: "wallet-1",
-        logType: "trade",
-        title: "Demo buy executed",
-        message: "A second demo market buy was created for XRP/USDT.",
-        createdAt: "2026-03-29T12:03:00Z"
-      }
-    ],
-    portfolio: {
-      walletID: "wallet-1",
-      baseCurrency: "USDT",
-      totalValue: 10025,
-      cashBalance: 9875,
-      balances: [{ walletID: "wallet-1", assetSymbol: "USDT", available: 9875 }],
-      positions: [
+        baseCurrency: "USDT",
+        accountingMode: "average_cost",
+        totalValue: 10000,
+        cashBalance: 9950,
+        positionValue: 50,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
+        balances: [
+          { walletID: "wallet-1", assetSymbol: "USDT", available: 9950 },
+          { walletID: "wallet-1", assetSymbol: "XRP", available: 74.62 }
+        ],
+        positions: [
+          {
+            id: "position-1",
+            userID: "user-1",
+            walletID: "wallet-1",
+            marketID: "market-1",
+            marketSymbol: "XRP/USDT",
+            baseAsset: "XRP",
+            quoteAsset: "USDT",
+            status: "open",
+            openQuantity: 74.62,
+            entryQuantity: 74.62,
+            entryPriceAvg: 0.67,
+            currentPrice: 0.67,
+            costBasisValue: 50,
+            positionValue: 50,
+            realizedPnL: 0,
+            unrealizedPnL: 0,
+            openedAt: "2026-03-29T12:01:00Z"
+          }
+        ],
+        allocations: [{ marketSymbol: "XRP/USDT", value: 50, weight: 1 }]
+      },
+      orders: [
         {
-          id: "position-1",
-          userID: "user-1",
+          id: "order-1",
           walletID: "wallet-1",
-          marketID: "market-1",
           marketSymbol: "XRP/USDT",
-          baseAsset: "XRP",
-          quoteAsset: "USDT",
-          status: "open",
-          entryQuantity: 108.7,
-          entryPriceAvg: 0.69,
-          currentPrice: 0.69,
-          positionValue: 75,
-          unrealizedPnL: 0,
-          openedAt: "2026-03-29T12:02:00Z"
+          side: "buy",
+          baseQuantity: 74.62,
+          quoteAmount: 50,
+          expectedPrice: 0.67,
+          status: "filled",
+          realizedPnL: 0,
+          positionAfter: 74.62,
+          createdAt: "2026-03-29T12:00:00Z"
+        }
+      ],
+      activity: [
+        {
+          id: "log-1",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          logType: "trade",
+          title: "Demo buy recorded",
+          message: "Bought 74.6200 XRP at 0.6700 USDT. Position size is now updating in the portfolio view.",
+          createdAt: "2026-03-29T12:01:00Z"
+        }
+      ]
+    },
+    {
+      portfolio: {
+        walletID: "wallet-1",
+        baseCurrency: "USDT",
+        accountingMode: "average_cost",
+        totalValue: 10035,
+        cashBalance: 9915,
+        positionValue: 46.96,
+        realizedPnL: 5,
+        unrealizedPnL: 5.87,
+        balances: [
+          { walletID: "wallet-1", assetSymbol: "USDT", available: 9915 },
+          { walletID: "wallet-1", assetSymbol: "XRP", available: 58.7 }
+        ],
+        positions: [
+          {
+            id: "position-1",
+            userID: "user-1",
+            walletID: "wallet-1",
+            marketID: "market-1",
+            marketSymbol: "XRP/USDT",
+            baseAsset: "XRP",
+            quoteAsset: "USDT",
+            status: "open",
+            openQuantity: 58.7,
+            entryQuantity: 58.7,
+            entryPriceAvg: 0.7,
+            currentPrice: 0.8,
+            costBasisValue: 41.09,
+            positionValue: 46.96,
+            realizedPnL: 5,
+            unrealizedPnL: 5.87,
+            openedAt: "2026-03-29T12:05:00Z"
+          }
+        ],
+        allocations: [{ marketSymbol: "XRP/USDT", value: 46.96, weight: 1 }]
+      },
+      orders: [
+        {
+          id: "order-3",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          side: "sell",
+          baseQuantity: 50,
+          quoteAmount: 40,
+          expectedPrice: 0.8,
+          status: "filled",
+          realizedPnL: 5,
+          positionAfter: 58.7,
+          createdAt: "2026-03-29T12:04:00Z"
+        }
+      ],
+      activity: [
+        {
+          id: "log-3",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          logType: "trade",
+          title: "Demo sell recorded",
+          message: "Sold 50.0000 XRP at 0.8000 USDT. Review realized PnL in the updated portfolio and order history.",
+          createdAt: "2026-03-29T12:05:00Z"
         }
       ]
     }
-  }
-];
+  ];
+
+  return states[index];
+}
 
 async function installRoutes(page) {
   let orderStateIndex = 0;
 
   await page.addInitScript(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   await page.route("**/api/v1/**", async (route) => {
@@ -116,7 +170,6 @@ async function installRoutes(page) {
     }
 
     if (url.includes("/candles")) {
-      const interval = url.includes("interval=15m") ? "15m" : "1h";
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -146,7 +199,7 @@ async function installRoutes(page) {
             }
           ],
           meta: {
-            source: interval === "15m" ? "stale" : "fresh",
+            source: "fresh",
             generated_at: "2026-03-29T12:05:00Z"
           }
         })
@@ -175,29 +228,15 @@ async function installRoutes(page) {
     }
 
     if (url.endsWith("/api/v1/orders") && request.method() === "POST") {
-      orderStateIndex = 1;
+      const payload = request.postDataJSON() ?? {};
+      if (payload.side === "sell") {
+        orderStateIndex = 1;
+      }
+
       await route.fulfill({
         status: 201,
         contentType: "application/json",
-        body: JSON.stringify({ order: { id: "order-2" } })
-      });
-      return;
-    }
-
-    if (url.endsWith("/api/v1/orders")) {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ orders: responses[orderStateIndex].orders })
-      });
-      return;
-    }
-
-    if (url.endsWith("/api/v1/activity")) {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ activity: responses[orderStateIndex].activity })
+        body: JSON.stringify({ order: { id: "order-doc" } })
       });
       return;
     }
@@ -206,7 +245,25 @@ async function installRoutes(page) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ portfolio: responses[orderStateIndex].portfolio })
+        body: JSON.stringify({ portfolio: state(orderStateIndex).portfolio })
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/orders")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ orders: state(orderStateIndex).orders })
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/activity")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ activity: state(orderStateIndex).activity })
       });
       return;
     }
@@ -219,29 +276,25 @@ async function capture() {
   await fs.mkdir(docsScreenshotDir, { recursive: true });
 
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1600, height: 2400 } });
+  const page = await browser.newPage({ viewport: { width: 1600, height: 2200 } });
 
   await installRoutes(page);
+
   await page.goto(appBaseUrl);
-  await page.getByRole("heading", { name: /demo execution with/i }).waitFor();
-  await page.screenshot({
-    path: path.join(docsScreenshotDir, "dashboard-overview.png"),
-    fullPage: true
-  });
+  await page.getByRole("heading", { name: /demo execution/i }).waitFor();
+  await page.screenshot({ path: path.join(docsScreenshotDir, "dashboard-overview.png"), fullPage: true });
 
-  await page.getByRole("button", { name: "15m" }).click();
-  await page.getByText(/feed stale fallback/i).waitFor();
-  await page.screenshot({
-    path: path.join(docsScreenshotDir, "chart-stale-feed.png"),
-    fullPage: true
-  });
+  await page.getByRole("button", { name: "FIFO" }).click();
+  await page.screenshot({ path: path.join(docsScreenshotDir, "accounting-mode-switch.png"), fullPage: true });
 
-  await page.getByRole("button", { name: /run demo buy/i }).click();
-  await page.getByText(/demo buy executed for xrp\/usdt/i).waitFor();
-  await page.screenshot({
-    path: path.join(docsScreenshotDir, "demo-buy-success.png"),
-    fullPage: true
-  });
+  await page.goto(`${appBaseUrl}/markets/XRP%2FUSDT`);
+  await page.getByText(/focused trading screen/i).waitFor();
+  await page.screenshot({ path: path.join(docsScreenshotDir, "market-detail-page.png"), fullPage: true });
+
+  await page.locator("input").nth(1).fill("50");
+  await page.getByRole("button", { name: /run demo sell/i }).click();
+  await page.getByText(/demo sell executed/i).waitFor();
+  await page.screenshot({ path: path.join(docsScreenshotDir, "demo-sell-success.png"), fullPage: true });
 
   await browser.close();
 }

@@ -11,30 +11,45 @@ TradeLab is a simulation-focused product. It helps users explore market flows, i
 
 ## Product flow at a glance
 
-The current user experience centers on one dashboard:
+The current user experience now uses two connected surfaces:
 
 1. a demo session is created automatically
-2. the market list loads with `XRP/USDT` as the reference pair
-3. live candle data and feed status appear in the chart area
+2. the overview dashboard loads with `XRP/USDT` as the reference pair
+3. global accounting mode can be switched between `Average cost`, `FIFO`, and `Hybrid`
 4. after the dashboard shows value, the user can choose to keep going as a guest or sign in with Google or Apple
-5. the user can switch intervals or markets
-6. the user can submit a demo market buy
-7. balances, positions, orders, and activity update after execution
+5. the user can open a dedicated market detail page
+6. the user can submit demo market buys and sells
+7. balances, positions, orders, activity, and PnL update after execution
 
 ## Dashboard overview
 
-The dashboard combines the main trading surfaces in one place:
+The dashboard is the overview surface:
 
 - market selection
-- demo buy ticket
-- live chart
-- wallet summary
+- quick buy ticket
+- accounting mode switch
+- wallet and PnL summary
 - balances
 - positions
 - recent orders
 - activity log
 
 ![TradeLab dashboard overview](screenshots/dashboard-overview.png)
+
+## Market detail page
+
+TradeLab now uses a dedicated market route for focused trading work.
+
+The market detail page combines:
+
+- live chart
+- current position state
+- demo buy ticket
+- demo sell ticket
+- filtered order history
+- filtered activity for the selected market
+
+![TradeLab market detail page](screenshots/market-detail-page.png)
 
 ## Core workflows
 
@@ -67,46 +82,58 @@ Registered access uses a secure server-managed session after sign-in. The browse
 
 ### 3. Inspect a market
 
-Use the market list to choose a reference pair such as `XRP/USDT`. The chart updates independently from the rest of the dashboard so you can switch intervals without clearing portfolio panels.
+Use the overview to choose a reference pair such as `XRP/USDT`, then open the dedicated market detail page. The chart updates independently from the rest of the product state so you can switch intervals without clearing portfolio panels.
 
 What to watch:
 
 - `Last close`
 - `Feed state`
-- `Session high`
-- `Session low`
-- `Last volume`
+- `Current position`
+- `Recent market-specific orders`
+- `Recent market-specific activity`
 
-![TradeLab stale-feed interval view](screenshots/chart-stale-feed.png)
+### 4. Execute a demo market buy or sell
 
-### 4. Execute a demo market buy
-
-Use the demo buy ticket to place a virtual market buy:
+Use the market detail page to place virtual market trades:
 
 1. choose a market
-2. enter a quote amount
-3. review the server-side execution pricing hint
+2. choose `buy` with a quote amount or `sell` with a base quantity
+3. optionally use `Max position` for a full exit
 4. submit the order
 
-TradeLab executes the buy in the backend and then refreshes:
+TradeLab executes the trade in the backend and then refreshes:
 
 - wallet summary
 - balances
 - open positions
 - recent orders
 - activity log
+- realized and unrealized PnL
 
-![TradeLab demo buy success state](screenshots/demo-buy-success.png)
+![TradeLab demo sell success state](screenshots/demo-sell-success.png)
 
-### 5. Review the outcome
+### 5. Switch accounting modes
 
-After an order succeeds, the dashboard becomes the main review surface.
+TradeLab applies one global accounting mode across overview and market detail:
+
+- `Average cost`
+- `FIFO`
+- `Hybrid`
+
+This lets you compare the same simulated trades under different valuation logic without changing the underlying demo trades themselves.
+
+![TradeLab accounting mode switch](screenshots/accounting-mode-switch.png)
+
+### 6. Review the outcome
+
+After an order succeeds, use the overview and market detail together.
 
 Use it to answer:
 
 - did the wallet value change as expected
-- did a new position open
+- did the position increase, shrink, or close
 - was a new order recorded
+- did realized PnL appear correctly on sells
 - did the activity log explain what happened
 
 ## Feed states

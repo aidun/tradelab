@@ -22,36 +22,57 @@ export type Position = {
   baseAsset: string;
   quoteAsset: string;
   status: string;
+  openQuantity: number;
   entryQuantity: number;
   entryPriceAvg: number;
   currentPrice: number;
+  costBasisValue: number;
   positionValue: number;
+  realizedPnL: number;
   unrealizedPnL: number;
   openedAt: string;
 };
 
+export type PortfolioAllocation = {
+  marketSymbol: string;
+  value: number;
+  weight: number;
+};
+
+export type AccountingMode = "average_cost" | "fifo" | "hybrid";
+
 export type PortfolioSummary = {
   walletID: string;
   baseCurrency: string;
+  accountingMode: AccountingMode;
   totalValue: number;
   cashBalance: number;
+  positionValue: number;
+  realizedPnL: number;
+  unrealizedPnL: number;
   positions: Position[];
   balances: Balance[];
+  allocations: PortfolioAllocation[];
 };
 
 export type Order = {
   id: string;
   walletID: string;
   marketSymbol: string;
+  side: "buy" | "sell";
+  baseQuantity: number;
   quoteAmount: number;
   expectedPrice: number;
   status: string;
+  realizedPnL: number;
+  positionAfter: number;
   createdAt: string;
 };
 
 export type ActivityLog = {
   id: string;
   walletID: string;
+  marketSymbol: string;
   logType: string;
   title: string;
   message: string;
@@ -183,8 +204,8 @@ export async function fetchCandles(marketSymbol: string, interval = "1h", limit 
   };
 }
 
-export async function fetchPortfolio(walletID: string, token: string): Promise<PortfolioSummary> {
-  const response = await fetch(apiUrl(`/api/v1/portfolios/${walletID}`), {
+export async function fetchPortfolio(walletID: string, token: string, accountingMode: AccountingMode): Promise<PortfolioSummary> {
+  const response = await fetch(apiUrl(`/api/v1/portfolios/${walletID}?accounting_mode=${accountingMode}`), {
     cache: "no-store",
     credentials: "include",
     headers: authHeaders(token)
@@ -198,8 +219,19 @@ export async function fetchPortfolio(walletID: string, token: string): Promise<P
   return data.portfolio;
 }
 
-export async function fetchOrders(token: string): Promise<Order[]> {
-  const response = await fetch(apiUrl("/api/v1/orders"), {
+export async function fetchOrders(
+  token: string,
+  options?: { accountingMode?: AccountingMode; marketSymbol?: string }
+): Promise<Order[]> {
+  const params = new URLSearchParams();
+  if (options?.accountingMode) {
+    params.set("accounting_mode", options.accountingMode);
+  }
+  if (options?.marketSymbol) {
+    params.set("market_symbol", options.marketSymbol);
+  }
+
+  const response = await fetch(apiUrl(`/api/v1/orders${params.size > 0 ? `?${params.toString()}` : ""}`), {
     cache: "no-store",
     credentials: "include",
     headers: authHeaders(token)
@@ -212,8 +244,13 @@ export async function fetchOrders(token: string): Promise<Order[]> {
   return data.orders;
 }
 
-export async function fetchActivity(token: string): Promise<ActivityLog[]> {
-  const response = await fetch(apiUrl("/api/v1/activity"), {
+export async function fetchActivity(token: string, options?: { marketSymbol?: string }): Promise<ActivityLog[]> {
+  const params = new URLSearchParams();
+  if (options?.marketSymbol) {
+    params.set("market_symbol", options.marketSymbol);
+  }
+
+  const response = await fetch(apiUrl(`/api/v1/activity${params.size > 0 ? `?${params.toString()}` : ""}`), {
     cache: "no-store",
     credentials: "include",
     headers: authHeaders(token)
@@ -226,9 +263,11 @@ export async function fetchActivity(token: string): Promise<ActivityLog[]> {
   return data.activity;
 }
 
-export async function placeMarketBuy(input: {
+export async function placeMarketOrder(input: {
+  side: "buy" | "sell";
   marketSymbol: string;
-  quoteAmount: number;
+  quoteAmount?: number;
+  baseQuantity?: number;
   token?: string | null;
 }) {
   const response = await fetch(apiUrl("/api/v1/orders"), {
@@ -240,7 +279,9 @@ export async function placeMarketBuy(input: {
     },
     body: JSON.stringify({
       market_symbol: input.marketSymbol,
-      quote_amount: input.quoteAmount
+      side: input.side,
+      quote_amount: input.quoteAmount,
+      base_quantity: input.baseQuantity
     })
   });
 

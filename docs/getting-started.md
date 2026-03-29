@@ -62,9 +62,10 @@ What you should expect on first launch:
 1. the app loads the dashboard
 2. a guest demo session is created automatically
 3. the market list appears with `XRP/USDT` as the reference pair
-4. the chart loads with a feed freshness indicator
-5. portfolio panels, recent orders, and activity become visible
-6. after first value appears, the app can offer a durable-account upgrade through Google or Apple login
+4. the chart loads with a feed freshness indicator and a global accounting-mode switch
+5. portfolio panels, recent orders, activity, and PnL become visible
+6. market cards can open a focused market detail route
+7. after first value appears, the app can offer a durable-account upgrade through Google or Apple login
 
 The full walkthrough is in [user-guide.md](user-guide.md).
 
@@ -144,6 +145,8 @@ Use this checklist after setup:
 - the chart loads candle data
 - portfolio panels load successfully
 - a demo buy can be submitted and reflected in the dashboard
+- a market detail page opens for the selected pair
+- a demo sell can be submitted from the market detail page
 
 The validation details for local and deployed environments live in [installation-validation.md](installation-validation.md).
 

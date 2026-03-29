@@ -10,6 +10,7 @@ Key principles:
 - keep wallet balances separate from trades and positions
 - log every strategy evaluation for traceability
 - represent manual and automated orders with the same model
+- keep portfolio valuation selectable by accounting mode without mutating the executed trade history
 
 ## 2. Core entities
 
@@ -357,9 +358,24 @@ UI direction:
 - a strong token-based visual system for color, spacing, type, and motion
 - small, focused, testable components
 
-## 7. Open decisions
+## 7. Accounting modes
 
-- whether positions should use FIFO, average cost, or a hybrid model
+TradeLab Phase 4 supports three portfolio accounting modes:
+
+- `average_cost`
+- `fifo`
+- `hybrid`
+
+Current behavior:
+
+- `average_cost` uses weighted-average cost basis for realized and unrealized PnL
+- `fifo` uses first-in-first-out lots for realized and unrealized PnL
+- `hybrid` uses average-cost valuation for live open-position summary and FIFO attribution for realized sell outcomes
+
+The executed order history stays the same regardless of the selected accounting mode. The mode affects valuation and explanation, not the underlying stored demo trades.
+
+## 8. Open decisions
+
 - whether fees should always be simulated in the quote asset
 - which timeframes should be persisted for candles
 - whether real-time data should be cached before persistence
@@ -368,7 +384,7 @@ UI direction:
 - whether strategy workers should run inside the API binary or as a separate process
 - whether local PostgreSQL should be native or container-based for the whole team
 
-## 8. Recommended starting point
+## 9. Recommended starting point
 
 Keep the first build intentionally small:
 

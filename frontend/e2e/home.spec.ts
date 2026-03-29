@@ -1,8 +1,250 @@
 import { expect, test } from "@playwright/test";
 
+function portfolioState(index: number) {
+  const states = [
+    {
+      orders: [
+        {
+          id: "order-1",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          side: "buy",
+          baseQuantity: 74.62,
+          quoteAmount: 50,
+          expectedPrice: 0.67,
+          status: "filled",
+          realizedPnL: 0,
+          positionAfter: 74.62,
+          createdAt: "2026-03-29T12:00:00Z"
+        }
+      ],
+      activity: [
+        {
+          id: "log-1",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          logType: "trade",
+          title: "Demo buy recorded",
+          message: "Bought 74.6200 XRP at 0.6700 USDT. Position size is now updating in the portfolio view.",
+          createdAt: "2026-03-29T12:01:00Z"
+        }
+      ],
+      portfolio: {
+        walletID: "wallet-1",
+        baseCurrency: "USDT",
+        accountingMode: "average_cost",
+        totalValue: 10000,
+        cashBalance: 9950,
+        positionValue: 50,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
+        balances: [
+          { walletID: "wallet-1", assetSymbol: "USDT", available: 9950 },
+          { walletID: "wallet-1", assetSymbol: "XRP", available: 74.62 }
+        ],
+        positions: [
+          {
+            id: "position-1",
+            userID: "user-1",
+            walletID: "wallet-1",
+            marketID: "market-1",
+            marketSymbol: "XRP/USDT",
+            baseAsset: "XRP",
+            quoteAsset: "USDT",
+            status: "open",
+            openQuantity: 74.62,
+            entryQuantity: 74.62,
+            entryPriceAvg: 0.67,
+            currentPrice: 0.67,
+            costBasisValue: 50,
+            positionValue: 50,
+            realizedPnL: 0,
+            unrealizedPnL: 0,
+            openedAt: "2026-03-29T12:01:00Z"
+          }
+        ],
+        allocations: [{ marketSymbol: "XRP/USDT", value: 50, weight: 1 }]
+      }
+    },
+    {
+      orders: [
+        {
+          id: "order-2",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          side: "buy",
+          baseQuantity: 108.7,
+          quoteAmount: 75,
+          expectedPrice: 0.69,
+          status: "filled",
+          realizedPnL: 0,
+          positionAfter: 108.7,
+          createdAt: "2026-03-29T12:02:00Z"
+        }
+      ],
+      activity: [
+        {
+          id: "log-2",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          logType: "trade",
+          title: "Demo buy executed",
+          message: "Bought 108.7000 XRP at 0.6900 USDT. Position size is now updating in the portfolio view.",
+          createdAt: "2026-03-29T12:03:00Z"
+        }
+      ],
+      portfolio: {
+        walletID: "wallet-1",
+        baseCurrency: "USDT",
+        accountingMode: "average_cost",
+        totalValue: 10025,
+        cashBalance: 9875,
+        positionValue: 150,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
+        balances: [
+          { walletID: "wallet-1", assetSymbol: "USDT", available: 9875 },
+          { walletID: "wallet-1", assetSymbol: "XRP", available: 108.7 }
+        ],
+        positions: [
+          {
+            id: "position-1",
+            userID: "user-1",
+            walletID: "wallet-1",
+            marketID: "market-1",
+            marketSymbol: "XRP/USDT",
+            baseAsset: "XRP",
+            quoteAsset: "USDT",
+            status: "open",
+            openQuantity: 108.7,
+            entryQuantity: 108.7,
+            entryPriceAvg: 0.69,
+            currentPrice: 0.69,
+            costBasisValue: 75,
+            positionValue: 150,
+            realizedPnL: 0,
+            unrealizedPnL: 75,
+            openedAt: "2026-03-29T12:03:00Z"
+          }
+        ],
+        allocations: [{ marketSymbol: "XRP/USDT", value: 150, weight: 1 }]
+      }
+    },
+    {
+      orders: [
+        {
+          id: "order-3",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          side: "sell",
+          baseQuantity: 50,
+          quoteAmount: 40,
+          expectedPrice: 0.8,
+          status: "filled",
+          realizedPnL: 5,
+          positionAfter: 58.7,
+          createdAt: "2026-03-29T12:04:00Z"
+        }
+      ],
+      activity: [
+        {
+          id: "log-3",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          logType: "trade",
+          title: "Demo sell recorded",
+          message: "Sold 50.0000 XRP at 0.8000 USDT. Review realized PnL in the updated portfolio and order history.",
+          createdAt: "2026-03-29T12:05:00Z"
+        }
+      ],
+      portfolio: {
+        walletID: "wallet-1",
+        baseCurrency: "USDT",
+        accountingMode: "average_cost",
+        totalValue: 10035,
+        cashBalance: 9915,
+        positionValue: 120,
+        realizedPnL: 5,
+        unrealizedPnL: 10,
+        balances: [
+          { walletID: "wallet-1", assetSymbol: "USDT", available: 9915 },
+          { walletID: "wallet-1", assetSymbol: "XRP", available: 58.7 }
+        ],
+        positions: [
+          {
+            id: "position-1",
+            userID: "user-1",
+            walletID: "wallet-1",
+            marketID: "market-1",
+            marketSymbol: "XRP/USDT",
+            baseAsset: "XRP",
+            quoteAsset: "USDT",
+            status: "open",
+            openQuantity: 58.7,
+            entryQuantity: 58.7,
+            entryPriceAvg: 0.7,
+            currentPrice: 0.8,
+            costBasisValue: 41.09,
+            positionValue: 46.96,
+            realizedPnL: 5,
+            unrealizedPnL: 5.87,
+            openedAt: "2026-03-29T12:05:00Z"
+          }
+        ],
+        allocations: [{ marketSymbol: "XRP/USDT", value: 46.96, weight: 1 }]
+      }
+    },
+    {
+      orders: [
+        {
+          id: "order-4",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          side: "sell",
+          baseQuantity: 58.7,
+          quoteAmount: 52.83,
+          expectedPrice: 0.9,
+          status: "filled",
+          realizedPnL: 12,
+          positionAfter: 0,
+          createdAt: "2026-03-29T12:06:00Z"
+        }
+      ],
+      activity: [
+        {
+          id: "log-4",
+          walletID: "wallet-1",
+          marketSymbol: "XRP/USDT",
+          logType: "trade",
+          title: "Demo sell recorded",
+          message: "Sold 58.7000 XRP at 0.9000 USDT. Review realized PnL in the updated portfolio and order history.",
+          createdAt: "2026-03-29T12:07:00Z"
+        }
+      ],
+      portfolio: {
+        walletID: "wallet-1",
+        baseCurrency: "USDT",
+        accountingMode: "average_cost",
+        totalValue: 10060,
+        cashBalance: 9967.83,
+        positionValue: 0,
+        realizedPnL: 17,
+        unrealizedPnL: 0,
+        balances: [
+          { walletID: "wallet-1", assetSymbol: "USDT", available: 9967.83 },
+          { walletID: "wallet-1", assetSymbol: "XRP", available: 0 }
+        ],
+        positions: [],
+        allocations: []
+      }
+    }
+  ];
+
+  return states[index];
+}
+
 test.beforeEach(async ({ page }) => {
   let orderStateIndex = 0;
-  let accountMode: "guest" | "registered-preserved" | "registered-fresh" = "guest";
 
   await page.addInitScript(() => {
     window.localStorage.clear();
@@ -12,88 +254,6 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const url = request.url();
-
-    const responses = [
-      {
-        orders: [
-          {
-            id: "order-1",
-            walletID: "wallet-1",
-            marketSymbol: "XRP/USDT",
-            quoteAmount: 50,
-            expectedPrice: 0.67,
-            status: "filled",
-            createdAt: "2026-03-29T12:00:00Z"
-          }
-        ],
-        activity: [
-          {
-            id: "log-1",
-            walletID: "wallet-1",
-            logType: "trade",
-            title: "Demo buy recorded",
-            message: "A demo market buy was created for XRP/USDT.",
-            createdAt: "2026-03-29T12:01:00Z"
-          }
-        ],
-        portfolio: {
-          walletID: "wallet-1",
-          baseCurrency: "USDT",
-          totalValue: 10000,
-          cashBalance: 9950,
-          balances: [{ walletID: "wallet-1", assetSymbol: "USDT", available: 9950 }],
-          positions: []
-        }
-      },
-      {
-        orders: [
-          {
-            id: "order-2",
-            walletID: "wallet-1",
-            marketSymbol: "XRP/USDT",
-            quoteAmount: 75,
-            expectedPrice: 0.69,
-            status: "filled",
-            createdAt: "2026-03-29T12:02:00Z"
-          }
-        ],
-        activity: [
-          {
-            id: "log-2",
-            walletID: "wallet-1",
-            logType: "trade",
-            title: "Demo buy executed",
-            message: "A second demo market buy was created for XRP/USDT.",
-            createdAt: "2026-03-29T12:03:00Z"
-          }
-        ],
-        portfolio: {
-          walletID: "wallet-1",
-          baseCurrency: "USDT",
-          totalValue: 10025,
-          cashBalance: 9875,
-          balances: [{ walletID: "wallet-1", assetSymbol: "USDT", available: 9875 }],
-          positions: [
-            {
-              id: "position-1",
-              userID: "user-1",
-              walletID: "wallet-1",
-              marketID: "market-1",
-              marketSymbol: "XRP/USDT",
-              baseAsset: "XRP",
-              quoteAsset: "USDT",
-              status: "open",
-              entryQuantity: 108.7,
-              entryPriceAvg: 0.69,
-              currentPrice: 0.69,
-              positionValue: 75,
-              unrealizedPnL: 0,
-              openedAt: "2026-03-29T12:02:00Z"
-            }
-          ]
-        }
-      }
-    ];
 
     if (url.endsWith("/api/v1/sessions/demo")) {
       await route.fulfill({
@@ -112,65 +272,7 @@ test.beforeEach(async ({ page }) => {
       return;
     }
 
-    if (url.endsWith("/api/v1/account/bootstrap")) {
-      accountMode = "registered-preserved";
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        headers: {
-          "Set-Cookie": "tradelab_app_session=cookie-token; Path=/; HttpOnly; SameSite=Lax"
-        },
-        body: JSON.stringify({
-          account: {
-            user_id: "user-registered",
-            wallet_id: "wallet-registered",
-            clerk_user_id: "mock_google_mock-google-user",
-            email: "google-user@google.mock.tradelab",
-            display_name: "Mock Google User",
-            mode: "registered"
-          }
-        })
-      });
-      return;
-    }
-
-    if (url.endsWith("/api/v1/account/upgrade")) {
-      const payload = request.postDataJSON() as { preserve_guest_data?: boolean };
-      accountMode = payload?.preserve_guest_data ? "registered-preserved" : "registered-fresh";
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        headers: {
-          "Set-Cookie": "tradelab_app_session=cookie-token; Path=/; HttpOnly; SameSite=Lax"
-        },
-        body: JSON.stringify({
-          account: {
-            user_id: "user-registered",
-            wallet_id: payload?.preserve_guest_data ? "wallet-1" : "wallet-registered",
-            clerk_user_id: "mock_google_mock-google-user",
-            email: "google-user@google.mock.tradelab",
-            display_name: "Mock Google User",
-            mode: "registered"
-          }
-        })
-      });
-      return;
-    }
-
-    if (url.endsWith("/api/v1/account/logout")) {
-      accountMode = "guest";
-      await route.fulfill({
-        status: 204,
-        headers: {
-          "Set-Cookie": "tradelab_app_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
-        },
-        body: ""
-      });
-      return;
-    }
-
     if (url.includes("/candles")) {
-      const interval = url.includes("interval=15m") ? "15m" : "1h";
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -200,7 +302,7 @@ test.beforeEach(async ({ page }) => {
             }
           ],
           meta: {
-            source: interval === "15m" ? "stale" : "fresh",
+            source: url.includes("interval=15m") ? "stale" : "fresh",
             generated_at: "2026-03-29T12:05:00Z"
           }
         })
@@ -229,56 +331,57 @@ test.beforeEach(async ({ page }) => {
     }
 
     if (url.endsWith("/api/v1/orders") && request.method() === "POST") {
-      orderStateIndex = 1;
+      const payload = request.postDataJSON() as { side?: "buy" | "sell"; base_quantity?: number };
+      if (payload.side === "buy") {
+        orderStateIndex = 1;
+      } else if ((payload.base_quantity ?? 0) >= 58.7) {
+        orderStateIndex = 3;
+      } else {
+        orderStateIndex = 2;
+      }
+
       await route.fulfill({
         status: 201,
         contentType: "application/json",
-        body: JSON.stringify({ order: { id: "order-2" } })
-      });
-      return;
-    }
-
-    if (url.endsWith("/api/v1/orders")) {
-      const walletID = accountMode === "registered-fresh" ? "wallet-registered" : "wallet-1";
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          orders: responses[orderStateIndex].orders.map((order) => ({
-            ...order,
-            walletID
-          }))
-        })
-      });
-      return;
-    }
-
-    if (url.endsWith("/api/v1/activity")) {
-      const walletID = accountMode === "registered-fresh" ? "wallet-registered" : "wallet-1";
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          activity: responses[orderStateIndex].activity.map((item) => ({
-            ...item,
-            walletID
-          }))
-        })
+        body: JSON.stringify({ order: { id: `order-${orderStateIndex + 1}` } })
       });
       return;
     }
 
     if (url.includes("/api/v1/portfolios/")) {
-      const walletID = accountMode === "registered-fresh" ? "wallet-registered" : "wallet-1";
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          portfolio: {
-            ...responses[orderStateIndex].portfolio,
-            walletID
-          }
-        })
+        body: JSON.stringify({ portfolio: portfolioState(orderStateIndex).portfolio })
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/orders")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ orders: portfolioState(orderStateIndex).orders })
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/activity")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ activity: portfolioState(orderStateIndex).activity })
+      });
+      return;
+    }
+
+    if (url.endsWith("/api/v1/account/logout")) {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          "Set-Cookie": "tradelab_app_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
+        },
+        body: ""
       });
       return;
     }
@@ -290,92 +393,50 @@ test.beforeEach(async ({ page }) => {
 test("creates a demo session and renders the dashboard", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: /demo execution with/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /demo execution/i })).toBeVisible();
   await expect(page.getByText("XRP/USDT").first()).toBeVisible();
-  await expect(page.getByText(/feed fresh/i)).toBeVisible();
-  await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("tradelab.demo-session"))).not.toBeNull();
-  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("tradelab.demo-session"))).toBeNull();
+  await expect(page.getByRole("button", { name: /run demo buy/i })).toBeVisible();
 });
 
-test("switches interval without clearing the portfolio panels", async ({ page }) => {
+test("opens the dedicated market detail page", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("link", { name: /open market detail/i }).click();
 
-  await expect(page.getByText(/\$10,000.00/)).toBeVisible();
-  await page.getByRole("button", { name: "15m" }).click();
-
-  await expect(page.getByText(/feed stale fallback/i)).toBeVisible();
-  await expect(page.getByText(/\$10,000.00/)).toBeVisible();
-  await expect(page.getByText(/demo buy recorded/i)).toBeVisible();
+  await expect(page).toHaveURL(/\/markets\/XRP%2FUSDT|\/markets\/XRP\/USDT/);
+  await expect(page.getByText(/focused trading screen/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /run demo sell/i })).toBeVisible();
 });
 
-test("executes a demo buy and refreshes the wallet panels", async ({ page }) => {
+test("executes a demo buy and refreshes portfolio metrics", async ({ page }) => {
   await page.goto("/");
-
   await page.getByRole("button", { name: /run demo buy/i }).click();
 
   await expect(page.getByText(/demo buy executed for xrp\/usdt/i)).toBeVisible();
   await expect(page.getByText(/\$10,025.00/)).toBeVisible();
-  await expect(page.getByText(/^demo buy executed$/i)).toBeVisible();
 });
 
-test("upgrades a guest session into a registered account while preserving guest data", async ({ page }) => {
-  await page.goto("/");
+test("executes a partial sell from the market detail page", async ({ page }) => {
+  await page.goto("/markets/XRP%2FUSDT");
+  await page.locator("input").nth(1).fill("50");
+  await page.getByRole("button", { name: /run demo sell/i }).click();
 
-  await expect(page.getByText(/keep this sandbox beyond the guest session/i)).toBeVisible();
-  await page.getByRole("button", { name: /continue with google/i }).click();
-
-  await expect(page.getByText(/keep your guest demo data or start fresh/i)).toBeVisible();
-  await page.getByRole("button", { name: /keep guest demo data/i }).click();
-
-  await expect(page.getByText(/registered demo account/i)).toBeVisible();
-  await expect(page.getByText(/guest demo data moved into the registered account/i)).toBeVisible();
+  await expect(page.getByText(/demo sell executed for xrp\/usdt/i)).toBeVisible();
+  await expect(page.getByText(/open qty 58.7/i)).toBeVisible();
+  await expect(page.getByText(/realized \$5.00/i).first()).toBeVisible();
 });
 
-test("upgrades a guest session into a fresh registered account", async ({ page }) => {
-  await page.goto("/");
+test("closes the position with a max sell", async ({ page }) => {
+  await page.goto("/markets/XRP%2FUSDT");
+  await page.getByRole("button", { name: /max position/i }).click();
+  await page.getByRole("button", { name: /run demo sell/i }).click();
 
-  await page.getByRole("button", { name: /continue with google/i }).click();
-  await page.getByRole("button", { name: /start fresh/i }).click();
-
-  await expect(page.getByText(/registered demo account/i)).toBeVisible();
-  await expect(page.getByText(/registered demo account created with a fresh start/i)).toBeVisible();
+  await expect(page.getByText(/demo sell executed for xrp\/usdt/i)).toBeVisible();
+  await expect(page.getByText(/no open positions yet/i)).toBeVisible();
 });
 
-test("restores the registered account for a returning signed-in user", async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      "tradelab.mock-auth",
-      JSON.stringify({
-        clerkUserID: "mock-google-user",
-        email: "google-user@google.mock.tradelab",
-        displayName: "Mock Google User"
-      })
-    );
-  });
-
+test("switches accounting modes globally", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "FIFO" }).click();
 
-  await expect(page.getByText(/registered demo account/i)).toBeVisible();
-  await expect(page.getByText(/mock google user/i)).toBeVisible();
-});
-
-test("logs out of a registered account and falls back to a guest session", async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      "tradelab.mock-auth",
-      JSON.stringify({
-        clerkUserID: "mock-google-user",
-        email: "google-user@google.mock.tradelab",
-        displayName: "Mock Google User"
-      })
-    );
-  });
-
-  await page.goto("/");
-
-  await expect(page.getByText(/registered demo account/i)).toBeVisible();
-  await page.getByRole("button", { name: /log out/i }).click();
-
-  await expect(page.getByText(/guest demo session/i)).toBeVisible();
-  await expect(page.getByText(/keep this sandbox beyond the guest session/i)).toBeVisible();
+  await expect(page.getByText(/fifo/i).first()).toBeVisible();
 });

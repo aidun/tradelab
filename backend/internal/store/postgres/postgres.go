@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
@@ -519,38 +520,70 @@ func (r *PortfolioRepository) ApplyMarketBuy(ctx context.Context, order domain.O
 		return domain.Order{}, err
 	}
 
+	if err := insertOrderAndActivity(ctx, tx, order, "Demo buy recorded", fmt.Sprintf(
+		"Bought %.4f %s at %.4f %s. Position size is now updating in the portfolio view.",
+		order.BaseQuantity,
+		order.BaseAsset,
+		order.ExpectedPrice,
+		order.QuoteAsset,
+	)); err != nil {
+		return domain.Order{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return domain.Order{}, err
+	}
+
+	return order, nil
+}
+
+func (r *PortfolioRepository) ApplyMarketSell(ctx context.Context, order domain.Order) (domain.Order, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.Order{}, err
+	}
+	defer tx.Rollback()
+
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO orders (
-			id,
-			user_id,
-			wallet_id,
-			market_id,
-			order_source,
-			side,
-			order_type,
-			status,
-			requested_quote_amount,
-			executed_quantity,
-			average_execution_price,
-			submitted_at,
-			executed_at
-		) VALUES ($1, $2, $3, $4, 'manual', $5, $6, $7, $8, $9, $10, $11, $12)
-	`, order.ID, order.UserID, order.WalletID, order.MarketID, order.Side, order.Type, order.Status, order.QuoteAmount, order.BaseQuantity, order.ExpectedPrice, order.CreatedAt, order.ExecutedAt); err != nil {
+		UPDATE wallet_balances wb
+		SET available_amount = wb.available_amount - $1, updated_at = NOW()
+		FROM assets a
+		WHERE wb.wallet_id = $2
+		  AND wb.asset_id = a.id
+		  AND a.symbol = $3
+	`, order.BaseQuantity, order.WalletID, order.BaseAsset); err != nil {
 		return domain.Order{}, err
 	}
 
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO activity_logs (
-			id,
-			user_id,
-			wallet_id,
-			order_id,
-			log_type,
-			title,
-			message,
-			created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, order.ID, order.UserID, order.WalletID, order.ID, "trade", "Demo buy recorded", "A demo market buy was created for "+order.MarketSymbol+".", order.CreatedAt); err != nil {
+		UPDATE wallet_balances wb
+		SET available_amount = wb.available_amount + $1, updated_at = NOW()
+		FROM assets a
+		WHERE wb.wallet_id = $2
+		  AND wb.asset_id = a.id
+		  AND a.symbol = $3
+	`, order.QuoteAmount, order.WalletID, order.QuoteAsset); err != nil {
+		return domain.Order{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE positions
+		SET
+			entry_quantity = GREATEST(0, entry_quantity - $1),
+			status = CASE WHEN entry_quantity - $1 <= 0 THEN 'closed' ELSE status END,
+			updated_at = NOW()
+		WHERE wallet_id = $2 AND market_id = $3 AND status = 'open'
+	`, order.BaseQuantity, order.WalletID, order.MarketID); err != nil {
+		return domain.Order{}, err
+	}
+
+	if err := insertOrderAndActivity(ctx, tx, order, "Demo sell recorded", fmt.Sprintf(
+		"Sold %.4f %s at %.4f %s. Review realized PnL in the updated portfolio and order history.",
+		order.BaseQuantity,
+		order.BaseAsset,
+		order.ExpectedPrice,
+		order.QuoteAsset,
+	)); err != nil {
 		return domain.Order{}, err
 	}
 
@@ -590,60 +623,11 @@ func (r *PortfolioRepository) GetSummary(ctx context.Context, walletID string) (
 		summary.Balances = append(summary.Balances, balance)
 	}
 
-	positionRows, err := r.db.QueryContext(ctx, `
-		SELECT
-			p.id,
-			p.user_id,
-			p.wallet_id,
-			p.market_id,
-			m.symbol,
-			base_asset.symbol,
-			quote_asset.symbol,
-			p.status,
-			p.entry_quantity,
-			p.entry_price_avg,
-			p.opened_at
-		FROM positions p
-		JOIN markets m ON m.id = p.market_id
-		JOIN assets base_asset ON base_asset.id = m.base_asset_id
-		JOIN assets quote_asset ON quote_asset.id = m.quote_asset_id
-		WHERE p.wallet_id = $1 AND p.status = 'open'
-		ORDER BY p.opened_at DESC
-	`, walletID)
-	if err != nil {
-		return domain.PortfolioSummary{}, err
-	}
-	defer positionRows.Close()
-
-	for positionRows.Next() {
-		var position domain.Position
-		if err := positionRows.Scan(
-			&position.ID,
-			&position.UserID,
-			&position.WalletID,
-			&position.MarketID,
-			&position.MarketSymbol,
-			&position.BaseAsset,
-			&position.QuoteAsset,
-			&position.Status,
-			&position.EntryQuantity,
-			&position.EntryPriceAvg,
-			&position.OpenedAt,
-		); err != nil {
-			return domain.PortfolioSummary{}, err
-		}
-
-		position.CurrentPrice = position.EntryPriceAvg
-		position.PositionValue = position.EntryQuantity * position.EntryPriceAvg
-		summary.TotalValue += position.PositionValue
-		summary.Positions = append(summary.Positions, position)
-	}
-
 	return summary, nil
 }
 
 func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string, limit int) ([]domain.Order, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	query := `
 		SELECT
 			o.id,
 			o.user_id,
@@ -665,8 +649,16 @@ func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string,
 		JOIN assets quote_asset ON quote_asset.id = m.quote_asset_id
 		WHERE o.wallet_id = $1
 		ORDER BY o.submitted_at DESC
-		LIMIT $2
-	`, walletID, limit)
+	`
+
+	var rows *sql.Rows
+	var err error
+	if limit > 0 {
+		query += "\nLIMIT $2"
+		rows, err = r.db.QueryContext(ctx, query, walletID, limit)
+	} else {
+		rows, err = r.db.QueryContext(ctx, query, walletID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -700,13 +692,23 @@ func (r *PortfolioRepository) ListByWallet(ctx context.Context, walletID string,
 }
 
 func (r *PortfolioRepository) ListActivityByWallet(ctx context.Context, walletID string, limit int) ([]domain.ActivityLog, error) {
-	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, wallet_id, log_type, title, message, created_at
+	query := `
+		SELECT activity_logs.id, activity_logs.wallet_id, COALESCE(markets.symbol, ''), activity_logs.log_type, activity_logs.title, activity_logs.message, activity_logs.created_at
 		FROM activity_logs
+		LEFT JOIN orders ON orders.id = activity_logs.order_id
+		LEFT JOIN markets ON markets.id = orders.market_id
 		WHERE wallet_id = $1
 		ORDER BY created_at DESC
-		LIMIT $2
-	`, walletID, limit)
+	`
+
+	var rows *sql.Rows
+	var err error
+	if limit > 0 {
+		query += "\nLIMIT $2"
+		rows, err = r.db.QueryContext(ctx, query, walletID, limit)
+	} else {
+		rows, err = r.db.QueryContext(ctx, query, walletID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -715,7 +717,7 @@ func (r *PortfolioRepository) ListActivityByWallet(ctx context.Context, walletID
 	var items []domain.ActivityLog
 	for rows.Next() {
 		var item domain.ActivityLog
-		if err := rows.Scan(&item.ID, &item.WalletID, &item.LogType, &item.Title, &item.Message, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.WalletID, &item.MarketSymbol, &item.LogType, &item.Title, &item.Message, &item.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -725,7 +727,47 @@ func (r *PortfolioRepository) ListActivityByWallet(ctx context.Context, walletID
 }
 
 func (r *PortfolioRepository) Create(ctx context.Context, order domain.Order) (domain.Order, error) {
-	return domain.Order{}, fmt.Errorf("unsupported operation: use ApplyMarketBuy")
+	return domain.Order{}, fmt.Errorf("unsupported operation: use ApplyMarketBuy or ApplyMarketSell")
+}
+
+func insertOrderAndActivity(ctx context.Context, tx *sql.Tx, order domain.Order, title string, message string) error {
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO orders (
+			id,
+			user_id,
+			wallet_id,
+			market_id,
+			order_source,
+			side,
+			order_type,
+			status,
+			requested_quantity,
+			requested_quote_amount,
+			executed_quantity,
+			average_execution_price,
+			submitted_at,
+			executed_at
+		) VALUES ($1, $2, $3, $4, 'manual', $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	`, order.ID, order.UserID, order.WalletID, order.MarketID, order.Side, order.Type, order.Status, order.BaseQuantity, order.QuoteAmount, order.BaseQuantity, order.ExpectedPrice, order.CreatedAt, order.ExecutedAt); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO activity_logs (
+			id,
+			user_id,
+			wallet_id,
+			order_id,
+			log_type,
+			title,
+			message,
+			created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, newUUID(), order.UserID, order.WalletID, order.ID, "trade", title, strings.TrimSpace(message), order.CreatedAt); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newUUID() string {

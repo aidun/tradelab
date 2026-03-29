@@ -174,7 +174,7 @@ func TestListMarketCandlesRoute(t *testing.T) {
 }
 
 func TestCreateOrderRoute(t *testing.T) {
-	body := bytes.NewBufferString(`{"market_symbol":"XRP/USDT","quote_amount":50}`)
+	body := bytes.NewBufferString(`{"market_symbol":"XRP/USDT","side":"buy","quote_amount":50}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", body)
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
@@ -337,7 +337,7 @@ type fakeOrderPlacer struct {
 	err   error
 }
 
-func (f fakeOrderPlacer) PlaceMarketBuy(context.Context, orderservice.PlaceMarketBuyInput) (domain.Order, error) {
+func (f fakeOrderPlacer) PlaceMarketOrder(context.Context, orderservice.PlaceMarketOrderInput) (domain.Order, error) {
 	return f.order, f.err
 }
 
@@ -346,7 +346,7 @@ type fakePortfolioGetter struct {
 	err     error
 }
 
-func (f fakePortfolioGetter) GetSummary(context.Context, string) (domain.PortfolioSummary, error) {
+func (f fakePortfolioGetter) GetSummary(context.Context, string, domain.AccountingMode) (domain.PortfolioSummary, error) {
 	return f.summary, f.err
 }
 
@@ -355,7 +355,7 @@ type fakeOrderHistoryLister struct {
 	err    error
 }
 
-func (f fakeOrderHistoryLister) ListOrders(context.Context, string, int) ([]domain.Order, error) {
+func (f fakeOrderHistoryLister) ListOrders(context.Context, string, int, string, domain.AccountingMode) ([]domain.Order, error) {
 	return f.orders, f.err
 }
 
@@ -364,7 +364,7 @@ type fakeActivityHistoryLister struct {
 	err      error
 }
 
-func (f fakeActivityHistoryLister) ListActivity(context.Context, string, int) ([]domain.ActivityLog, error) {
+func (f fakeActivityHistoryLister) ListActivity(context.Context, string, int, string) ([]domain.ActivityLog, error) {
 	return f.activity, f.err
 }
 

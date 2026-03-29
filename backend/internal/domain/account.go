@@ -8,23 +8,23 @@ const (
 )
 
 type Principal struct {
-	Kind        PrincipalKind
-	UserID      string
-	WalletID    string
-	SessionID   string
-	ClerkUserID string
+	Kind        PrincipalKind `json:"kind"`
+	UserID      string        `json:"userID"`
+	WalletID    string        `json:"walletID"`
+	SessionID   string        `json:"sessionID"`
+	ClerkUserID string        `json:"clerkUserID"`
 }
 
 type RegisteredIdentity struct {
-	ClerkUserID string
-	Email       string
-	DisplayName string
+	ClerkUserID string `json:"clerkUserID"`
+	Email       string `json:"email"`
+	DisplayName string `json:"displayName"`
 }
 
 type RegisteredAccount struct {
-	UserID      string
-	WalletID    string
-	ClerkUserID string
-	Email       string
-	DisplayName string
+	UserID      string `json:"userID"`
+	WalletID    string `json:"walletID"`
+	ClerkUserID string `json:"clerkUserID"`
+	Email       string `json:"email"`
+	DisplayName string `json:"displayName"`
 }
