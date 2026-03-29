@@ -7,6 +7,13 @@ resources:
   - ../../base
   - namespace.yaml
 
+secretGenerator:
+  - name: tradelab-database
+    envs:
+      - .env.database
+
+generatorOptions:
+  disableNameSuffixHash: true
+
 patches:
   - path: patch-ingress.yaml
-  - path: patch-database-secret.yaml

@@ -105,6 +105,9 @@ jobs:
         with:
           version: v1.32.2
 
+      - name: Prepare development secret inputs
+        run: cp deploy/kubernetes/overlays/development/.env.database.example deploy/kubernetes/overlays/development/.env.database
+
       - name: Render development overlay
         run: kubectl kustomize deploy/kubernetes/overlays/development > /tmp/tradelab-dev.yaml
 
