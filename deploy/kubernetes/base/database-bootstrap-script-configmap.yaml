@@ -2,6 +2,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tradelab-database-bootstrap-script
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
 data:
   bootstrap.sh: |
     #!/bin/sh

@@ -4,13 +4,8 @@ metadata:
   name: tradelab
 spec:
   ingressClassName: traefik
-  tls:
-    - hosts:
-        - tradelab.example.com
-      secretName: tradelab-tls
   rules:
-    - host: tradelab.example.com
-      http:
+    - http:
         paths:
           - path: /api
             pathType: Prefix

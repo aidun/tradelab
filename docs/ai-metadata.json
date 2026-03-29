@@ -192,7 +192,20 @@
     "metallb_address_pool": "192.168.2.200-192.168.2.220",
     "traefik_load_balancer_ip": "192.168.2.200",
     "ingress_class": "traefik",
-    "development_host": "tradelab.192.168.2.200.sslip.io",
+    "development_entrypoints": [
+      "http://192.168.2.200/",
+      "http://192.168.2.200/tradelab-dev"
+    ],
+    "production_entrypoints": [
+      "http://<traefik-ip>/",
+      "http://<traefik-ip>/tradelab"
+    ],
+    "argocd_entrypoint": "http://192.168.2.200/argocd",
+    "path_aliasing": {
+      "development": "/tradelab-dev",
+      "production": "/tradelab",
+      "mechanism": "Traefik strip-prefix middleware entrypoints landing on the canonical root-served application"
+    },
     "applications": {
       "root": "deploy/infrastructure/bootstrap/root-application/root-application.yaml",
       "platform_apps": [
@@ -324,7 +337,8 @@
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
         "DATABASE_URL"
-      ]
+      ],
+      "production_external_secret_overlay_disables_bootstrap_job": true
     }
   },
   "phase_tracking": {
@@ -606,8 +620,8 @@
           "update deploy/kubernetes overlays when ingress class, hostnames, or cluster assumptions change"
         ],
         "validation_expectations": [
-          "verify bootstrap paths render cleanly",
-          "verify MetalLB pool, Traefik ingress class, Argo applications, and generated secret behavior stay aligned"
+        "verify bootstrap paths render cleanly",
+          "verify MetalLB pool, Traefik ingress class, hostless path-based entrypoints, Argo applications, and generated secret behavior stay aligned"
         ]
       },
       "secret_or_credentials_change": {

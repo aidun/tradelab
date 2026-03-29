@@ -6,6 +6,8 @@ namespace: tradelab
 resources:
   - ../../base
   - namespace.yaml
+  - ingress-entrypoint.yaml
+  - middleware-strip-prefix.yaml
 
 patches:
   - path: patch-backend-deployment.yaml

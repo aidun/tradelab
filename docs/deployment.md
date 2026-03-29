@@ -115,7 +115,7 @@ Additional development values defined in manifests:
 | `PORT` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `3000` | internal frontend container port |
 | `HOSTNAME` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `0.0.0.0` | internal frontend bind host |
 | `TRADESLAB_API_PROXY_TARGET` | [frontend-configmap.yaml](../deploy/kubernetes/base/frontend-configmap.yaml) | `http://tradelab-backend:8080` | keeps frontend `/api` rewrite inside the cluster |
-| development host | [patch-ingress.yaml](../deploy/kubernetes/overlays/development/patch-ingress.yaml) | `tradelab.192.168.2.200.sslip.io` | assumes Traefik is exposed on `192.168.2.200` through MetalLB |
+| development entrypoints | [patch-ingress.yaml](../deploy/kubernetes/overlays/development/patch-ingress.yaml) | `http://192.168.2.200/` and `http://192.168.2.200/tradelab-dev` | hostless Traefik access on the MetalLB IP |
 
 ### Kubernetes production parameters
 
@@ -130,7 +130,7 @@ For a later operator-managed secret flow, TradeLab also ships:
 
 - [production-external-secrets](../deploy/kubernetes/overlays/production-external-secrets/kustomization.yaml)
 
-That overlay adds an `ExternalSecret` on top of the normal production deployment.
+That overlay adds an `ExternalSecret` on top of the normal production deployment and explicitly removes the bootstrap job so the external secret store stays authoritative.
 
 Required remote secret properties for the external-secret variant:
 
@@ -155,7 +155,8 @@ Production values that usually need review before deployment:
 The development overlay uses:
 
 - namespace: `tradelab-dev`
-- host: `tradelab.192.168.2.200.sslip.io`
+- primary entrypoint: `http://192.168.2.200/`
+- alternate entrypoint: `http://192.168.2.200/tradelab-dev`
 - generated database credentials if no secret already exists
 
 Then apply it:
@@ -173,14 +174,21 @@ After apply, validate:
 - frontend loads through ingress
 - a guest demo session can be created
 
-If you are using the committed platform bootstrap, `sslip.io` resolves the development host directly to the reserved Traefik IP. If you use another ingress IP or another DNS strategy, update the development ingress patch before apply.
+If you are using the committed platform bootstrap, Traefik is reachable directly on the reserved MetalLB IP. The development ingress is intentionally hostless so the app does not depend on local DNS. The `/tradelab-dev` entrypoint is implemented through a Traefik strip-prefix middleware and lands on the same canonical application as `/`.
 
 ## Production deployment
 
 Before applying the production overlay:
 
-- replace the ingress host values in `deploy/kubernetes/overlays/production/patch-ingress.yaml`
+- review the hostless path entrypoints in `deploy/kubernetes/overlays/production/patch-ingress.yaml`
 - review replica counts and storage size patches if the defaults are not suitable for your environment
+
+The production overlay is prepared for these IP-based entrypoints:
+
+- primary entrypoint: `http://<traefik-ip>/`
+- alternate entrypoint: `http://<traefik-ip>/tradelab`
+
+As with development, the `/tradelab` production entrypoint is implemented through a Traefik strip-prefix middleware and lands on the same canonical application as `/`.
 
 If you want generated first-run credentials, apply the default production overlay:
 
@@ -193,6 +201,12 @@ If you want operator-managed credentials from External Secrets, make sure the ex
 ```bash
 kubectl apply -k deploy/kubernetes/overlays/production-external-secrets
 ```
+
+This variant is the recommended long-term production shape because:
+
+- generated first-run credentials are useful for bootstrap and review environments
+- the external-secret variant keeps secret ownership in the secret store
+- Argo CD can manage both overlays without the bootstrap job racing the external secret controller
 
 For immutable production output tied to a release tag, render the packaged manifest shape with:
 
