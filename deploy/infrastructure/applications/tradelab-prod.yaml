@@ -9,11 +9,14 @@ spec:
   project: default
   source:
     repoURL: https://github.com/aidun/tradelab.git
-    targetRevision: master
+    targetRevision: v0.1.22
     path: deploy/kubernetes/overlays/production
   destination:
     server: https://kubernetes.default.svc
     namespace: tradelab
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true

@@ -160,16 +160,18 @@ TradeLab currently follows a PR-first workflow:
 - changes are grouped into focused branches and pull requests
 - CI must pass before merge
 - merges are expected to remain reviewable and reasonably scoped
-- `master` is the release branch
-- successful `master` runs produce release artifacts and published container images
+- `master` is the integration branch for development and release preparation
+- official releases are triggered manually from GitHub Actions
+- production promotion is a separate manual workflow that moves Argo CD to an official release tag
 
 ## GitHub Actions flow
 
-TradeLab uses three workflows in sequence:
+TradeLab uses four workflows:
 
 1. `CI`
 2. `Auto Merge PR`
 3. `Release`
+4. `Promote Production`
 
 ### CI
 
@@ -190,7 +192,7 @@ When `CI` finishes successfully for a pull request targeting `master`, the auto-
 
 ### Release
 
-After the merge into `master`, the release workflow runs in this order:
+The release workflow is started manually from `master` and runs in this order:
 
 1. `Release metadata`
 2. `Verify backend` and `Verify frontend`
@@ -198,9 +200,15 @@ After the merge into `master`, the release workflow runs in this order:
 4. `Package Kubernetes manifests`
 5. `Create GitHub release`
 
+### Promote Production
+
+The production promotion workflow is also manual.
+
+It resolves the requested or latest official GitHub release and updates the production Argo CD application to that release tag.
+
 This is the expected delivery chain for normal feature work:
 
-`feature branch -> pull request -> CI -> auto-merge -> master -> release`
+`feature branch -> pull request -> CI -> auto-merge -> master -> manual release -> manual production promotion`
 
 ## Contribution expectations
 

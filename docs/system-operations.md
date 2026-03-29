@@ -26,6 +26,7 @@ TradeLab currently consists of these runtime components:
 
 - Kubernetes namespace: `tradelab-dev`
 - image tags: `latest`
+- Argo CD source revision: `master`
 - database secret source: generated bootstrap secret unless `tradelab-database` already exists
 - ingress class: `traefik`
 - default development ingress entrypoint: `http://192.168.2.200/tradelab-dev`
@@ -36,8 +37,9 @@ TradeLab currently consists of these runtime components:
 
 - Kubernetes namespace: `tradelab`
 - image tags in release manifests: immutable release tag such as `v0.1.<run-number>`
+- Argo CD source revision: latest promoted official release tag
 - database secret source: generated bootstrap secret by default, or external secrets through the optional production-external-secrets overlay
-- intended for controlled deployment via packaged release manifests
+- intended for controlled deployment via Argo CD promotion after a manual release
 
 ## Configuration and secrets
 
@@ -89,9 +91,9 @@ Secret-bearing values should not be committed directly into base manifests.
 ### Production deploy
 
 1. Decide whether production should use generated first-run credentials or the external-secret overlay.
-2. Ensure the release workflow has produced immutable images and a packaged manifest artifact.
-3. Render the release manifest with `deploy/kubernetes/render-release-manifests.sh` or use the packaged release artifact.
-4. Apply the manifest or Argo CD application.
+2. Trigger the manual release workflow from `master`.
+3. Confirm the GitHub Release exists and immutable images were published.
+4. Trigger the `Promote Production` workflow to move `tradelab-prod` to the selected official release tag.
 5. Verify backend health, frontend reachability, and database connectivity.
 
 ## Release model
@@ -100,7 +102,7 @@ TradeLab uses a PR-first delivery model:
 
 1. Feature work lands through pull requests.
 2. CI validates backend tests, frontend tests, frontend build, container builds, and Kubernetes rendering.
-3. A successful merge into `master` triggers the release workflow.
+3. An operator manually triggers the release workflow from `master`.
 4. The release workflow:
    - verifies backend and frontend again
    - builds release artifacts
@@ -110,11 +112,12 @@ TradeLab uses a PR-first delivery model:
 
 ## GitHub Actions sequence
 
-TradeLab currently uses three GitHub Actions workflows that form one delivery chain:
+TradeLab currently uses four GitHub Actions workflows:
 
 1. `CI`
 2. `Auto Merge PR`
 3. `Release`
+4. `Promote Production`
 
 ### CI workflow
 
@@ -145,7 +148,7 @@ then the workflow performs a `squash` merge into `master`.
 
 ### Release workflow
 
-The release workflow runs after a pull request into `master` is closed and merged, or manually via workflow dispatch.
+The release workflow runs only through manual workflow dispatch.
 
 Its execution order is:
 
@@ -161,9 +164,20 @@ Its execution order is:
 4. `Package Kubernetes manifests`
 5. `Create GitHub release`
 
+### Production promotion workflow
+
+The production promotion workflow also runs only through manual workflow dispatch.
+
+It:
+
+1. resolves the selected or latest GitHub release tag
+2. updates [tradelab-prod.yaml](../deploy/infrastructure/applications/tradelab-prod.yaml)
+3. ensures the production application is part of the Argo CD root kustomization
+4. commits the promotion change back to `master`
+
 This means the effective repository delivery path is:
 
-`pull request -> CI -> auto-merge into master -> release verification/build/publish/package -> GitHub release`
+`pull request -> CI -> auto-merge into master -> manual release verification/build/publish/package -> GitHub release -> manual production promotion`
 
 For a release-focused view of published artifacts and release meaning, see [release-process.md](release-process.md).
 
