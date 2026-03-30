@@ -731,4 +731,6 @@ test("runs a read-only backtest from the market detail page", async ({ page }) =
   await expect(page.getByText(/backtest ready for xrp\/usdt/i)).toBeVisible();
   await expect(page.getByText(/strategy sell/i)).toBeVisible();
   await expect(page.getByText(/max drawdown/i)).toBeVisible();
+  await expect(page.getByText(/recent backtests/i)).toBeVisible();
+  await expect(page.getByRole("img", { name: /backtest equity curve/i })).toBeVisible();
 });

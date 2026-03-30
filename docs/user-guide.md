@@ -21,6 +21,7 @@ The current user experience now uses two connected surfaces:
 6. the user can configure a rule-based strategy bundle for the selected market
 7. the user can submit manual demo market buys and sells or let automation execute them
 8. balances, positions, orders, activity, and PnL update after execution
+9. the market detail page can replay the active strategy over a chosen historical range and compare recent backtest runs
 
 ## Dashboard overview
 
@@ -159,6 +160,19 @@ Use it to answer:
 - was a new order recorded
 - did realized PnL appear correctly on sells
 - did the activity log explain what happened
+
+### 8. Run a historical backtest
+
+The market detail page now includes a read-only backtesting section.
+
+What you can do:
+
+1. choose a start date and end date
+2. keep the current strategy bundle and interval
+3. run a historical replay without touching the live demo wallet
+4. inspect the result summary, equity curve, simulated trades, and recent run comparison table
+
+This is useful when you want to compare how the same configuration would have behaved over different recent windows.
 
 ## Feed states
 

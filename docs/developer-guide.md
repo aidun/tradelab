@@ -133,6 +133,7 @@ kubectl kustomize deploy/kubernetes/overlays/production-external-secrets
 - `backend/internal/domain`: domain types
 - `backend/internal/service`: business logic
 - `backend/internal/service/strategy`: strategy bundle lifecycle and in-process automation engine
+- `backend/internal/service/backtest`: deterministic read-only historical strategy replay
 - `backend/internal/store`: repository interfaces
 - `backend/internal/store/postgres`: PostgreSQL implementations
 - `backend/internal/http`: routing and API response shaping
@@ -141,6 +142,7 @@ kubectl kustomize deploy/kubernetes/overlays/production-external-secrets
 
 - `frontend/app`: app entrypoints
 - `frontend/components`: UI components, including the overview dashboard, focused market detail screen, and automation card
+- `frontend/components/market-dashboard.tsx`: overview, market detail, chart refresh behavior, and the backtesting/reporting surface
 - `frontend/lib`: API client code and shared helpers
 - `frontend/lib/tradelab-auth.tsx`: auth provider boundary for guest, mock, and Clerk-backed registered modes
 - `frontend/app/layout.tsx`: server-runtime auth config handoff so Clerk or mock auth can be switched through deployed env vars without rebuilding the frontend image

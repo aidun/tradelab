@@ -570,6 +570,28 @@ describe("Hero", () => {
 
     expect(fetchCounts.backtests).toBe(1);
     expect(screen.getByText(/strategy sell/i)).toBeInTheDocument();
-    expect(screen.getByText(/100/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/100\s*%/i).length).toBeGreaterThan(0);
+  });
+
+  it("runs a read-only backtest from the market detail screen", async () => {
+    const fetchCounts = installFetchMock({ initialOrderStateIndex: 1 });
+
+    render(<MarketDashboard detailOnly initialMarket="XRP/USDT" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /run backtest/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /run backtest/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/backtest ready for xrp\/usdt/i)).toBeInTheDocument();
+    });
+
+    expect(fetchCounts.backtests).toBe(1);
+    expect(screen.getByText(/strategy sell/i)).toBeInTheDocument();
+    expect(screen.getByText(/recent backtests/i)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /backtest equity curve/i })).toBeInTheDocument();
+    expect(screen.getByText(/track how simulated equity rose, pulled back, and closed/i)).toBeInTheDocument();
   });
 });

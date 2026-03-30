@@ -52,6 +52,8 @@
     "one strategy bundle per wallet and market",
     "in-process strategy evaluation with database-backed claiming",
     "strategy-driven dip-buy, take-profit, and stop-loss automation",
+    "read-only backtesting against historical candles",
+    "backtest result summaries, equity-curve reporting, and recent-run comparison",
     "human-readable bot reasoning in the activity log",
     "market-data fetch with bounded stale fallback",
     "structured backend request and service logging",
@@ -120,12 +122,14 @@
       "GET /api/v1/activity",
       "POST /api/v1/orders",
       "POST /api/v1/strategies",
-      "PATCH /api/v1/strategies/{id}"
+      "PATCH /api/v1/strategies/{id}",
+      "POST /api/v1/backtests"
     ],
     "auth_model": "Guest routes use backend-issued bearer tokens scoped to the browser session, while registered routes use Clerk-backed bootstrap plus a TradeLab HttpOnly app-session cookie",
     "order_contract": "POST /api/v1/orders accepts explicit side-specific payloads for buy and sell execution, including strategy-sourced orders internally",
     "portfolio_query_contract": "Portfolio and order-history reads accept accounting_mode, with orders and activity also supporting market_symbol filtering for focused screens",
     "strategy_contract": "Strategy routes manage one configurable automation bundle per wallet and market, with status, config, and last evaluation state",
+    "backtest_contract": "POST /api/v1/backtests runs a read-only historical strategy replay for a market, interval, explicit start/end timestamps, and a supplied strategy config",
     "session_security_routes": [
       "POST /api/v1/account/logout"
     ]
