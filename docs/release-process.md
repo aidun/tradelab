@@ -18,7 +18,7 @@ Recommended operator flow:
 2. if the development publish step for the current `master` state was missed, manually dispatch `Publish Master Images` with `source_ref=master`
 3. verify that the bot-authored development-target PR was created and merged, or if the workflow emitted a warning instead, enable Actions PR creation or provide `AUTOMATION_GITHUB_TOKEN` and open the compare URL it reported
 4. trigger the `Release` workflow from `master`
-5. confirm the GitHub Release and immutable images were published
+5. confirm the GitHub Release, immutable images, and matching `release/<tag>` branch were published
 6. trigger `Promote Production` when production should move to the newest official release
 
 ## Release stages
@@ -29,6 +29,7 @@ Recommended operator flow:
 4. backend and frontend images are published to GHCR
 5. immutable Kubernetes manifests are rendered and packaged
 6. a GitHub Release is created with the generated artifacts
+7. a matching `release/<tag>` branch is published from the released source commit
 
 ## Published artifacts
 
@@ -52,13 +53,21 @@ TradeLab publishes two image classes:
   - `latest`
   - `v0.1.<run-number>`
 
-`tradelab-dev` should use immutable `master-<shortsha>` image tags through its Argo CD application manifest. `tradelab-prod` should use immutable official release tags while rendering the current production manifests from `master`.
+`tradelab-dev` should use immutable `master-<shortsha>` image tags through its Argo CD application manifest. `tradelab-prod` should use immutable official release tags while rendering production manifests from the matching `release/<tag>` branch.
+
+## Release branches
+
+Each official release now also creates a matching release branch:
+
+- `release/v0.1.<run-number>`
+
+That branch is the immutable GitOps source for the production Argo CD application. It keeps production manifests tied to the released source tree instead of whatever happens to be on `master` later.
 
 ## Environment policy
 
 - `tradelab-dev` always follows `master`
-- `tradelab-prod` is promoted only to official GitHub release image tags
-- production promotion is handled by the `Promote Production` workflow, which updates the always-present Argo CD production application to the selected or latest published release
+- `tradelab-prod` follows the selected `release/<tag>` branch plus the matching official release image tags
+- production promotion is handled by the `Promote Production` workflow, which updates the always-present Argo CD production application to the selected or latest published release branch and image tags
 
 ## What a release signals
 

@@ -37,7 +37,7 @@ TradeLab currently consists of these runtime components:
 
 - Kubernetes namespace: `tradelab`
 - image tags in release manifests: immutable release tag such as `v0.1.<run-number>`
-- Argo CD source revision: latest promoted official release tag
+- Argo CD source revision: corresponding promoted `release/<tag>` branch
 - database secret source: generated bootstrap secret by default, or external secrets through the optional production-external-secrets overlay
 - intended for controlled deployment via Argo CD promotion after a manual release
 
@@ -111,6 +111,7 @@ TradeLab uses a PR-first delivery model:
    - publishes GHCR images
    - renders immutable Kubernetes release manifests
    - creates a GitHub Release
+   - publishes the matching `release/<tag>` branch
 
 ## GitHub Actions sequence
 
@@ -177,7 +178,7 @@ It:
 2. updates [tradelab-prod.yaml](../deploy/infrastructure/applications/tradelab-prod.yaml)
 3. commits the promotion change back to `master`
 
-`tradelab-prod` is always part of the Argo CD root application set. It always renders the current `master` deployment manifests, while the promotion workflow only advances the pinned backend and frontend image tags to the selected official release. That keeps production on released artifacts without depending on older tagged manifest trees.
+`tradelab-prod` is always part of the Argo CD root application set. It renders the selected `release/<tag>` deployment branch, while the promotion workflow advances both the pinned backend/frontend image tags and the Argo `targetRevision` together. That keeps production on released artifacts without depending on mutable `master`.
 
 This means the effective repository delivery path is:
 

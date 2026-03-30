@@ -166,7 +166,7 @@ TradeLab currently follows a PR-first workflow:
 - merges are expected to remain reviewable and reasonably scoped
 - `master` is the integration branch for development and release preparation
 - official releases are triggered manually from GitHub Actions
-- production promotion is a separate manual workflow that moves Argo CD to an official release tag
+- production promotion is a separate manual workflow that moves Argo CD to an official `release/<tag>` branch plus matching release image tags
 
 ## GitHub Actions flow
 
@@ -219,6 +219,7 @@ The release workflow is started manually from `master` and runs in this order:
 3. `Build backend binaries`, `Build frontend artifact`, `Publish backend image`, and `Publish frontend image`
 4. `Package Kubernetes manifests`
 5. `Create GitHub release`
+6. `Publish release branch`
 
 ### Promote Production
 
@@ -226,7 +227,7 @@ The production promotion workflow is also manual.
 
 It resolves the requested or latest official GitHub release and updates the production Argo CD application to that release image pair.
 
-`tradelab-prod` stays in the Argo root application set at all times. It always renders the current `master` deployment manifests, and the manual workflow only advances the pinned release image tags.
+`tradelab-prod` stays in the Argo root application set at all times. It renders the selected `release/<tag>` branch, and the manual workflow advances both the release branch target and the pinned release image tags together.
 
 ### Publish Master Images
 

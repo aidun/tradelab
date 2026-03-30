@@ -117,4 +117,4 @@ After bootstrap, confirm:
 
 ## Next step
 
-Once this platform layer is healthy, the next TradeLab step is to let `tradelab-dev` follow `master`, trigger manual releases from GitHub Actions, and use the production-promotion workflow to advance `tradelab-prod` to an official release tag.
+Once this platform layer is healthy, the next TradeLab step is to let `tradelab-dev` follow `master`, trigger manual releases from GitHub Actions, and use the production-promotion workflow to advance `tradelab-prod` to the matching official `release/<tag>` branch and release images.

@@ -28,7 +28,7 @@ Every successful official release publishes:
 - `ghcr.io/aidun/tradelab-frontend:latest`
 - `ghcr.io/aidun/tradelab-frontend:v0.1.<run-number>`
 
-Argo CD development now deploys immutable `master-<shortsha>` image tags that are committed back into the development application manifest after each successful `master` image publish. Release deployments should use the packaged manifest artifact or the production Argo CD application pinned to an official release tag.
+Argo CD development now deploys immutable `master-<shortsha>` image tags that are committed back into the development application manifest after each successful `master` image publish. Release deployments should use the packaged manifest artifact or the production Argo CD application pinned to the matching official `release/<tag>` branch and release image tags.
 
 ## Layout
 
@@ -235,7 +235,7 @@ After apply, validate the first protected product flow with [installation-valida
 Production image policy:
 
 - the production Argo CD application always uses release-tagged backend and frontend images
-- the `Promote Production` workflow updates both the Argo source revision and the production image tags together
+- the `Promote Production` workflow updates both the Argo source revision to `release/<tag>` and the production image tags together
 - production should never depend on mutable `master` or `latest` tags
 
 ## Operational notes
