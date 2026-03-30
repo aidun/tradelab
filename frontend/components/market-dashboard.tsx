@@ -103,6 +103,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const [selectedInterval, setSelectedInterval] = useState("1h");
   const [buyQuoteAmount, setBuyQuoteAmount] = useState("50");
   const [sellBaseQuantity, setSellBaseQuantity] = useState("25");
+  const sellBaseQuantityRef = React.useRef(sellBaseQuantity);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [chartMeta, setChartMeta] = useState<MarketDataMeta | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
@@ -118,6 +119,10 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   useEffect(() => {
     setSelectedMarket(initialMarket);
   }, [initialMarket]);
+
+  useEffect(() => {
+    sellBaseQuantityRef.current = sellBaseQuantity;
+  }, [sellBaseQuantity]);
 
   useEffect(() => {
     if (!activeWalletID) return;
@@ -174,7 +179,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
         side,
         marketSymbol: selectedMarket,
         quoteAmount: side === "buy" ? Number(buyQuoteAmount) : undefined,
-        baseQuantity: side === "sell" ? Number(sellBaseQuantity) : undefined,
+        baseQuantity: side === "sell" ? Number(sellBaseQuantityRef.current) : undefined,
         token
       });
       await refreshCoreData();
@@ -296,7 +301,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
               </div>
               <form className="mt-6 grid gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4" onSubmit={(event) => { event.preventDefault(); void submitOrder("buy"); }}>
                 <p className="text-lg font-semibold">Quick buy</p>
-                <input value={buyQuoteAmount} onChange={(event) => setBuyQuoteAmount(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
+                <input aria-label="Quick buy quote amount" value={buyQuoteAmount} onChange={(event) => setBuyQuoteAmount(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
                 <button type="submit" disabled={isSubmitting || !activeWalletID} className="rounded-2xl bg-[var(--accent)] px-5 py-4 font-semibold text-[#04111a] disabled:opacity-60">{isSubmitting ? "Executing..." : "Run demo buy"}</button>
               </form>
             </section>
@@ -380,13 +385,24 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <form className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4" onSubmit={(event) => { event.preventDefault(); void submitOrder("buy"); }}>
                     <p className="text-lg font-semibold">Buy {selectedMarket}</p>
-                    <input value={buyQuoteAmount} onChange={(event) => setBuyQuoteAmount(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
+                    <input aria-label="Buy quote amount" value={buyQuoteAmount} onChange={(event) => setBuyQuoteAmount(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
                     <button type="submit" disabled={isSubmitting || !activeWalletID} className="rounded-2xl bg-[var(--accent)] px-5 py-4 font-semibold text-[#04111a] disabled:opacity-60">{isSubmitting ? "Executing..." : "Run demo buy"}</button>
                   </form>
                   <form className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4" onSubmit={(event) => { event.preventDefault(); void submitOrder("sell"); }}>
                     <p className="text-lg font-semibold">Sell {selectedMarket}</p>
-                    <input value={sellBaseQuantity} onChange={(event) => setSellBaseQuantity(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
-                    <button type="button" onClick={() => selectedPosition && setSellBaseQuantity(String(selectedPosition.openQuantity))} className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--muted)]">Max position</button>
+                    <input aria-label="Sell quantity" value={sellBaseQuantity} onChange={(event) => {
+                      sellBaseQuantityRef.current = event.target.value;
+                      setSellBaseQuantity(event.target.value);
+                    }} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none" />
+                    <button type="button" onClick={() => {
+                      if (!selectedPosition) {
+                        return;
+                      }
+
+                      const nextQuantity = String(selectedPosition.openQuantity);
+                      sellBaseQuantityRef.current = nextQuantity;
+                      setSellBaseQuantity(nextQuantity);
+                    }} className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--muted)]">Max position</button>
                     <button type="submit" disabled={isSubmitting || !activeWalletID || !selectedPosition} className="rounded-2xl bg-[var(--accent-warm)] px-5 py-4 font-semibold text-[#04111a] disabled:opacity-60">{isSubmitting ? "Executing..." : "Run demo sell"}</button>
                   </form>
                 </div>

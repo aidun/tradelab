@@ -43,6 +43,8 @@ This checklist captures GitHub repository settings and public presentation detai
 - keep `squash merge` enabled
 - keep branch deletion after merge enabled
 - confirm branch protection applies to `master`
+- enable `Allow GitHub Actions to create and approve pull requests` if the repository should let `Publish Master Images` open development-target update PRs with `GITHUB_TOKEN`
+- alternatively configure a repository secret `AUTOMATION_GITHUB_TOKEN` that is allowed to create pull requests when the default Actions token is not permitted
 - verify release permissions still allow image publication and GitHub Release creation
 
 ## Public repository surface
