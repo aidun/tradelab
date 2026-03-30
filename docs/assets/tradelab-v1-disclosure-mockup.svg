@@ -1,0 +1,58 @@
+<svg width="1600" height="980" viewBox="0 0 1600 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="40" x2="1490" y2="940" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#030706"/>
+      <stop offset="0.48" stop-color="#07100D"/>
+      <stop offset="1" stop-color="#0B1713"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#0D1714"/>
+      <stop offset="1" stop-color="#09110F"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="26" stdDeviation="32" flood-color="#000000" flood-opacity="0.36"/>
+    </filter>
+    <filter id="blurBg" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <style>
+      .display { font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; letter-spacing: -0.045em; }
+      .body { font-family: 'Segoe UI', Arial, sans-serif; }
+      .mono { font-family: 'Consolas', 'Courier New', monospace; }
+      .text { fill: #F4F7F5; }
+      .muted { fill: #98A79F; }
+      .subtle { fill: #C7D1CB; }
+      .accent { fill: #77FC18; }
+      .warn { fill: #CD6A1A; }
+      .surface { fill: url(#panel); stroke: #1C2B25; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg)"/>
+  <circle cx="1320" cy="140" r="250" fill="#164A23" fill-opacity="0.12"/>
+  <circle cx="280" cy="840" r="280" fill="#143522" fill-opacity="0.14"/>
+  <text x="72" y="84" class="mono accent" font-size="15" letter-spacing="0.34em">TRADELAB / USE CASE 2 / ONE-TIME DISCLOSURE</text>
+  <text x="72" y="124" class="display text" font-size="42">The financial truth is acknowledged once, then moved out of the way</text>
+
+  <rect x="62" y="186" width="1476" height="736" rx="38" fill="#08110F" stroke="#16241F"/>
+  <g opacity="0.28" filter="url(#blurBg)">
+    <rect x="104" y="232" width="1392" height="640" rx="32" fill="#000000"/>
+  </g>
+
+  <rect x="188" y="270" width="1224" height="568" rx="36" fill="#0A1311" stroke="#1D2C26"/>
+  <text x="232" y="322" class="mono muted" font-size="12" letter-spacing="0.22em">WORKSPACE PREVIEW</text>
+  <text x="232" y="370" class="display text" font-size="44">TradeLab workspace behind the gate</text>
+  <text x="232" y="412" class="body muted" font-size="20">The disclosure belongs to the product experience, but it should not dominate it.</text>
+
+  <rect x="530" y="344" width="540" height="360" rx="32" class="surface" filter="url(#shadow)"/>
+  <text x="572" y="392" class="mono warn" font-size="12" letter-spacing="0.24em">ONE-TIME DISCLOSURE</text>
+  <text x="572" y="450" class="display text" font-size="46">Financial boundary</text>
+  <text x="572" y="500" class="body subtle" font-size="22">TradeLab uses simulated execution only.</text>
+  <text x="572" y="540" class="body subtle" font-size="22">No real funds, custody, or brokerage execution are involved.</text>
+  <text x="572" y="580" class="body subtle" font-size="22">Nothing here is financial advice.</text>
+  <text x="572" y="632" class="body muted" font-size="18">Shown once after intentional entry. Not repeated as a product theme.</text>
+  <rect x="572" y="664" width="180" height="48" rx="16" fill="#77FC18"/>
+  <text x="662" y="694" class="body" font-size="18" font-weight="700" text-anchor="middle" fill="#07110C">Acknowledge</text>
+
+  <text x="72" y="950" class="body muted" font-size="16">Direction: disclosure as a sober trust layer, modal and finite, instead of spreading “demo” framing throughout the primary UI.</text>
+</svg>

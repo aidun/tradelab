@@ -1,0 +1,146 @@
+<svg width="1600" height="980" viewBox="0 0 1600 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="40" x2="1490" y2="940" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#030706"/>
+      <stop offset="0.46" stop-color="#07100D"/>
+      <stop offset="1" stop-color="#0A1612"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#0D1714"/>
+      <stop offset="1" stop-color="#09110F"/>
+    </linearGradient>
+    <linearGradient id="workspace" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0B1412"/>
+      <stop offset="1" stop-color="#08100E"/>
+    </linearGradient>
+    <linearGradient id="chartPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0C1815"/>
+      <stop offset="1" stop-color="#08110F"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#77FC18"/>
+      <stop offset="1" stop-color="#48C81A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="26" stdDeviation="32" flood-color="#000000" flood-opacity="0.36"/>
+    </filter>
+    <style>
+      .display { font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; letter-spacing: -0.045em; }
+      .body { font-family: 'Segoe UI', Arial, sans-serif; }
+      .mono { font-family: 'Consolas', 'Courier New', monospace; }
+      .text { fill: #F4F7F5; }
+      .muted { fill: #98A79F; }
+      .subtle { fill: #C4CEC8; }
+      .accent { fill: #77FC18; }
+      .accent-soft { fill: #B7FF86; }
+      .surface { fill: url(#panel); stroke: #1B2A25; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg)"/>
+  <circle cx="1328" cy="160" r="240" fill="#164A23" fill-opacity="0.14"/>
+  <circle cx="320" cy="860" r="280" fill="#0F2B1A" fill-opacity="0.16"/>
+  <text x="72" y="84" class="mono accent" font-size="15" letter-spacing="0.34em">TRADELAB / USE CASE 3 / TRADING WORKSPACE</text>
+  <text x="72" y="124" class="display text" font-size="42">Dense, modern, crypto-first workspace with stronger operational credibility</text>
+
+  <rect x="58" y="186" width="1484" height="720" rx="36" fill="url(#workspace)" stroke="#182621" filter="url(#shadow)"/>
+
+  <rect x="82" y="210" width="112" height="672" rx="28" fill="#08110F" stroke="#182622"/>
+  <text x="110" y="264" class="display accent" font-size="28">T</text>
+  <rect x="104" y="312" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="398" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="484" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="570" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="656" width="68" height="68" rx="22" fill="#77FC18" fill-opacity="0.10" stroke="#3C6A1A"/>
+  <rect x="104" y="742" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <text x="138" y="352" class="mono muted" font-size="20" text-anchor="middle">M</text>
+  <text x="138" y="438" class="mono muted" font-size="20" text-anchor="middle">P</text>
+  <text x="138" y="524" class="mono muted" font-size="20" text-anchor="middle">S</text>
+  <text x="138" y="610" class="mono muted" font-size="20" text-anchor="middle">B</text>
+  <text x="138" y="696" class="mono accent" font-size="20" text-anchor="middle">A</text>
+  <text x="138" y="782" class="mono muted" font-size="20" text-anchor="middle">U</text>
+
+  <rect x="220" y="210" width="1296" height="84" rx="24" fill="#08110F" stroke="#172521"/>
+  <text x="250" y="260" class="display text" font-size="26">TradeLab</text>
+  <text x="418" y="260" class="mono muted" font-size="14">MARKETS</text>
+  <text x="520" y="260" class="mono muted" font-size="14">PORTFOLIO</text>
+  <text x="642" y="260" class="mono muted" font-size="14">AUTOMATION</text>
+  <text x="794" y="260" class="mono muted" font-size="14">BACKTESTING</text>
+  <rect x="1126" y="232" width="164" height="40" rx="18" fill="#0E1A17" stroke="#22322D"/>
+  <text x="1208" y="257" class="mono subtle" font-size="14" text-anchor="middle">XRP / USDT</text>
+  <rect x="1310" y="232" width="90" height="40" rx="18" fill="#0E1A17" stroke="#22322D"/>
+  <text x="1355" y="257" class="mono accent" font-size="14" text-anchor="middle">LIVE</text>
+  <rect x="1420" y="226" width="72" height="48" rx="20" fill="#0E1A17" stroke="#22322D"/>
+  <text x="1456" y="256" class="body text" font-size="17" text-anchor="middle">MK</text>
+
+  <rect x="220" y="318" width="824" height="236" rx="28" fill="url(#chartPanel)" stroke="#1A2B25"/>
+  <text x="254" y="362" class="mono muted" font-size="12" letter-spacing="0.22em">BALANCE OVERVIEW</text>
+  <text x="254" y="410" class="display text" font-size="48">$10,246.12</text>
+  <text x="562" y="410" class="mono accent" font-size="24">+2.84%</text>
+  <text x="254" y="440" class="body muted" font-size="17">Portfolio value, exposure, and market response in one continuous workspace.</text>
+  <rect x="890" y="346" width="126" height="34" rx="17" fill="#0C1815" stroke="#24362F"/>
+  <text x="953" y="368" class="body text" font-size="14" text-anchor="middle">7D</text>
+  <path d="M282 496 C328 482 362 444 410 456 C456 468 500 406 546 420 C592 434 634 376 682 392 C732 409 780 364 826 386 C872 408 908 402 948 370 C972 352 990 332 1010 318" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="1010" cy="318" r="7" fill="#77FC18"/>
+
+  <rect x="1066" y="318" width="450" height="236" rx="28" class="surface"/>
+  <text x="1100" y="362" class="mono muted" font-size="12" letter-spacing="0.22em">MARKET SNAPSHOT</text>
+  <text x="1100" y="406" class="display text" font-size="34">XRP / USDT</text>
+  <text x="1426" y="406" class="mono accent" font-size="30" text-anchor="end">0.7345</text>
+  <text x="1100" y="440" class="body muted" font-size="16">Compact market context with stronger signal and less storytelling chrome.</text>
+  <line x1="1100" y1="476" x2="1482" y2="476" stroke="#1F302A"/>
+  <text x="1100" y="516" class="mono muted" font-size="14">24H VOLUME</text>
+  <text x="1260" y="516" class="mono text" font-size="16">$38.6M</text>
+  <text x="1100" y="548" class="mono muted" font-size="14">MARKET CAP</text>
+  <text x="1260" y="548" class="mono text" font-size="16">$41.8B</text>
+  <text x="1100" y="580" class="mono muted" font-size="14">FUNDING BIAS</text>
+  <text x="1260" y="580" class="mono accent" font-size="16">Long skew</text>
+
+  <rect x="220" y="580" width="312" height="286" rx="28" class="surface"/>
+  <text x="252" y="622" class="mono muted" font-size="12" letter-spacing="0.22em">WATCHLIST</text>
+  <text x="252" y="658" class="body text" font-size="22" font-weight="700">Market board</text>
+  <line x1="252" y1="686" x2="500" y2="686" stroke="#1F302A"/>
+  <text x="252" y="724" class="mono text" font-size="15">BTC / USDT</text>
+  <text x="474" y="724" class="mono accent" font-size="15" text-anchor="end">+1.92%</text>
+  <text x="252" y="762" class="mono text" font-size="15">ETH / USDT</text>
+  <text x="474" y="762" class="mono accent" font-size="15" text-anchor="end">+3.11%</text>
+  <text x="252" y="800" class="mono text" font-size="15">XRP / USDT</text>
+  <text x="474" y="800" class="mono accent-soft" font-size="15" text-anchor="end">Selected</text>
+
+  <rect x="554" y="580" width="432" height="286" rx="28" class="surface"/>
+  <text x="586" y="622" class="mono muted" font-size="12" letter-spacing="0.22em">POSITIONS</text>
+  <text x="586" y="658" class="body text" font-size="22" font-weight="700">Open exposure</text>
+  <rect x="586" y="686" width="368" height="70" rx="18" fill="#0B1513" stroke="#22322D"/>
+  <text x="610" y="714" class="mono muted" font-size="13">XRP / USDT</text>
+  <text x="610" y="742" class="mono text" font-size="16">Qty 108.7000</text>
+  <text x="830" y="714" class="mono muted" font-size="13" text-anchor="end">Avg 0.6900</text>
+  <text x="930" y="742" class="mono accent" font-size="16" text-anchor="end">+$75.00</text>
+  <rect x="586" y="772" width="368" height="76" rx="18" fill="#0B1513" stroke="#22322D"/>
+  <text x="610" y="804" class="body subtle" font-size="15">Dense position treatment with more tabular precision and less card-showcase feeling.</text>
+
+  <rect x="1008" y="580" width="256" height="286" rx="28" class="surface"/>
+  <text x="1040" y="622" class="mono muted" font-size="12" letter-spacing="0.22em">EXECUTION</text>
+  <text x="1040" y="658" class="body text" font-size="22" font-weight="700">Place order</text>
+  <text x="1040" y="692" class="mono muted" font-size="12">SIDE</text>
+  <rect x="1040" y="706" width="92" height="36" rx="15" fill="#77FC18" fill-opacity="0.14" stroke="#3A611D"/>
+  <text x="1086" y="729" class="body accent" font-size="14" text-anchor="middle">Buy</text>
+  <rect x="1142" y="706" width="92" height="36" rx="15" fill="#0B1513" stroke="#22322D"/>
+  <text x="1188" y="729" class="body subtle" font-size="14" text-anchor="middle">Sell</text>
+  <text x="1040" y="774" class="mono muted" font-size="12">NOTIONAL</text>
+  <rect x="1040" y="788" width="192" height="42" rx="16" fill="#0B1513" stroke="#22322D"/>
+  <text x="1136" y="815" class="mono text" font-size="17" text-anchor="middle">USDT 75.00</text>
+  <rect x="1040" y="836" width="192" height="42" rx="16" fill="#77FC18"/>
+  <text x="1136" y="863" class="body" font-size="17" font-weight="700" text-anchor="middle" fill="#07110C">Place order</text>
+
+  <rect x="1286" y="580" width="230" height="286" rx="28" class="surface"/>
+  <text x="1318" y="622" class="mono muted" font-size="12" letter-spacing="0.22em">ACTIVITY</text>
+  <text x="1318" y="658" class="body text" font-size="22" font-weight="700">Recent execution</text>
+  <rect x="1318" y="686" width="166" height="28" rx="14" fill="#0C1815" stroke="#25362F"/>
+  <text x="1401" y="704" class="mono accent" font-size="13" text-anchor="middle">AUTOMATED BUY</text>
+  <text x="1318" y="746" class="body subtle" font-size="15">Dip condition filled on XRP / USDT.</text>
+  <text x="1318" y="772" class="mono muted" font-size="13">14:31:08 UTC</text>
+  <line x1="1318" y1="800" x2="1484" y2="800" stroke="#1F302A"/>
+  <text x="1318" y="832" class="body muted" font-size="14">Operational copy over sandbox language.</text>
+
+  <text x="72" y="950" class="body muted" font-size="16">Direction: modular crypto analytics desk with tighter hierarchy, stronger green-accent identity, and more believable trading-product tone.</text>
+</svg>
