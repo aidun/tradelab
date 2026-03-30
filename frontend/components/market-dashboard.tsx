@@ -222,6 +222,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const selectedStrategy = useMemo(() => availableStrategies.find((item) => item.marketSymbol === selectedMarket) ?? null, [availableStrategies, selectedMarket]);
   const visibleOrders = useMemo(() => (detailOnly ? orders.filter((order) => order.marketSymbol === selectedMarket) : orders), [detailOnly, orders, selectedMarket]);
   const visibleActivity = useMemo(() => (detailOnly ? activity.filter((item) => item.marketSymbol === selectedMarket || item.marketSymbol === "") : activity), [activity, detailOnly, selectedMarket]);
+  const canUseMaxSell = Boolean(selectedPosition && selectedPosition.openQuantity > 0);
   const accountSummary = registeredAccount && auth.user ? auth.user.displayName : guestSession ? `${guestSession.walletID.slice(0, 8)}...` : "--";
   const lastPrice = candles.length > 0 ? candles[candles.length - 1].closePrice : null;
   const chartRefreshLabel = isChartRefreshing ? "Refreshing..." : "Refresh now";
@@ -502,7 +503,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                       const nextQuantity = String(selectedPosition.openQuantity);
                       sellBaseQuantityRef.current = nextQuantity;
                       setSellBaseQuantity(nextQuantity);
-                    }} className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--muted)]">Max position</button>
+                    }} disabled={!canUseMaxSell} className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-50">Max position</button>
                     <button type="submit" disabled={isSubmitting || !activeWalletID || !selectedPosition} className="rounded-2xl bg-[var(--accent-warm)] px-5 py-4 font-semibold text-[#04111a] disabled:opacity-60">{isSubmitting ? "Executing..." : "Run demo sell"}</button>
                   </form>
                 </div>

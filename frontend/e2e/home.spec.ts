@@ -599,6 +599,8 @@ test("executes a partial sell from the market detail page", async ({ page }) => 
 
 test("closes the position with a max sell", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
+  await expect(page.getByText(/open qty 74.62/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /max position/i })).toBeEnabled();
   await page.getByRole("button", { name: /max position/i }).click();
   await expect(page.getByLabel(/sell quantity/i)).toHaveValue("74.62");
   await page.getByRole("button", { name: /run demo sell/i }).click();
