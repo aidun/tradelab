@@ -25,6 +25,7 @@ jobs:
       name: ${{ steps.meta.outputs.name }}
       source_ref: ${{ steps.meta.outputs.source_ref }}
       branch_name: ${{ steps.meta.outputs.branch_name }}
+      release_branch: ${{ steps.meta.outputs.release_branch }}
       source_commit: ${{ steps.commit.outputs.source_commit }}
 
     steps:
@@ -45,6 +46,7 @@ jobs:
           echo "source_ref=${{ inputs.source_ref }}" >> "$GITHUB_OUTPUT"
           branch_name="${{ inputs.source_ref }}"
           echo "branch_name=${branch_name#refs/heads/}" >> "$GITHUB_OUTPUT"
+          echo "release_branch=release/$tag" >> "$GITHUB_OUTPUT"
 
       - name: Resolve source commit
         id: commit
@@ -341,3 +343,21 @@ jobs:
             dist/tradelab-api-windows-amd64.exe
             dist/tradelab-frontend-standalone.tar.gz
             dist/tradelab-kubernetes.tar.gz
+
+  publish-release-branch:
+    name: Publish release branch
+    needs:
+      - release-metadata
+      - create-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-metadata.outputs.source_ref }}
+          fetch-depth: 0
+
+      - name: Publish release branch
+        run: |
+          git push origin HEAD:refs/heads/${{ needs.release-metadata.outputs.release_branch }}
