@@ -214,16 +214,18 @@ Every merge to `master` builds and publishes backend and frontend development im
 - `master`
 - `master-<shortsha>`
 
-It then commits the exact deployed development revision back into [tradelab-dev.yaml](../deploy/infrastructure/applications/tradelab-dev.yaml), setting:
+It then opens a bot-authored pull request that updates [tradelab-dev.yaml](../deploy/infrastructure/applications/tradelab-dev.yaml), setting:
 
 - the Argo CD `targetRevision` to the source commit SHA
 - backend and frontend image overrides to the matching immutable `master-<shortsha>` tags
 
-If the workflow was introduced after the current merged `master` state or a publish run needs to be repeated, manually dispatch `Publish Master Images` with `source_ref=master`. That backfills GHCR with the missing immutable dev images and updates `tradelab-dev.yaml` to the matching source commit.
+That follow-up PR runs through the normal repository CI and is merged through the existing auto-merge path, so protected-branch rules stay intact.
+
+If the workflow was introduced after the current merged `master` state or a publish run needs to be repeated, manually dispatch `Publish Master Images` with `source_ref=master`. That backfills GHCR with the missing immutable dev images and opens the matching development-target update PR.
 
 This is the expected delivery chain for normal feature work:
 
-`feature branch -> pull request -> CI -> auto-merge -> master -> publish master images and update Argo dev -> manual release -> manual production promotion`
+`feature branch -> pull request -> CI -> auto-merge -> master -> publish master images -> bot PR updates Argo dev target -> CI -> auto-merge -> manual release -> manual production promotion`
 
 ## Contribution expectations
 

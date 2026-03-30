@@ -8,7 +8,7 @@ This document explains what a TradeLab release means, how it is triggered, and h
 
 TradeLab releases are driven by the GitHub workflow chain:
 
-`pull request -> CI -> auto-merge -> master -> publish master images for development -> manual release workflow`
+`pull request -> CI -> auto-merge -> master -> publish master images for development -> bot PR updates dev target -> CI -> auto-merge -> manual release workflow`
 
 The release workflow is intentionally manual and is triggered through GitHub Actions `workflow_dispatch`.
 
@@ -16,9 +16,10 @@ Recommended operator flow:
 
 1. merge reviewed work into `master`
 2. if the development publish step for the current `master` state was missed, manually dispatch `Publish Master Images` with `source_ref=master`
-3. trigger the `Release` workflow from `master`
-4. confirm the GitHub Release and immutable images were published
-5. trigger `Promote Production` when production should move to the newest official release
+3. verify that the bot-authored development-target PR was created and merged
+4. trigger the `Release` workflow from `master`
+5. confirm the GitHub Release and immutable images were published
+6. trigger `Promote Production` when production should move to the newest official release
 
 ## Release stages
 

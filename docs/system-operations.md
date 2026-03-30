@@ -179,9 +179,9 @@ It:
 
 This means the effective repository delivery path is:
 
-`pull request -> CI -> auto-merge into master -> master image publication and Argo dev update -> manual release verification/build/publish/package -> GitHub release -> manual production promotion`
+`pull request -> CI -> auto-merge into master -> master image publication -> bot PR updates Argo dev target -> CI -> auto-merge -> manual release verification/build/publish/package -> GitHub release -> manual production promotion`
 
-If a merged `master` state needs to be backfilled because the workflow was added later or a publish run was missed, operators should manually dispatch `Publish Master Images` with `source_ref=master` before troubleshooting Argo drift.
+If a merged `master` state needs to be backfilled because the workflow was added later or a publish run was missed, operators should manually dispatch `Publish Master Images` with `source_ref=master`, then verify that the generated development-target PR merged before troubleshooting Argo drift.
 
 For a release-focused view of published artifacts and release meaning, see [release-process.md](release-process.md).
 
