@@ -177,7 +177,7 @@ It:
 2. updates [tradelab-prod.yaml](../deploy/infrastructure/applications/tradelab-prod.yaml)
 3. commits the promotion change back to `master`
 
-`tradelab-prod` is always part of the Argo CD root application set. Production promotion only moves its target release; it does not create the application for the first time.
+`tradelab-prod` is always part of the Argo CD root application set. It always renders the current `master` deployment manifests, while the promotion workflow only advances the pinned backend and frontend image tags to the selected official release. That keeps production on released artifacts without depending on older tagged manifest trees.
 
 This means the effective repository delivery path is:
 

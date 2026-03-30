@@ -222,7 +222,7 @@
         "conditions": [
           "requested release tag exists as an official GitHub release or the latest release is resolved automatically"
         ],
-        "action": "Update the always-present production Argo CD application to the selected official release tag on master"
+        "action": "Update the always-present production Argo CD application on master to the selected official release image tags"
       }
     ],
     "observability": [

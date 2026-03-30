@@ -55,22 +55,12 @@ jobs:
           release_tag = os.environ["RELEASE_TAG"]
           prod_file = Path("deploy/infrastructure/applications/tradelab-prod.yaml")
           lines = []
-          in_source = False
           in_kustomize = False
           backend_image = f"ghcr.io/aidun/tradelab-backend:{release_tag}"
           frontend_image = f"ghcr.io/aidun/tradelab-frontend:{release_tag}"
           for line in prod_file.read_text(encoding="utf-8").splitlines():
             stripped = line.strip()
-            if stripped == "source:":
-              in_source = True
-            elif in_source and line.startswith("  ") and not line.startswith("    "):
-              in_source = False
-
-            if in_source and stripped.startswith("targetRevision:"):
-              lines.append(f"    targetRevision: {release_tag}")
-              continue
-
-            if in_source and stripped == "kustomize:":
+            if stripped == "    kustomize:" or stripped == "kustomize:":
               in_kustomize = True
               lines.append(line)
               continue

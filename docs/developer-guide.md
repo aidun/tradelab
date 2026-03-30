@@ -224,9 +224,9 @@ The release workflow is started manually from `master` and runs in this order:
 
 The production promotion workflow is also manual.
 
-It resolves the requested or latest official GitHub release and updates the production Argo CD application to that release tag.
+It resolves the requested or latest official GitHub release and updates the production Argo CD application to that release image pair.
 
-`tradelab-prod` stays in the Argo root application set at all times. The manual workflow only advances its release target.
+`tradelab-prod` stays in the Argo root application set at all times. It always renders the current `master` deployment manifests, and the manual workflow only advances the pinned release image tags.
 
 ### Publish Master Images
 
