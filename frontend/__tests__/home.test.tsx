@@ -1,10 +1,12 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Hero } from "@/components/hero";
+import { CHART_AUTO_REFRESH_MS, MarketDashboard } from "@/components/market-dashboard";
 
 type FetchScenario = {
   candleMode?: "fresh" | "stale";
   failCandles?: boolean;
+  failCandlesAfterFirst?: boolean;
   failOrder?: boolean;
   failActivityOnRefresh?: boolean;
 };
@@ -159,7 +161,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
       const interval = url.includes("interval=15m") ? "15m" : "1h";
       record(`candles:${interval}`);
 
-      if (scenario.failCandles) {
+      if (scenario.failCandles || (scenario.failCandlesAfterFirst && fetchCounts[`candles:${interval}`] > 1)) {
         return Promise.resolve(new Response(JSON.stringify({ error: "failed" }), { status: 502 }));
       }
 
@@ -267,6 +269,7 @@ describe("Hero", () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
+    vi.useRealTimers();
   });
 
   afterEach(() => {
@@ -310,17 +313,19 @@ describe("Hero", () => {
   it("refreshes only chart data when the interval changes", async () => {
     const fetchCounts = installFetchMock();
 
-    render(<Hero />);
+    render(<MarketDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/feed fresh/i)).toBeInTheDocument();
+      expect(fetchCounts["candles:1h"]).toBe(1);
     });
 
     fireEvent.click(screen.getByRole("button", { name: "15m" }));
 
     await waitFor(() => {
-      expect(screen.getByText(/feed stale fallback/i)).toBeInTheDocument();
+      expect(fetchCounts["candles:15m"]).toBe(1);
     });
+
+    expect(screen.getByText(/stale fallback/i)).toBeInTheDocument();
 
     expect(fetchCounts.markets).toBe(1);
     expect(fetchCounts.portfolio).toBe(1);
@@ -397,5 +402,33 @@ describe("Hero", () => {
 
     expect(screen.getByText(/feed state/i)).toBeInTheDocument();
     expect(screen.getByText(/^stale$/i)).toBeInTheDocument();
+  });
+
+  it("auto-refreshes the market-detail chart and preserves the last candles on refresh failure", async () => {
+    const fetchCounts = installFetchMock({ failCandlesAfterFirst: true });
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+
+    render(<MarketDashboard detailOnly initialMarket="XRP/USDT" />);
+
+    await screen.findByLabelText(/live market chart/i);
+
+    expect(fetchCounts["candles:1h"]).toBe(1);
+    expect(screen.getByRole("button", { name: /refresh chart/i })).toBeInTheDocument();
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), CHART_AUTO_REFRESH_MS);
+
+    const refreshCallback = setIntervalSpy.mock.calls.at(-1)?.[0];
+    expect(typeof refreshCallback).toBe("function");
+
+    await act(async () => {
+      (refreshCallback as TimerHandler)();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(fetchCounts["candles:1h"]).toBe(2);
+    });
+
+    expect(screen.getByLabelText(/live market chart/i)).toBeInTheDocument();
+    expect(screen.getByText(/^failed$/i)).toBeInTheDocument();
   });
 });

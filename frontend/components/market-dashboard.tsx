@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { startTransition, useEffect, useMemo, useState } from "react";
+import React, { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchCandles, patchStrategy, placeMarketOrder, saveStrategy, type AccountingMode, type Candle, type MarketDataMeta, type Strategy, type StrategyConfig } from "@/lib/api";
 import { resolveBuildInfo } from "@/lib/build-info";
@@ -12,6 +12,8 @@ type MarketDashboardProps = {
   detailOnly?: boolean;
   initialMarket?: string;
 };
+
+export const CHART_AUTO_REFRESH_MS = 30_000;
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
@@ -104,10 +106,16 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const [buyQuoteAmount, setBuyQuoteAmount] = useState("50");
   const [sellBaseQuantity, setSellBaseQuantity] = useState("25");
   const sellBaseQuantityRef = React.useRef(sellBaseQuantity);
+  const candleCountRef = useRef(0);
+  const isChartRequestInFlight = useRef(false);
+  const pendingChartReloadRef = useRef(false);
+  const selectedMarketRef = useRef(selectedMarket);
+  const selectedIntervalRef = useRef(selectedInterval);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [chartMeta, setChartMeta] = useState<MarketDataMeta | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
   const [isChartLoading, setIsChartLoading] = useState(true);
+  const [isChartRefreshing, setIsChartRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingStrategy, setIsSavingStrategy] = useState(false);
   const [strategyConfig, setStrategyConfig] = useState<StrategyConfig>({
@@ -121,33 +129,94 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   }, [initialMarket]);
 
   useEffect(() => {
+    selectedMarketRef.current = selectedMarket;
+  }, [selectedMarket]);
+
+  useEffect(() => {
+    selectedIntervalRef.current = selectedInterval;
+  }, [selectedInterval]);
+
+  useEffect(() => {
     sellBaseQuantityRef.current = sellBaseQuantity;
   }, [sellBaseQuantity]);
 
   useEffect(() => {
-    if (!activeWalletID) return;
-    let cancelled = false;
-    startTransition(() => {
-      fetchCandles(selectedMarket, selectedInterval, 48)
-        .then((feed) => {
-          if (!cancelled) {
-            setCandles(feed.candles);
-            setChartMeta(feed.meta);
-            setChartError(null);
-            setIsChartLoading(false);
-          }
-        })
-        .catch((loadError: Error) => {
-          if (!cancelled) {
-            setChartError(loadError.message);
-            setIsChartLoading(false);
-          }
+    candleCountRef.current = candles.length;
+  }, [candles.length]);
+
+  const loadCandles = useCallback(async (options?: { preserveExisting?: boolean }) => {
+    if (!activeWalletID) {
+      return;
+    }
+
+    if (isChartRequestInFlight.current) {
+      pendingChartReloadRef.current = true;
+      return;
+    }
+
+    const preserveExisting = options?.preserveExisting ?? false;
+    const hasRenderedCandles = candleCountRef.current > 0;
+    const requestMarket = selectedMarket;
+    const requestInterval = selectedInterval;
+    isChartRequestInFlight.current = true;
+    pendingChartReloadRef.current = false;
+    setChartError(null);
+    setIsChartRefreshing(true);
+    if (!preserveExisting || !hasRenderedCandles) {
+      setIsChartLoading(true);
+    }
+
+    try {
+      const feed = await fetchCandles(selectedMarket, selectedInterval, 48);
+      setCandles(feed.candles);
+      setChartMeta(feed.meta);
+      setChartError(null);
+    } catch (loadError) {
+      const nextMessage = loadError instanceof Error ? loadError.message : "We couldn't refresh the chart right now.";
+      setChartError(nextMessage);
+      if (!hasRenderedCandles) {
+        setCandles([]);
+      }
+    } finally {
+      isChartRequestInFlight.current = false;
+      setIsChartLoading(false);
+      setIsChartRefreshing(false);
+
+      const selectionChanged = selectedMarketRef.current !== requestMarket || selectedIntervalRef.current !== requestInterval;
+      if (pendingChartReloadRef.current || selectionChanged) {
+        pendingChartReloadRef.current = false;
+        startTransition(() => {
+          void loadCandles({ preserveExisting: candleCountRef.current > 0 });
         });
-    });
-    return () => {
-      cancelled = true;
-    };
+      }
+    }
   }, [activeWalletID, selectedInterval, selectedMarket]);
+
+  useEffect(() => {
+    if (!activeWalletID) {
+      return;
+    }
+
+    startTransition(() => {
+      void loadCandles({ preserveExisting: false });
+    });
+  }, [activeWalletID, loadCandles]);
+
+  useEffect(() => {
+    if (!detailOnly || !activeWalletID) {
+      return;
+    }
+
+    const intervalHandle = window.setInterval(() => {
+      startTransition(() => {
+        void loadCandles({ preserveExisting: true });
+      });
+    }, CHART_AUTO_REFRESH_MS);
+
+    return () => {
+      window.clearInterval(intervalHandle);
+    };
+  }, [activeWalletID, detailOnly, loadCandles]);
 
   const selectedPosition = useMemo(() => portfolio?.positions.find((position) => position.marketSymbol === selectedMarket) ?? null, [portfolio, selectedMarket]);
   const selectedStrategy = useMemo(() => availableStrategies.find((item) => item.marketSymbol === selectedMarket) ?? null, [availableStrategies, selectedMarket]);
@@ -155,6 +224,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const visibleActivity = useMemo(() => (detailOnly ? activity.filter((item) => item.marketSymbol === selectedMarket || item.marketSymbol === "") : activity), [activity, detailOnly, selectedMarket]);
   const accountSummary = registeredAccount && auth.user ? auth.user.displayName : guestSession ? `${guestSession.walletID.slice(0, 8)}...` : "--";
   const lastPrice = candles.length > 0 ? candles[candles.length - 1].closePrice : null;
+  const chartRefreshLabel = isChartRefreshing ? "Refreshing..." : "Refresh now";
 
   useEffect(() => {
     if (selectedStrategy) {
@@ -314,14 +384,44 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                 <select value={selectedMarket} onChange={(event) => setSelectedMarket(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none">
                   {markets.map((market) => <option key={market.id} value={market.symbol}>{market.symbol}</option>)}
                 </select>
-              ) : null}
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Refresh chart"
+                  onClick={() => {
+                    startTransition(() => {
+                      void loadCandles({ preserveExisting: true });
+                    });
+                  }}
+                  disabled={isChartRefreshing}
+                  className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-sm font-medium text-[var(--text)] disabled:opacity-60"
+                >
+                  {chartRefreshLabel}
+                </button>
+              )}
             </div>
-            <div className="mt-4 flex flex-wrap gap-3">{["15m", "1h", "4h"].map((interval) => <button key={interval} type="button" onClick={() => setSelectedInterval(interval)} className={`rounded-full border px-3 py-2 text-sm ${selectedInterval === interval ? "border-[var(--accent)] bg-[rgba(110,242,211,0.1)] text-[var(--accent)]" : "border-[var(--line)]"}`}>{interval}</button>)}</div>
-            <div className="mt-6">{isChartLoading ? <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-12 text-sm text-[var(--muted)]">Loading candle data...</div> : chartError ? <div className="rounded-2xl border border-[rgba(255,107,120,0.35)] bg-[rgba(255,107,120,0.08)] px-4 py-12 text-sm text-[var(--accent-hot)]">{chartError}</div> : <CandleChart candles={candles} />}</div>
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
-              <span className="rounded-full border border-[var(--line)] px-3 py-2">Feed {chartMeta?.source === "stale" ? "stale fallback" : "fresh"}</span>
-              {chartMeta ? <span className="rounded-full border border-[var(--line)] px-3 py-2">Updated {formatFeedTime(chartMeta.generatedAt)}</span> : null}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-3">{["15m", "1h", "4h"].map((interval) => <button key={interval} type="button" onClick={() => setSelectedInterval(interval)} className={`rounded-full border px-3 py-2 text-sm ${selectedInterval === interval ? "border-[var(--accent)] bg-[rgba(110,242,211,0.1)] text-[var(--accent)]" : "border-[var(--line)]"}`}>{interval}</button>)}</div>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+                <span className="rounded-full border border-[var(--line)] px-3 py-2">Feed {chartMeta?.source === "stale" ? "stale fallback" : "fresh"}</span>
+                {chartMeta ? <span className="rounded-full border border-[var(--line)] px-3 py-2">Updated {formatFeedTime(chartMeta.generatedAt)}</span> : null}
+                {detailOnly ? <span className="rounded-full border border-[var(--line)] px-3 py-2">{isChartRefreshing ? "Refreshing..." : `Auto ${Math.floor(CHART_AUTO_REFRESH_MS / 1000)}s`}</span> : null}
+              </div>
             </div>
+            <div className="mt-6">
+              {isChartLoading && candles.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-12 text-sm text-[var(--muted)]">Loading candle data...</div>
+              ) : chartError && candles.length === 0 ? (
+                <div className="rounded-2xl border border-[rgba(255,107,120,0.35)] bg-[rgba(255,107,120,0.08)] px-4 py-12 text-sm text-[var(--accent-hot)]">{chartError}</div>
+              ) : (
+                <CandleChart candles={candles} />
+              )}
+            </div>
+            {chartError && candles.length > 0 ? (
+              <div className="mt-4 rounded-2xl border border-[rgba(255,107,120,0.35)] bg-[rgba(255,107,120,0.08)] px-4 py-4 text-sm text-[var(--accent-hot)]">
+                {chartError}
+              </div>
+            ) : null}
           </section>
 
           <div className="mt-6 grid gap-6 xl:grid-cols-2">
