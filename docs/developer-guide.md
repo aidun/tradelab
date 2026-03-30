@@ -190,6 +190,8 @@ The CI workflow runs these jobs in parallel:
 - `Metadata validation`
 - `Source-code documentation quality`
 
+### Quality gates
+
 The quality gates now also enforce:
 
 - backend total statement coverage must stay at or above `40%`
@@ -199,6 +201,8 @@ The quality gates now also enforce:
   - `50%` functions
   - `50%` branches
 - curated source-code documentation checks for key exported backend and frontend surfaces
+
+The README quality badges point to this section. They intentionally document enforced gates and floors, not live third-party telemetry.
 
 ### Auto Merge PR
 
