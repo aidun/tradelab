@@ -87,7 +87,7 @@
   "constraints": {
     "code_language": "English",
     "chat_language": "German",
-    "delivery_model": "Feature branches -> PR CI -> merge to master -> publish master images for dev -> manual backfill via workflow_dispatch when needed -> release",
+    "delivery_model": "Feature branches -> PR CI -> merge to master -> publish master images for dev -> bot PR updates Argo dev target -> CI -> merge -> manual backfill via workflow_dispatch when needed -> release",
     "merge_strategy": "squash merge",
     "demo_only": true,
     "live_trading": false,
@@ -172,9 +172,9 @@
         ],
         "jobs_order": [
           "Build and publish backend/frontend master images",
-          "Update tradelab-dev Argo application to source commit SHA plus matching immutable master image tags"
+          "Create a bot-authored pull request that updates tradelab-dev to the source commit SHA plus matching immutable master image tags"
         ],
-        "manual_backfill": "Dispatch the workflow with source_ref=master when the current merged master state needs development images and Argo target updates backfilled"
+        "manual_backfill": "Dispatch the workflow with source_ref=master when the current merged master state needs development images and a matching development-target update pull request backfilled"
       },
       {
         "workflow": "Release",
@@ -831,7 +831,8 @@
         "followups": [
           "manually dispatch Publish Master Images with source_ref=master",
           "verify GHCR now contains the expected master-<shortsha> images",
-          "verify deploy/infrastructure/applications/tradelab-dev.yaml points to the matching source commit and immutable image tags",
+          "verify the generated development-target pull request updated deploy/infrastructure/applications/tradelab-dev.yaml to the matching source commit and immutable image tags",
+          "verify the generated development-target pull request merged successfully",
           "verify Argo CD syncs the updated development application"
         ]
       },
