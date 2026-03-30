@@ -301,6 +301,9 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			writeError(w, http.StatusInternalServerError, "failed to load activity")
 			return
 		}
+		if items == nil {
+			items = []domain.ActivityLog{}
+		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"activity": items})
 	})
@@ -316,6 +319,9 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 			logError(logger, "strategies.list_failed", err, "wallet_id", principal.WalletID)
 			writeError(w, http.StatusInternalServerError, "failed to load strategies")
 			return
+		}
+		if items == nil {
+			items = []domain.Strategy{}
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"strategies": items})

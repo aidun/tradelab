@@ -77,7 +77,14 @@ type PatchStrategyInput struct {
 }
 
 func (s *Service) ListStrategies(ctx context.Context, walletID string, marketSymbol string) ([]domain.Strategy, error) {
-	return s.repository.ListByWallet(ctx, walletID, marketSymbol)
+	items, err := s.repository.ListByWallet(ctx, walletID, marketSymbol)
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		return []domain.Strategy{}, nil
+	}
+	return items, nil
 }
 
 func (s *Service) UpsertStrategy(ctx context.Context, input UpsertStrategyInput) (domain.Strategy, error) {

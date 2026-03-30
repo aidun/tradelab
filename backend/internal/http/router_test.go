@@ -147,6 +147,24 @@ func TestListActivityRoute(t *testing.T) {
 	}
 }
 
+func TestListActivityRouteReturnsEmptyArrayWhenNoEntries(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/activity", nil)
+	req.Header.Set("Authorization", "Bearer token-1")
+	recorder := httptest.NewRecorder()
+
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
+	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+
+	if !strings.Contains(recorder.Body.String(), `"activity":[]`) {
+		t.Fatalf("expected empty activity array in response, got %s", recorder.Body.String())
+	}
+}
+
 func TestListStrategiesRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/strategies?market_symbol=XRP/USDT", nil)
 	req.Header.Set("Authorization", "Bearer token-1")
@@ -164,6 +182,24 @@ func TestListStrategiesRoute(t *testing.T) {
 
 	if !strings.Contains(recorder.Body.String(), "strategy-1") {
 		t.Fatalf("expected strategy payload in response, got %s", recorder.Body.String())
+	}
+}
+
+func TestListStrategiesRouteReturnsEmptyArrayWhenNoEntries(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/strategies", nil)
+	req.Header.Set("Authorization", "Bearer token-1")
+	recorder := httptest.NewRecorder()
+
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
+	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+
+	if !strings.Contains(recorder.Body.String(), `"strategies":[]`) {
+		t.Fatalf("expected empty strategies array in response, got %s", recorder.Body.String())
 	}
 }
 
