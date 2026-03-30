@@ -10,6 +10,10 @@ type FetchScenario = {
   failOrder?: boolean;
   failActivityOnRefresh?: boolean;
   initialOrderStateIndex?: number;
+  nullOrders?: boolean;
+  nullActivity?: boolean;
+  nullStrategies?: boolean;
+  initialOrderStateIndex?: number;
 };
 
 function installFetchMock(scenario: FetchScenario = {}) {
@@ -235,7 +239,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
 
     if (url.includes("/api/v1/orders")) {
       record("orders");
-      return Promise.resolve(new Response(JSON.stringify({ orders: orderResponses[orderStateIndex].orders })));
+      return Promise.resolve(new Response(JSON.stringify({ orders: scenario.nullOrders ? null : orderResponses[orderStateIndex].orders })));
     }
 
     if (url.includes("/api/v1/activity")) {
@@ -245,7 +249,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
         return Promise.resolve(new Response(JSON.stringify({ error: "Failed to load activity" }), { status: 500 }));
       }
 
-      return Promise.resolve(new Response(JSON.stringify({ activity: orderResponses[orderStateIndex].activity })));
+      return Promise.resolve(new Response(JSON.stringify({ activity: scenario.nullActivity ? null : orderResponses[orderStateIndex].activity })));
     }
 
     if (url.includes("/api/v1/strategies")) {
@@ -253,7 +257,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
       return Promise.resolve(
         new Response(
           JSON.stringify({
-            strategies: []
+            strategies: scenario.nullStrategies ? null : []
           })
         )
       );
@@ -392,6 +396,20 @@ describe("Hero", () => {
     expect(screen.getByText(/balances/i)).toBeInTheDocument();
   });
 
+  it("keeps the dashboard interactive when nullable collection payloads arrive", async () => {
+    installFetchMock({ nullActivity: true, nullStrategies: true, nullOrders: true });
+
+    render(<Hero />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /run demo buy/i })).toBeEnabled();
+    });
+
+    expect(screen.getByText(/balances/i)).toBeInTheDocument();
+    expect(screen.getByText(/activity will populate/i)).toBeInTheDocument();
+    expect(screen.getByText(/no orders yet for this scope/i)).toBeInTheDocument();
+  });
+
   it("surfaces stale feed metadata from the backend", async () => {
     installFetchMock({ candleMode: "stale" });
 
@@ -429,8 +447,10 @@ describe("Hero", () => {
       expect(fetchCounts["candles:1h"]).toBe(2);
     });
 
-    expect(screen.getByLabelText(/live market chart/i)).toBeInTheDocument();
-    expect(screen.getByText(/^failed$/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/live market chart/i)).toBeInTheDocument();
+      expect(screen.getByText(/^failed$/i)).toBeInTheDocument();
+    });
   });
 
   it("keeps the max-position sell control disabled until the current position is loaded", async () => {
