@@ -5,5 +5,4 @@ resources:
   - argocd.yaml
   - metallb-system.yaml
   - traefik-system.yaml
-  - tradelab-dev.yaml
   - tradelab.yaml
