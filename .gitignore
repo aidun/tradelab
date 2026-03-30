@@ -2,6 +2,8 @@
 node_modules/
 .next/
 coverage/
+backend/coverage.out
+backend/coverage
 playwright-report/
 test-results/
 backend/bin/

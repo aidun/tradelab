@@ -92,6 +92,7 @@ function CandleChart({ candles }: { candles: Candle[] }) {
   );
 }
 
+/** MarketDashboard renders the overview and market-detail trading experience. */
 export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT" }: MarketDashboardProps) {
   const auth = useTradeLabAuth();
   const buildInfo = resolveBuildInfo();

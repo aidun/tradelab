@@ -26,6 +26,7 @@ const (
 	AccountingModeHybrid      AccountingMode = "hybrid"
 )
 
+// Order records a simulated trade execution and its portfolio impact.
 type Order struct {
 	ID            string      `json:"id"`
 	UserID        string      `json:"userID"`
@@ -80,6 +81,7 @@ type PortfolioAllocation struct {
 	Weight       float64 `json:"weight"`
 }
 
+// PortfolioSummary is the aggregate portfolio view rendered in the UI.
 type PortfolioSummary struct {
 	WalletID       string                `json:"walletID"`
 	BaseCurrency   string                `json:"baseCurrency"`
@@ -94,6 +96,7 @@ type PortfolioSummary struct {
 	Allocations    []PortfolioAllocation `json:"allocations"`
 }
 
+// ActivityLog stores user-facing timeline entries for trading and automation events.
 type ActivityLog struct {
 	ID           string    `json:"id"`
 	WalletID     string    `json:"walletID"`
@@ -104,6 +107,7 @@ type ActivityLog struct {
 	CreatedAt    time.Time `json:"createdAt"`
 }
 
+// NormalizeAccountingMode maps arbitrary input onto the supported accounting modes.
 func NormalizeAccountingMode(raw string) AccountingMode {
 	switch AccountingMode(raw) {
 	case AccountingModeFIFO:

@@ -10,6 +10,7 @@ function cleanValue(value: string | undefined, fallback: string) {
   return trimmed ? trimmed : fallback;
 }
 
+/** resolveBuildInfo normalizes the release metadata exposed in the UI. */
 export function resolveBuildInfo(env: NodeJS.ProcessEnv = process.env): BuildInfo {
   const release = cleanValue(env.NEXT_PUBLIC_BUILD_RELEASE, "local-dev");
   const branch = cleanValue(env.NEXT_PUBLIC_BUILD_BRANCH, "workspace");

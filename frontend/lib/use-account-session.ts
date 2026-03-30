@@ -53,6 +53,7 @@ type CoreDataState = {
   activeAccessToken: () => Promise<string | null>;
 };
 
+/** useAccountSession orchestrates guest and registered account state plus dashboard data loading. */
 export function useAccountSession(): CoreDataState {
   const auth = useTradeLabAuth();
   const previousAuthStatus = useRef(auth.status);

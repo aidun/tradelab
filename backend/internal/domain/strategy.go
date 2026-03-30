@@ -21,6 +21,7 @@ const (
 	StrategyOutcomeErrored  StrategyOutcome = "errored"
 )
 
+// StrategyConfig groups the automation rules that can be evaluated for one market.
 type StrategyConfig struct {
 	DipBuy     DipBuyRule     `json:"dipBuy"`
 	TakeProfit TakeProfitRule `json:"takeProfit"`
@@ -43,6 +44,7 @@ type StopLossRule struct {
 	TriggerPercent float64 `json:"triggerPercent"`
 }
 
+// Strategy represents one automation bundle for a specific wallet and market.
 type Strategy struct {
 	ID                   string           `json:"id"`
 	UserID               string           `json:"userID"`
@@ -62,6 +64,7 @@ type Strategy struct {
 	UpdatedAt            time.Time        `json:"updatedAt"`
 }
 
+// StrategyRun captures one evaluation attempt of a strategy bundle.
 type StrategyRun struct {
 	ID                   string           `json:"id"`
 	StrategyID           string           `json:"strategyID"`
