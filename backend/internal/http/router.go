@@ -14,6 +14,7 @@ import (
 
 	"github.com/aidun/tradelab/backend/internal/domain"
 	"github.com/aidun/tradelab/backend/internal/logging"
+	backtestservice "github.com/aidun/tradelab/backend/internal/service/backtest"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 	sessionservice "github.com/aidun/tradelab/backend/internal/service/session"
 	strategyservice "github.com/aidun/tradelab/backend/internal/service/strategy"
@@ -45,6 +46,10 @@ type ActivityHistoryLister interface {
 	ListActivity(ctx context.Context, walletID string, limit int, marketSymbol string) ([]domain.ActivityLog, error)
 }
 
+type BacktestRunner interface {
+	Run(ctx context.Context, input backtestservice.RunInput) (domain.BacktestRun, error)
+}
+
 // StrategyManager exposes strategy listing and mutation operations to the router.
 type StrategyManager interface {
 	ListStrategies(ctx context.Context, walletID string, marketSymbol string) ([]domain.Strategy, error)
@@ -68,7 +73,7 @@ type RegisteredAccountManager interface {
 const registeredSessionCookieName = "tradelab_app_session"
 
 // NewRouter wires the TradeLab HTTP API and its authentication boundaries.
-func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, strategies StrategyManager, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) http.Handler {
+func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, backtests BacktestRunner, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, strategies StrategyManager, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -329,6 +334,51 @@ func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders O
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"strategies": items})
+	})
+
+	mux.HandleFunc("POST /api/v1/backtests", func(w http.ResponseWriter, r *http.Request) {
+		principal, ok := requirePrincipal(w, r, sessions, registeredAccounts, logger)
+		if !ok {
+			return
+		}
+
+		var payload struct {
+			MarketSymbol string                `json:"market_symbol"`
+			Interval     string                `json:"interval"`
+			StartTime    string                `json:"start_time"`
+			EndTime      string                `json:"end_time"`
+			Config       domain.StrategyConfig `json:"config"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON payload")
+			return
+		}
+
+		startTime, err := time.Parse(time.RFC3339, payload.StartTime)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "start_time must be RFC3339")
+			return
+		}
+		endTime, err := time.Parse(time.RFC3339, payload.EndTime)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "end_time must be RFC3339")
+			return
+		}
+
+		run, err := backtests.Run(r.Context(), backtestservice.RunInput{
+			MarketSymbol: payload.MarketSymbol,
+			Interval:     payload.Interval,
+			StartTime:    startTime,
+			EndTime:      endTime,
+			Config:       payload.Config,
+		})
+		if err != nil {
+			logError(logger, "backtests.run_failed", err, "wallet_id", principal.WalletID, "market_symbol", payload.MarketSymbol)
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{"backtest": run})
 	})
 
 	mux.HandleFunc("POST /api/v1/strategies", func(w http.ResponseWriter, r *http.Request) {

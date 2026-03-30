@@ -151,6 +151,42 @@ export type CandleFeed = {
   meta: MarketDataMeta;
 };
 
+export type BacktestSummary = {
+  returnPercent: number;
+  tradeCount: number;
+  sellCount: number;
+  winningTradeCount: number;
+  hitRatePercent: number;
+  maxDrawdownPercent: number;
+};
+
+export type BacktestEquityPoint = {
+  time: string;
+  price: number;
+  cashBalance: number;
+  openQuantity: number;
+  positionValue: number;
+  totalEquity: number;
+  drawdownPercent: number;
+};
+
+export type BacktestRun = {
+  marketSymbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  interval: string;
+  startTime: string;
+  endTime: string;
+  initialCash: number;
+  finalCash: number;
+  finalPositionQty: number;
+  finalPositionValue: number;
+  finalEquity: number;
+  orders: Order[];
+  equityCurve: BacktestEquityPoint[];
+  summary: BacktestSummary;
+};
+
 /** ApiError wraps backend and transport failures with an HTTP status for UI handling. */
 export class ApiError extends Error {
   status: number;
@@ -489,4 +525,36 @@ export async function logoutRegisteredAccount(): Promise<void> {
   if (!response.ok) {
     await parseApiError(response, "We couldn't log out cleanly right now.");
   }
+}
+
+export async function runBacktest(input: {
+  marketSymbol: string;
+  interval: string;
+  startTime: string;
+  endTime: string;
+  config: StrategyConfig;
+  token?: string | null;
+}): Promise<BacktestRun> {
+  const response = await fetch(apiUrl("/api/v1/backtests"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(input.token ?? undefined)
+    },
+    body: JSON.stringify({
+      market_symbol: input.marketSymbol,
+      interval: input.interval,
+      start_time: input.startTime,
+      end_time: input.endTime,
+      config: input.config
+    })
+  });
+
+  if (!response.ok) {
+    await parseApiError(response, "We couldn't run the backtest right now.");
+  }
+
+  const data = await response.json();
+  return data.backtest;
 }

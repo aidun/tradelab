@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aidun/tradelab/backend/internal/domain"
+	backtestservice "github.com/aidun/tradelab/backend/internal/service/backtest"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
 	strategyservice "github.com/aidun/tradelab/backend/internal/service/strategy"
 )
@@ -25,7 +26,7 @@ func TestHealthRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -36,7 +37,7 @@ func TestCreateDemoSessionRoute(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/sessions/demo", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		session: domain.DemoSession{
 			ID:        "session-1",
 			UserID:    "user-1",
@@ -63,7 +64,7 @@ func TestListMarketsRoute(t *testing.T) {
 		markets: []domain.Market{
 			{ID: "market-1", Symbol: "XRP/USDT", BaseAsset: "XRP", QuoteAsset: "USDT", Exchange: "demo"},
 		},
-	}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+	}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -74,7 +75,7 @@ func TestPortfolioRouteRequiresSession(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/wallet-1", nil)
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", recorder.Code)
@@ -86,7 +87,7 @@ func TestPortfolioRouteRejectsForeignWallet(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
 	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
@@ -100,7 +101,7 @@ func TestPortfolioRouteReturnsOwnedWallet(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{
 		summary: domain.PortfolioSummary{WalletID: "wallet-1", BaseCurrency: "USDT", TotalValue: 10000},
 	}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
@@ -116,7 +117,7 @@ func TestListOrdersRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{
 		orders: []domain.Order{{ID: "order-1", WalletID: "wallet-1", MarketSymbol: "XRP/USDT"}},
 	}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
@@ -136,7 +137,7 @@ func TestListActivityRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{
 		activity: []domain.ActivityLog{{ID: "log-1", WalletID: "wallet-1", Title: "Demo buy recorded", CreatedAt: time.Now()}},
 	}, fakeStrategyManager{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
@@ -152,7 +153,7 @@ func TestListActivityRouteReturnsEmptyArrayWhenNoEntries(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
 	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
@@ -170,7 +171,7 @@ func TestListStrategiesRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{
 		strategies: []domain.Strategy{{ID: "strategy-1", WalletID: "wallet-1", MarketSymbol: "XRP/USDT", Status: domain.StrategyStatusActive}},
 	}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
@@ -190,7 +191,7 @@ func TestListStrategiesRouteReturnsEmptyArrayWhenNoEntries(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
 	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
@@ -209,7 +210,7 @@ func TestCreateStrategyRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{
 		strategy: domain.Strategy{ID: "strategy-1", WalletID: "wallet-1", MarketSymbol: "XRP/USDT", Status: domain.StrategyStatusActive},
 	}, fakeSessionManager{
 		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
@@ -217,6 +218,33 @@ func TestCreateStrategyRoute(t *testing.T) {
 
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", recorder.Code)
+	}
+}
+
+func TestRunBacktestRoute(t *testing.T) {
+	body := bytes.NewBufferString(`{"market_symbol":"XRP/USDT","interval":"1h","start_time":"2026-03-01T00:00:00Z","end_time":"2026-03-02T00:00:00Z","config":{"dipBuy":{"enabled":true,"dipPercent":5,"spendQuoteAmount":100},"takeProfit":{"enabled":true,"triggerPercent":8},"stopLoss":{"enabled":true,"triggerPercent":3}}}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/backtests", body)
+	req.Header.Set("Authorization", "Bearer token-1")
+	recorder := httptest.NewRecorder()
+
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{
+		run: domain.BacktestRun{
+			MarketSymbol: "XRP/USDT",
+			Interval:     "1h",
+			InitialCash:  10000,
+			FinalEquity:  10125,
+			Summary:      domain.BacktestSummary{TradeCount: 2, ReturnPercent: 1.25},
+		},
+	}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+		session: domain.DemoSession{UserID: "user-1", WalletID: "wallet-1"},
+	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+
+	if !strings.Contains(recorder.Body.String(), `"tradeCount":2`) {
+		t.Fatalf("expected backtest summary in response, got %s", recorder.Body.String())
 	}
 }
 
@@ -232,7 +260,7 @@ func TestListMarketCandlesRoute(t *testing.T) {
 			},
 			Meta: domain.MarketDataMeta{Source: "stale", GeneratedAt: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)},
 		},
-	}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+	}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", recorder.Code)
@@ -253,7 +281,7 @@ func TestCreateOrderRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{
 		order: domain.Order{
 			ID:           "order-1",
 			UserID:       "user-1",
@@ -277,7 +305,7 @@ func TestOrdersRouteReturnsInternalErrorForUnexpectedSessionFailure(t *testing.T
 	req.Header.Set("Authorization", "Bearer token-1")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		err: errors.New("store unavailable"),
 	}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
@@ -291,7 +319,7 @@ func TestBootstrapRegisteredAccountRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer registered-token")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		appSession: domain.AppSession{
 			ID:            "app-session-1",
 			Token:         "cookie-token",
@@ -331,7 +359,7 @@ func TestUpgradeGuestAccountRoute(t *testing.T) {
 	req.Header.Set("X-TradeLab-Guest-Token", "guest-token")
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		appSession: domain.AppSession{
 			ID:            "app-session-1",
 			Token:         "cookie-token",
@@ -361,7 +389,7 @@ func TestOrdersRouteSupportsRegisteredAccounts(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: registeredSessionCookieName, Value: "cookie-token"})
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{
 		orders: []domain.Order{{ID: "order-registered", WalletID: "wallet-registered", MarketSymbol: "BTC/USDT"}},
 	}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{
 		appSession: domain.AppSession{
@@ -384,7 +412,7 @@ func TestLogoutRouteRevokesRegisteredCookie(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: registeredSessionCookieName, Value: "cookie-token"})
 	recorder := httptest.NewRecorder()
 
-	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
+	NewRouter(fakeMarketLister{}, fakeMarketLister{}, fakeBacktestRunner{}, fakeOrderPlacer{}, fakePortfolioGetter{}, fakeOrderHistoryLister{}, fakeActivityHistoryLister{}, fakeStrategyManager{}, fakeSessionManager{}, fakeRegisteredAccountManager{}, discardLogger()).ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", recorder.Code)
@@ -409,6 +437,15 @@ func (f fakeMarketLister) ListCandles(context.Context, string, string, int) (dom
 type fakeOrderPlacer struct {
 	order domain.Order
 	err   error
+}
+
+type fakeBacktestRunner struct {
+	run domain.BacktestRun
+	err error
+}
+
+func (f fakeBacktestRunner) Run(context.Context, backtestservice.RunInput) (domain.BacktestRun, error) {
+	return f.run, f.err
 }
 
 func (f fakeOrderPlacer) PlaceMarketOrder(context.Context, orderservice.PlaceMarketOrderInput) (domain.Order, error) {

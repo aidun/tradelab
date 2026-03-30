@@ -11,6 +11,7 @@ import (
 	httpapi "github.com/aidun/tradelab/backend/internal/http"
 	"github.com/aidun/tradelab/backend/internal/logging"
 	accountservice "github.com/aidun/tradelab/backend/internal/service/account"
+	backtestservice "github.com/aidun/tradelab/backend/internal/service/backtest"
 	historyservice "github.com/aidun/tradelab/backend/internal/service/history"
 	marketservice "github.com/aidun/tradelab/backend/internal/service/market"
 	orderservice "github.com/aidun/tradelab/backend/internal/service/order"
@@ -53,12 +54,13 @@ func main() {
 	orderService := orderservice.NewService(marketRepository, balanceRepository, portfolioRepository, marketService, logging.NewJSONLogger("order_service"))
 	portfolioService := portfolioservice.NewService(portfolioRepository, marketService, logging.NewJSONLogger("portfolio_service"))
 	historyService := historyservice.NewService(portfolioRepository, logging.NewJSONLogger("history_service"))
+	backtestService := backtestservice.NewService(marketRepository, marketService)
 	sessionService := sessionservice.NewService(sessionRepository, appSessionRepository, logging.NewJSONLogger("session_service"))
 	accountService := accountservice.NewService(registeredAccountRepository, clerkVerifier, logging.NewJSONLogger("account_service"))
 	strategyService := strategyservice.NewService(marketRepository, strategyRepository, marketService, portfolioService, orderService, logging.NewJSONLogger("strategy_service"))
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
-		Handler: httpapi.NewRouter(marketService, marketService, orderService, portfolioService, historyService, historyService, strategyService, sessionService, accountService, logging.NewJSONLogger("http_api")),
+		Handler: httpapi.NewRouter(marketService, marketService, backtestService, orderService, portfolioService, historyService, historyService, strategyService, sessionService, accountService, logging.NewJSONLogger("http_api")),
 	}
 
 	if cfg.StrategyEngineEnabled {

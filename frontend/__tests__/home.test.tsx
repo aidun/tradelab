@@ -263,6 +263,85 @@ function installFetchMock(scenario: FetchScenario = {}) {
       );
     }
 
+    if (url.includes("/api/v1/backtests")) {
+      record("backtests");
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            backtest: {
+              marketSymbol: "XRP/USDT",
+              baseAsset: "XRP",
+              quoteAsset: "USDT",
+              interval: "1h",
+              startTime: "2026-03-10T00:00:00Z",
+              endTime: "2026-03-20T23:59:59Z",
+              initialCash: 10000,
+              finalCash: 10080,
+              finalPositionQty: 0,
+              finalPositionValue: 0,
+              finalEquity: 10080,
+              orders: [
+                {
+                  id: "backtest-order-1",
+                  walletID: "wallet-1",
+                  marketSymbol: "XRP/USDT",
+                  side: "buy",
+                  baseQuantity: 150,
+                  quoteAmount: 100,
+                  expectedPrice: 0.6667,
+                  status: "filled",
+                  realizedPnL: 0,
+                  positionAfter: 150,
+                  createdAt: "2026-03-11T12:00:00Z"
+                },
+                {
+                  id: "backtest-order-2",
+                  walletID: "wallet-1",
+                  marketSymbol: "XRP/USDT",
+                  side: "sell",
+                  baseQuantity: 150,
+                  quoteAmount: 180,
+                  expectedPrice: 1.2,
+                  status: "filled",
+                  realizedPnL: 80,
+                  positionAfter: 0,
+                  createdAt: "2026-03-12T12:00:00Z"
+                }
+              ],
+              equityCurve: [
+                {
+                  time: "2026-03-11T12:00:00Z",
+                  price: 0.6667,
+                  cashBalance: 9900,
+                  openQuantity: 150,
+                  positionValue: 100,
+                  totalEquity: 10000,
+                  drawdownPercent: 0
+                },
+                {
+                  time: "2026-03-12T12:00:00Z",
+                  price: 1.2,
+                  cashBalance: 10080,
+                  openQuantity: 0,
+                  positionValue: 0,
+                  totalEquity: 10080,
+                  drawdownPercent: 0
+                }
+              ],
+              summary: {
+                returnPercent: 0.8,
+                tradeCount: 2,
+                sellCount: 1,
+                winningTradeCount: 1,
+                hitRatePercent: 100,
+                maxDrawdownPercent: 0
+              }
+            }
+          })
+        )
+      );
+    }
+
     record("portfolio");
     return Promise.resolve(new Response(JSON.stringify({ portfolio: orderResponses[orderStateIndex].portfolio })));
   });
@@ -472,5 +551,25 @@ describe("Hero", () => {
     fireEvent.click(maxButton);
 
     expect(screen.getByLabelText(/sell quantity/i)).toHaveValue(108.7);
+  });
+
+  it("runs a read-only backtest from the market detail screen", async () => {
+    const fetchCounts = installFetchMock({ initialOrderStateIndex: 1 });
+
+    render(<MarketDashboard detailOnly initialMarket="XRP/USDT" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /run backtest/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /run backtest/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/backtest ready for xrp\/usdt/i)).toBeInTheDocument();
+    });
+
+    expect(fetchCounts.backtests).toBe(1);
+    expect(screen.getByText(/strategy sell/i)).toBeInTheDocument();
+    expect(screen.getByText(/100/i)).toBeInTheDocument();
   });
 });

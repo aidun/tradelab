@@ -161,6 +161,53 @@ func (s *Service) ListCandles(ctx context.Context, marketSymbol string, interval
 	return domain.CandleFeed{}, err
 }
 
+func (s *Service) ListHistoricalCandles(ctx context.Context, marketSymbol string, interval string, start time.Time, end time.Time) ([]domain.Candle, error) {
+	if interval == "" {
+		interval = "1h"
+	}
+	if !start.Before(end) {
+		return nil, fmt.Errorf("historical candle start must be before end")
+	}
+
+	market, err := s.markets.GetBySymbol(ctx, marketSymbol)
+	if err != nil {
+		s.logError("list_historical_candles.market_lookup_failed", err, "market_symbol", marketSymbol)
+		return nil, fmt.Errorf("get market: %w", err)
+	}
+
+	start = start.UTC()
+	end = end.UTC()
+	cursor := start
+	collected := make([]domain.Candle, 0, 256)
+
+	for cursor.Before(end) {
+		batch, err := s.fetchHistoricalCandles(ctx, market.Symbol, interval, cursor, end, 1000)
+		if err != nil {
+			s.logError("list_historical_candles.fetch_failed", err, "market_symbol", market.Symbol, "interval", interval)
+			return nil, err
+		}
+		if len(batch) == 0 {
+			break
+		}
+
+		for _, candle := range batch {
+			if candle.CloseTime.Before(start) || candle.OpenTime.After(end) {
+				continue
+			}
+			collected = append(collected, candle)
+		}
+
+		lastClose := batch[len(batch)-1].CloseTime
+		nextCursor := lastClose.Add(time.Millisecond)
+		if !nextCursor.After(cursor) {
+			break
+		}
+		cursor = nextCursor
+	}
+
+	return collected, nil
+}
+
 func (s *Service) fetchSpotPrice(ctx context.Context, marketSymbol string) (float64, time.Time, error) {
 	query := url.Values{}
 	query.Set("symbol", strings.ReplaceAll(marketSymbol, "/", ""))
@@ -197,10 +244,25 @@ func (s *Service) fetchSpotPrice(ctx context.Context, marketSymbol string) (floa
 }
 
 func (s *Service) fetchCandles(ctx context.Context, marketSymbol string, interval string, limit int) ([]domain.Candle, time.Time, error) {
+	return s.fetchCandlesRequest(ctx, marketSymbol, interval, limit, nil, nil)
+}
+
+func (s *Service) fetchHistoricalCandles(ctx context.Context, marketSymbol string, interval string, start time.Time, end time.Time, limit int) ([]domain.Candle, error) {
+	candles, _, err := s.fetchCandlesRequest(ctx, marketSymbol, interval, limit, &start, &end)
+	return candles, err
+}
+
+func (s *Service) fetchCandlesRequest(ctx context.Context, marketSymbol string, interval string, limit int, start *time.Time, end *time.Time) ([]domain.Candle, time.Time, error) {
 	query := url.Values{}
 	query.Set("symbol", strings.ReplaceAll(marketSymbol, "/", ""))
 	query.Set("interval", interval)
 	query.Set("limit", strconv.Itoa(limit))
+	if start != nil {
+		query.Set("startTime", strconv.FormatInt(start.UTC().UnixMilli(), 10))
+	}
+	if end != nil {
+		query.Set("endTime", strconv.FormatInt(end.UTC().UnixMilli(), 10))
+	}
 
 	endpoint := fmt.Sprintf("%s/api/v3/uiKlines?%s", s.marketDataBaseURL, query.Encode())
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)

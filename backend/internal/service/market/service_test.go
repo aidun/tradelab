@@ -184,6 +184,39 @@ func TestListCandlesReturnsErrorForMalformedPayloadWithoutFallback(t *testing.T)
 	}
 }
 
+func TestListHistoricalCandlesFetchesDateBoundRange(t *testing.T) {
+	start := time.Date(2026, 3, 29, 10, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("startTime"); got != "1774778400000" {
+			t.Fatalf("expected startTime 1774778400000, got %s", got)
+		}
+		if got := r.URL.Query().Get("endTime"); got != "1774785600000" {
+			t.Fatalf("expected endTime 1774785600000, got %s", got)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			[1774778400000, "0.6200", "0.6400", "0.6150", "0.6320", "1250000.0", 1774781999999, "789000.0", 8342, "0", "0", "0"],
+			[1774782000000, "0.6320", "0.6450", "0.6280", "0.6410", "1430000.0", 1774785599999, "912000.0", 9021, "0", "0", "0"]
+		]`))
+	}))
+	defer server.Close()
+
+	service := NewService(fakeMarketRepository{market: demoMarket()}, server.URL, logging.NewDiscardLogger("market_service_test"))
+	service.client = server.Client()
+	service.clock = fakeClock{now: time.Date(2026, 3, 29, 12, 0, 0, 0, time.UTC)}
+
+	candles, err := service.ListHistoricalCandles(context.Background(), "XRP/USDT", "1h", start, end)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(candles) != 2 {
+		t.Fatalf("expected 2 candles, got %d", len(candles))
+	}
+}
+
 func TestGetSpotPriceFetchesRemoteMarketPrice(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v3/ticker/price" {
