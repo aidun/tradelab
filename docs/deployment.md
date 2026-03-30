@@ -78,12 +78,13 @@ These environment variables affect the Next.js frontend runtime and rewrites.
 | `TRADESLAB_API_PROXY_TARGET` | optional | before `npm run dev` or `npm run start` if the backend is not available at the default local address | `http://localhost:8080` | frontend rewrite target for `/api/*` requests |
 | `NEXT_PUBLIC_API_BASE_URL` | optional | before frontend startup only if you intentionally want browser calls to go directly to another API origin instead of using the rewrite path | empty string | frontend fetch client in the browser |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | optional | before frontend startup when you want the real Clerk UI and token flow in the browser | empty | frontend Clerk provider |
-| `NEXT_PUBLIC_AUTH_MOCK_MODE` | optional | before frontend startup in local or CI runs when mock Google/Apple auth should replace live Clerk configuration | `false` | frontend auth provider wrapper |
+| `NEXT_PUBLIC_AUTH_MOCK_MODE` | optional | before frontend startup in local, CI, or development-cluster runs when mock Google/Apple auth should replace live Clerk configuration | `false` | frontend auth provider wrapper |
 
 Security notes:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is frontend-safe
 - Clerk secret material must stay server-side and must not be committed or exposed through browser env vars
+- the Next.js app now resolves auth availability from server-rendered runtime env, so Kubernetes-injected frontend env vars can change the visible auth surface without rebuilding the image
 - `TRADESLAB_AUTH_MOCK_MODE` and `NEXT_PUBLIC_AUTH_MOCK_MODE` are development and CI switches only and must not be enabled in production manifests
 
 Recommended local default:

@@ -27,8 +27,11 @@ type TradeLabAuthContextValue = {
   signOut: () => Promise<void>;
 };
 
-const AUTH_MOCK_MODE = process.env.NEXT_PUBLIC_AUTH_MOCK_MODE === "true";
-const CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+export type TradeLabAuthRuntimeConfig = {
+  mockMode: boolean;
+  clerkPublishableKey: string | null;
+};
+
 const MOCK_STORAGE_KEY = "tradelab.mock-auth";
 
 const TradeLabAuthContext = createContext<TradeLabAuthContextValue>({
@@ -41,14 +44,20 @@ const TradeLabAuthContext = createContext<TradeLabAuthContextValue>({
   signOut: async () => undefined
 });
 
-export function TradeLabAuthProvider({ children }: { children: React.ReactNode }) {
-  if (AUTH_MOCK_MODE) {
+export function TradeLabAuthProvider({
+  children,
+  config
+}: {
+  children: React.ReactNode;
+  config: TradeLabAuthRuntimeConfig;
+}) {
+  if (config.mockMode) {
     return <MockAuthProvider>{children}</MockAuthProvider>;
   }
 
-  if (CLERK_PUBLISHABLE_KEY) {
+  if (config.clerkPublishableKey) {
     return (
-      <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <ClerkProvider publishableKey={config.clerkPublishableKey}>
         <ClerkStateProvider>{children}</ClerkStateProvider>
       </ClerkProvider>
     );

@@ -17,3 +17,5 @@ images:
 
 patches:
   - path: patch-ingress.yaml
+  - path: patch-backend-configmap.yaml
+  - path: patch-frontend-configmap.yaml
