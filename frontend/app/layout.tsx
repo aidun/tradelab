@@ -1,7 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
-import { TradeLabAuthProvider } from "@/lib/tradelab-auth";
+import { TradeLabAuthProvider, type TradeLabAuthRuntimeConfig } from "@/lib/tradelab-auth";
 import "./globals.css";
 
 const displayFont = Space_Grotesk({
@@ -20,15 +20,24 @@ export const metadata: Metadata = {
   description: "A multi-asset paper trading platform for strategy testing and automated demo execution."
 };
 
+function resolveAuthRuntimeConfig(): TradeLabAuthRuntimeConfig {
+  return {
+    mockMode: process.env.NEXT_PUBLIC_AUTH_MOCK_MODE === "true",
+    clerkPublishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? null
+  };
+}
+
 export default function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const authConfig = resolveAuthRuntimeConfig();
+
   return (
     <html lang="en">
       <body className={`${displayFont.variable} ${monoFont.variable}`}>
-        <TradeLabAuthProvider>{children}</TradeLabAuthProvider>
+        <TradeLabAuthProvider config={authConfig}>{children}</TradeLabAuthProvider>
       </body>
     </html>
   );

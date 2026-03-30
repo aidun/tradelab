@@ -58,7 +58,7 @@ Before starting local services, review these only if you are not using the defau
 - `TRADESLAB_API_PROXY_TARGET` before frontend startup
 - `NEXT_PUBLIC_API_BASE_URL` before frontend startup if you want direct browser-to-API calls
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` before frontend startup when using real Clerk UI
-- `NEXT_PUBLIC_AUTH_MOCK_MODE` before frontend startup when local or CI auth mocking should replace live Clerk UI
+- `NEXT_PUBLIC_AUTH_MOCK_MODE` before frontend startup when local, CI, or development-cluster auth mocking should replace live Clerk UI
 
 The full environment and deployment parameter reference lives in [deployment.md](deployment.md).
 
@@ -143,6 +143,7 @@ kubectl kustomize deploy/kubernetes/overlays/production-external-secrets
 - `frontend/components`: UI components, including the overview dashboard, focused market detail screen, and automation card
 - `frontend/lib`: API client code and shared helpers
 - `frontend/lib/tradelab-auth.tsx`: auth provider boundary for guest, mock, and Clerk-backed registered modes
+- `frontend/app/layout.tsx`: server-runtime auth config handoff so Clerk or mock auth can be switched through deployed env vars without rebuilding the frontend image
 - `frontend/lib/use-account-session.ts`: guest-plus-registered account orchestration plus guest session refresh logic
 - `frontend/__tests__`: component and workflow tests
 - `frontend/scripts`: utility scripts, including documentation screenshot generation

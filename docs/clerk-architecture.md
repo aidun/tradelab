@@ -17,8 +17,8 @@ Clerk is responsible for authenticating a user. The TradeLab backend remains res
 
 The Next.js frontend now:
 
-- renders Clerk UI for signup, login, account, and logout flows when `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is configured
-- supports a local and CI-friendly mock auth mode through `NEXT_PUBLIC_AUTH_MOCK_MODE=true`
+- renders Clerk UI for signup, login, account, and logout flows when `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is configured at runtime
+- supports a local, CI, and development-cluster-friendly mock auth mode through `NEXT_PUBLIC_AUTH_MOCK_MODE=true`
 - distinguish clearly between guest mode and registered mode
 - attach identity context when calling registered-account backend flows
 - continue to support the current guest bootstrap path for first-time use

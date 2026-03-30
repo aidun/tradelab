@@ -384,6 +384,7 @@
       "NEXT_PUBLIC_BUILD_BRANCH",
       "NEXT_PUBLIC_BUILD_COMMIT"
     ],
+    "frontend_auth_runtime_resolution": "frontend/app/layout.tsx resolves auth availability from runtime env and passes it into the client auth provider so deployed Clerk or mock-auth settings can change the visible sign-in surface without rebuilding the frontend image",
     "kubernetes_development_secret_keys": [
       "POSTGRES_DB",
       "POSTGRES_USER",

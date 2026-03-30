@@ -66,6 +66,7 @@ Important frontend configuration includes:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_AUTH_MOCK_MODE`
 - any same-origin or proxy alignment needed for local/runtime routing
+- the frontend auth surface is resolved from runtime env on the Next.js server, so deployed env changes can enable Clerk or mock auth without rebuilding the frontend image
 
 ### Secrets
 
