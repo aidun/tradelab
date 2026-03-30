@@ -164,6 +164,10 @@ export class ApiError extends Error {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 const UI_ERROR_RUNTIME = process.env.NODE_ENV ?? "development";
 
+function ensureArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function apiUrl(path: string) {
   if (API_BASE_URL === "") {
     return path;
@@ -229,7 +233,7 @@ export async function fetchMarkets(): Promise<Market[]> {
   }
 
   const data = await response.json();
-  return data.markets;
+  return ensureArray<Market>(data.markets);
 }
 
 export async function fetchCandles(marketSymbol: string, interval = "1h", limit = 48): Promise<CandleFeed> {
@@ -243,7 +247,7 @@ export async function fetchCandles(marketSymbol: string, interval = "1h", limit 
 
   const data = await response.json();
   return {
-    candles: data.candles,
+    candles: ensureArray<Candle>(data.candles),
     meta: {
       source: data.meta.source,
       generatedAt: data.meta.generated_at ?? data.meta.generatedAt
@@ -288,7 +292,7 @@ export async function fetchOrders(
   }
 
   const data = await response.json();
-  return data.orders;
+  return ensureArray<Order>(data.orders);
 }
 
 export async function fetchActivity(token: string, options?: { marketSymbol?: string }): Promise<ActivityLog[]> {
@@ -307,7 +311,7 @@ export async function fetchActivity(token: string, options?: { marketSymbol?: st
   }
 
   const data = await response.json();
-  return data.activity;
+  return ensureArray<ActivityLog>(data.activity);
 }
 
 export async function fetchStrategies(token: string, marketSymbol?: string): Promise<Strategy[]> {
@@ -326,7 +330,7 @@ export async function fetchStrategies(token: string, marketSymbol?: string): Pro
   }
 
   const data = await response.json();
-  return data.strategies;
+  return ensureArray<Strategy>(data.strategies);
 }
 
 export async function saveStrategy(input: {
