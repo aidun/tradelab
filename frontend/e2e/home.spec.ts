@@ -500,6 +500,56 @@ test("opens the dedicated market detail page", async ({ page }) => {
   await expect(page.getByRole("button", { name: /run demo sell/i })).toBeVisible();
 });
 
+test("refreshes chart data from the market-detail header", async ({ page }) => {
+  let candleRequests = 0;
+
+  await page.route("**/api/v1/markets/*/candles**", async (route) => {
+    candleRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        candles: [
+          {
+            openTime: "2026-03-29T10:00:00Z",
+            closeTime: "2026-03-29T10:59:59Z",
+            openPrice: 0.62,
+            highPrice: 0.64,
+            lowPrice: 0.61,
+            closePrice: 0.63,
+            baseVolume: 1200000,
+            quoteVolume: 756000,
+            trades: 8000
+          },
+          {
+            openTime: "2026-03-29T11:00:00Z",
+            closeTime: "2026-03-29T11:59:59Z",
+            openPrice: 0.63,
+            highPrice: 0.65,
+            lowPrice: 0.62,
+            closePrice: 0.64,
+            baseVolume: 1400000,
+            quoteVolume: 896000,
+            trades: 9200
+          }
+        ],
+        meta: {
+          source: "fresh",
+          generated_at: "2026-03-29T12:05:00Z"
+        }
+      })
+    });
+  });
+
+  await page.goto("/markets/XRP%2FUSDT");
+  await expect(page.getByRole("button", { name: /refresh chart/i })).toBeVisible();
+  await expect.poll(() => candleRequests).toBe(1);
+
+  await page.getByRole("button", { name: /refresh chart/i }).click();
+
+  await expect.poll(() => candleRequests).toBe(2);
+});
+
 test("executes a demo buy and refreshes portfolio metrics", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /run demo buy/i }).click();
