@@ -9,12 +9,12 @@ spec:
   project: default
   source:
     repoURL: https://github.com/aidun/tradelab.git
-    targetRevision: master
+    targetRevision: 4ace2e769803bc6ff99897b2874294a3b8834adc
     path: deploy/kubernetes/overlays/development
     kustomize:
       images:
-        - ghcr.io/aidun/tradelab-backend:master
-        - ghcr.io/aidun/tradelab-frontend:master
+        - ghcr.io/aidun/tradelab-backend:master-4ace2e769803
+        - ghcr.io/aidun/tradelab-frontend:master-4ace2e769803
   destination:
     server: https://kubernetes.default.svc
     namespace: tradelab-dev
