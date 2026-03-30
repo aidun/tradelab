@@ -13,6 +13,12 @@ type MarketDashboardProps = {
   initialMarket?: string;
 };
 
+type BacktestReportEntry = {
+  id: string;
+  label: string;
+  run: BacktestRun;
+};
+
 export const CHART_AUTO_REFRESH_MS = 30_000;
 
 const baseControlClassName =
@@ -111,6 +117,34 @@ function CandleChart({ candles }: { candles: Candle[] }) {
   );
 }
 
+function BacktestEquityChart({ points }: { points: BacktestRun["equityCurve"] }) {
+  if (points.length === 0) {
+    return <EmptyPanelState>The equity curve will appear after a completed backtest run.</EmptyPanelState>;
+  }
+
+  const width = 960;
+  const height = 220;
+  const padding = 18;
+  const values = points.map((point) => point.totalEquity);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const range = Math.max(high - low, 0.0001);
+  const step = points.length > 1 ? (width - padding * 2) / (points.length - 1) : 0;
+  const path = points
+    .map((point, index) => {
+      const x = padding + step * index;
+      const y = padding + (height - padding * 2) - ((point.totalEquity - low) / range) * (height - padding * 2);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Backtest equity curve" className="h-[220px] w-full rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(8,24,38,0.96),rgba(4,11,22,0.96))] p-3">
+      <rect x="0" y="0" width={width} height={height} fill="rgba(8,24,38,0.96)" rx="24" />
+      <path d={path} fill="none" stroke="rgba(110,242,211,0.95)" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  );
+}
 /** MarketDashboard renders the overview and market-detail trading experience. */
 export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT" }: MarketDashboardProps) {
   const auth = useTradeLabAuth();
@@ -141,6 +175,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const [backtestStartDate, setBacktestStartDate] = useState(() => isoDate(-14));
   const [backtestEndDate, setBacktestEndDate] = useState(() => isoDate(-1));
   const [backtestResult, setBacktestResult] = useState<BacktestRun | null>(null);
+  const [backtestHistory, setBacktestHistory] = useState<BacktestReportEntry[]>([]);
   const [backtestError, setBacktestError] = useState<string | null>(null);
   const [isRunningBacktest, setIsRunningBacktest] = useState(false);
   const [strategyConfig, setStrategyConfig] = useState<StrategyConfig>({
@@ -333,6 +368,14 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
         token
       });
       setBacktestResult(result);
+      setBacktestHistory((current) => [
+        {
+          id: `${selectedMarket}-${backtestStartDate}-${backtestEndDate}-${current.length + 1}`,
+          label: `${backtestStartDate} to ${backtestEndDate}`,
+          run: result
+        },
+        ...current
+      ].slice(0, 5));
       setSuccessMessage(`Backtest ready for ${selectedMarket}.`);
     } catch (runError) {
       setBacktestError(runError instanceof Error ? runError.message : "Backtest failed");
@@ -566,6 +609,18 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                       <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"><p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Hit rate</p><p className="tabular-data mt-3 text-2xl font-semibold">{formatNumber(backtestResult.summary.hitRatePercent)}%</p></div>
                       <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"><p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Max drawdown</p><p className="tabular-data mt-3 text-2xl font-semibold">{formatNumber(backtestResult.summary.maxDrawdownPercent)}%</p></div>
                     </div>
+                    <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Equity curve</p>
+                          <p className="mt-2 text-sm text-[var(--muted)]">Track how simulated equity rose, pulled back, and closed across the selected historical window.</p>
+                        </div>
+                        <span className="tabular-data text-sm text-[var(--muted)]">Final equity {formatCurrency(backtestResult.finalEquity)}</span>
+                      </div>
+                      <div className="mt-4">
+                        <BacktestEquityChart points={backtestResult.equityCurve} />
+                      </div>
+                    </div>
                     <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                       <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
                         <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Run snapshot</p>
@@ -589,6 +644,39 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                             </div>
                           )) : <EmptyPanelState>No trades matched the current backtest settings.</EmptyPanelState>}
                         </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Recent backtests</p>
+                          <p className="mt-2 text-sm text-[var(--muted)]">Use this table to compare the last few read-only runs for the same strategy surface.</p>
+                        </div>
+                        <span className="text-sm text-[var(--muted)]">{backtestHistory.length} saved</span>
+                      </div>
+                      <div className="mt-4 overflow-x-auto">
+                        <table className="min-w-full text-left text-sm text-[var(--muted)]">
+                          <thead>
+                            <tr className="border-b border-[var(--line)] text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
+                              <th className="pb-3 pr-4 font-medium">Range</th>
+                              <th className="pb-3 pr-4 font-medium">Return</th>
+                              <th className="pb-3 pr-4 font-medium">Trades</th>
+                              <th className="pb-3 pr-4 font-medium">Hit rate</th>
+                              <th className="pb-3 font-medium">Drawdown</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {backtestHistory.map((entry) => (
+                              <tr key={entry.id} className="border-b border-[rgba(255,255,255,0.05)] last:border-b-0">
+                                <td className="tabular-data py-3 pr-4">{entry.label}</td>
+                                <td className={`tabular-data py-3 pr-4 ${pnlTone(entry.run.summary.returnPercent)}`}>{formatNumber(entry.run.summary.returnPercent)}%</td>
+                                <td className="tabular-data py-3 pr-4">{entry.run.summary.tradeCount}</td>
+                                <td className="tabular-data py-3 pr-4">{formatNumber(entry.run.summary.hitRatePercent)}%</td>
+                                <td className="tabular-data py-3">{formatNumber(entry.run.summary.maxDrawdownPercent)}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </div>

@@ -43,6 +43,8 @@ It helps teams and individual builders:
 - dedicated market detail routes for focused trading flows
 - rule-based strategy automation with one bundle per wallet and market
 - built-in `dip_buy`, `take_profit`, and `stop_loss` automation in the market detail experience
+- read-only strategy backtesting over an explicit historical date range
+- product-facing backtest reporting with summary cards, an equity curve, and recent-run comparison
 - market candle rendering with bounded stale-feed fallback behavior
 - Kubernetes deployment assets, repo-managed Traefik and MetalLB bootstrap, generated first-run database credentials, CI validation, and release automation
 - GitOps environment promotion with deterministic `dev -> master commit image` and `prod -> official release tag`
@@ -58,7 +60,8 @@ TradeLab currently supports a compact but realistic user journey:
 5. configure and activate a strategy bundle for a market
 6. execute manual or automated demo buys and sells
 7. switch accounting modes globally to inspect valuation and PnL
-8. review balances, positions, orders, activity, and bot reasoning across overview and market detail screens
+8. replay the active strategy configuration over a historical range from the market detail page
+9. review balances, positions, orders, activity, bot reasoning, and backtest reporting across overview and market detail screens
 
 Visual walkthrough:
 

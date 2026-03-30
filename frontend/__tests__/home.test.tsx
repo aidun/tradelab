@@ -590,6 +590,8 @@ describe("Hero", () => {
 
     expect(fetchCounts.backtests).toBe(1);
     expect(screen.getByText(/strategy sell/i)).toBeInTheDocument();
-    expect(screen.getByText(/100/i)).toBeInTheDocument();
+    expect(screen.getByText(/recent backtests/i)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /backtest equity curve/i })).toBeInTheDocument();
+    expect(screen.getByText(/track how simulated equity rose, pulled back, and closed/i)).toBeInTheDocument();
   });
 });
