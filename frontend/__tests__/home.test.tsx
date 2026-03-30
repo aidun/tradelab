@@ -471,6 +471,6 @@ describe("Hero", () => {
 
     fireEvent.click(maxButton);
 
-    expect(screen.getByLabelText(/sell quantity/i)).toHaveValue("108.7");
+    expect(screen.getByLabelText(/sell quantity/i)).toHaveValue(108.7);
   });
 });
