@@ -162,6 +162,7 @@ export class ApiError extends Error {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const UI_ERROR_RUNTIME = process.env.NODE_ENV ?? "development";
 
 function apiUrl(path: string) {
   if (API_BASE_URL === "") {
@@ -183,7 +184,20 @@ function authHeaders(token?: string) {
 
 async function parseApiError(response: Response, fallback: string) {
   const payload = await response.json().catch(() => ({ error: fallback }));
-  throw new ApiError(payload.error ?? fallback, response.status);
+  throw new ApiError(resolveApiErrorMessage(payload.error, fallback), response.status);
+}
+
+export function resolveApiErrorMessage(detail: unknown, fallback: string, runtime = UI_ERROR_RUNTIME) {
+  const detailMessage = typeof detail === "string" ? detail.trim() : "";
+  if (runtime !== "production") {
+    return detailMessage || fallback;
+  }
+
+  if (detailMessage !== "") {
+    console.error("TradeLab API error", detailMessage);
+  }
+
+  return fallback;
 }
 
 export async function createDemoSession(): Promise<DemoSession> {
@@ -195,7 +209,7 @@ export async function createDemoSession(): Promise<DemoSession> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create demo session");
+    await parseApiError(response, "We couldn't start a demo session right now.");
   }
 
   const data = await response.json();
@@ -211,7 +225,7 @@ export async function createDemoSession(): Promise<DemoSession> {
 export async function fetchMarkets(): Promise<Market[]> {
   const response = await fetch(apiUrl("/api/v1/markets"), { cache: "no-store" });
   if (!response.ok) {
-    throw new Error("Failed to load markets");
+    await parseApiError(response, "We couldn't load market data right now.");
   }
 
   const data = await response.json();
@@ -224,7 +238,7 @@ export async function fetchCandles(marketSymbol: string, interval = "1h", limit 
     cache: "no-store"
   });
   if (!response.ok) {
-    throw new Error("Failed to load candles");
+    await parseApiError(response, "We couldn't refresh the chart right now.");
   }
 
   const data = await response.json();
@@ -245,7 +259,7 @@ export async function fetchPortfolio(walletID: string, token: string, accounting
   });
 
   if (!response.ok) {
-    await parseApiError(response, "Failed to load portfolio");
+    await parseApiError(response, "We couldn't load the portfolio right now.");
   }
 
   const data = await response.json();
@@ -270,7 +284,7 @@ export async function fetchOrders(
     headers: authHeaders(token)
   });
   if (!response.ok) {
-    await parseApiError(response, "Failed to load orders");
+    await parseApiError(response, "We couldn't load recent orders right now.");
   }
 
   const data = await response.json();
@@ -289,7 +303,7 @@ export async function fetchActivity(token: string, options?: { marketSymbol?: st
     headers: authHeaders(token)
   });
   if (!response.ok) {
-    await parseApiError(response, "Failed to load activity");
+    await parseApiError(response, "We couldn't load activity right now.");
   }
 
   const data = await response.json();
@@ -308,7 +322,7 @@ export async function fetchStrategies(token: string, marketSymbol?: string): Pro
     headers: authHeaders(token)
   });
   if (!response.ok) {
-    await parseApiError(response, "Failed to load strategies");
+    await parseApiError(response, "We couldn't load automation right now.");
   }
 
   const data = await response.json();
@@ -336,7 +350,7 @@ export async function saveStrategy(input: {
   });
 
   if (!response.ok) {
-    await parseApiError(response, "Failed to save strategy");
+    await parseApiError(response, "We couldn't save the automation changes.");
   }
 
   const data = await response.json();
@@ -363,7 +377,7 @@ export async function patchStrategy(input: {
   });
 
   if (!response.ok) {
-    await parseApiError(response, "Failed to update strategy");
+    await parseApiError(response, "We couldn't update the automation changes.");
   }
 
   const data = await response.json();
@@ -393,7 +407,7 @@ export async function placeMarketOrder(input: {
   });
 
   if (!response.ok) {
-    await parseApiError(response, "Order failed");
+    await parseApiError(response, "We couldn't place that order right now.");
   }
 
   return response.json();
@@ -407,7 +421,7 @@ export async function bootstrapRegisteredAccount(token: string): Promise<Registe
   });
 
   if (!response.ok) {
-    await parseApiError(response, "Failed to bootstrap account");
+    await parseApiError(response, "We couldn't open the registered account right now.");
   }
 
   const data = await response.json();
@@ -440,7 +454,7 @@ export async function upgradeGuestAccount(input: {
   });
 
   if (!response.ok) {
-    await parseApiError(response, "Failed to upgrade guest account");
+    await parseApiError(response, "We couldn't upgrade this guest session right now.");
   }
 
   const data = await response.json();
@@ -461,6 +475,6 @@ export async function logoutRegisteredAccount(): Promise<void> {
   });
 
   if (!response.ok) {
-    await parseApiError(response, "Failed to log out");
+    await parseApiError(response, "We couldn't log out cleanly right now.");
   }
 }
