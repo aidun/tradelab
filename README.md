@@ -1,6 +1,9 @@
 # TradeLab
 
 [![CI](https://github.com/aidun/tradelab/actions/workflows/ci.yml/badge.svg)](https://github.com/aidun/tradelab/actions/workflows/ci.yml)
+[![Backend Coverage Floor](https://img.shields.io/badge/backend_coverage-%E2%89%A540%25-2ea043)](docs/developer-guide.md#quality-gates)
+[![Frontend Coverage Gate](https://img.shields.io/badge/frontend_coverage-gated%20(45%2F45%2F50%2F50)-1f6feb)](docs/developer-guide.md#quality-gates)
+[![Source Docs Gate](https://img.shields.io/badge/source_docs-enforced-8250df)](docs/developer-guide.md#quality-gates)
 [![Release](https://img.shields.io/github/v/release/aidun/tradelab?display_name=tag)](https://github.com/aidun/tradelab/releases)
 [![License](https://img.shields.io/github/license/aidun/tradelab)](LICENSE)
 
@@ -84,6 +87,8 @@ For the exact PR -> CI -> merge -> release sequence, see:
 
 - [docs/system-operations.md](docs/system-operations.md)
 - [docs/release-process.md](docs/release-process.md)
+
+The coverage and source-doc badges on this page reflect enforced CI quality gates, not a live third-party coverage telemetry service.
 
 ## Public roadmap
 
