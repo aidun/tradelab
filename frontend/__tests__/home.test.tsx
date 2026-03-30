@@ -13,6 +13,7 @@ type FetchScenario = {
   nullOrders?: boolean;
   nullActivity?: boolean;
   nullStrategies?: boolean;
+  initialOrderStateIndex?: number;
 };
 
 function installFetchMock(scenario: FetchScenario = {}) {
