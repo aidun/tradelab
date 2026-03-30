@@ -17,8 +17,8 @@ TradeLab infrastructure now assumes this cluster shape:
 - `argocd` namespace for the GitOps control plane
 - `metallb-system` namespace for MetalLB
 - `traefik-system` namespace for Traefik
-- `tradelab-dev` namespace prepared for the development application deployment
-- `tradelab` namespace prepared for the production application deployment
+- `tradelab-dev` namespace created and owned by the development application sync
+- `tradelab` namespace created and owned by the production application sync
 
 The reserved MetalLB LAN range is:
 
@@ -42,7 +42,7 @@ The infrastructure bootstrap lives under `deploy/infrastructure/`:
 - `bootstrap/argocd-install`: manual first-step Argo CD installation
 - `bootstrap/root-application`: manual second-step root application
 - `applications/`: Argo CD child applications managed by the root app
-- `platform/namespaces`: shared namespace creation
+- `platform/namespaces`: shared system namespace creation
 - `platform/metallb/config`: MetalLB IP pool and L2 advertisement
 
 TradeLab application manifests remain under `deploy/kubernetes/` and are not replaced by this structure.
@@ -95,6 +95,7 @@ Sync waves are used so the cluster is built in a predictable order:
 - namespaces first
 - MetalLB second
 - Traefik third
+- application namespaces are then created by the corresponding TradeLab application manifests rather than by `platform-namespaces`
 
 ## Operational expectations
 
@@ -110,7 +111,7 @@ Sync waves are used so the cluster is built in a predictable order:
 
 After bootstrap, confirm:
 
-- `kubectl get ns` shows `argocd`, `metallb-system`, `traefik-system`, `tradelab-dev`, and `tradelab`
+- `kubectl get ns` shows `argocd`, `metallb-system`, and `traefik-system` immediately after platform bootstrap, with `tradelab-dev` and `tradelab` appearing once their applications sync
 - `kubectl -n metallb-system get pods` shows a healthy controller and speakers
 - `kubectl -n traefik-system get svc` shows Traefik with `192.168.2.200`
 - `kubectl get ingressclass` includes `traefik`
