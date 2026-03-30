@@ -87,7 +87,7 @@
   "constraints": {
     "code_language": "English",
     "chat_language": "German",
-    "delivery_model": "Feature branches -> PR CI -> merge to master -> publish master images for dev -> bot PR updates Argo dev target -> CI -> merge -> manual backfill via workflow_dispatch when needed -> release",
+    "delivery_model": "Feature branches -> PR CI -> merge to master -> publish master images for dev -> automated development-target PR when repository policy allows it -> CI -> merge -> manual backfill via workflow_dispatch when needed -> release",
     "merge_strategy": "squash merge",
     "demo_only": true,
     "live_trading": false,
@@ -172,7 +172,7 @@
         ],
         "jobs_order": [
           "Build and publish backend/frontend master images",
-          "Create a bot-authored pull request that updates tradelab-dev to the source commit SHA plus matching immutable master image tags"
+          "Attempt to create a bot-authored pull request that updates tradelab-dev to the source commit SHA plus matching immutable master image tags, while falling back to a pushed automation branch plus warning if Actions PR creation is blocked by repository policy"
         ],
         "manual_backfill": "Dispatch the workflow with source_ref=master when the current merged master state needs development images and a matching development-target update pull request backfilled"
       },
@@ -242,7 +242,7 @@
         "deploy/infrastructure/applications/tradelab-prod.yaml"
       ],
       "environment_revision_policy": {
-        "development": "track the latest merged master commit through an Argo application manifest committed on master",
+        "development": "track the latest merged master commit through an Argo application manifest committed on master, with Publish Master Images either creating the update PR automatically or surfacing a compare URL when repository policy blocks Actions PR creation",
         "production": "track a promoted official release tag"
       }
     }
@@ -730,7 +730,7 @@
           "verify PR -> CI -> merge -> release documentation remains accurate"
         ]
       },
-      "github_process_change": {
+    "github_process_change": {
         "required_followups": [
           "review community_health_docs",
           "review github_templates",
@@ -826,6 +826,7 @@
           "update deploy/infrastructure/applications/tradelab-dev.yaml",
           "update docs/deployment.md",
           "update docs/system-operations.md",
+          "update docs/github-rollout.md",
           "update docs/developer-guide.md",
           "update docs/ai-metadata.json"
         ]

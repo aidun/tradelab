@@ -216,12 +216,14 @@ Every merge to `master` builds and publishes backend and frontend development im
 - `master`
 - `master-<shortsha>`
 
-It then opens a bot-authored pull request that updates [tradelab-dev.yaml](../deploy/infrastructure/applications/tradelab-dev.yaml), setting:
+It then tries to open a bot-authored pull request that updates [tradelab-dev.yaml](../deploy/infrastructure/applications/tradelab-dev.yaml), setting:
 
 - the Argo CD `targetRevision` to the source commit SHA
 - backend and frontend image overrides to the matching immutable `master-<shortsha>` tags
 
 That follow-up PR runs through the normal repository CI and is merged through the existing auto-merge path, so protected-branch rules stay intact.
+
+If the repository does not allow Actions to create pull requests with the default token, configure the GitHub setting `Allow GitHub Actions to create and approve pull requests` or add the repository secret `AUTOMATION_GITHUB_TOKEN`. When neither path is available, the workflow now pushes the prepared automation branch and emits a warning plus compare URL instead of failing the whole run.
 
 If the workflow was introduced after the current merged `master` state or a publish run needs to be repeated, manually dispatch `Publish Master Images` with `source_ref=master`. That backfills GHCR with the missing immutable dev images and opens the matching development-target update PR.
 

@@ -184,6 +184,13 @@ This means the effective repository delivery path is:
 
 If a merged `master` state needs to be backfilled because the workflow was added later or a publish run was missed, operators should manually dispatch `Publish Master Images` with `source_ref=master`, then verify that the generated development-target PR merged before troubleshooting Argo drift.
 
+If `Publish Master Images` warns that GitHub Actions could not create the pull request automatically, treat that as a repository-policy gap rather than an image-build failure. The workflow now keeps the branch push and compare URL available, but operators must either:
+
+- enable `Allow GitHub Actions to create and approve pull requests`, or
+- configure the repository secret `AUTOMATION_GITHUB_TOKEN`
+
+before expecting fully hands-off development-target PR creation.
+
 For a release-focused view of published artifacts and release meaning, see [release-process.md](release-process.md).
 
 ## Health and failure surfaces

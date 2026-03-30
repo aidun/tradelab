@@ -31,6 +31,7 @@ jobs:
       short_sha: ${{ steps.meta.outputs.short_sha }}
       full_sha: ${{ steps.meta.outputs.full_sha }}
       source_ref: ${{ steps.meta.outputs.source_ref }}
+      branch_short_sha: ${{ steps.meta.outputs.branch_short_sha }}
 
     steps:
       - name: Check out repository
@@ -43,9 +44,11 @@ jobs:
         shell: bash
         run: |
           short_sha="$(git rev-parse --short=12 HEAD)"
+          branch_short_sha="$(git rev-parse --short HEAD)"
           source_ref="${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.sha }}"
           echo "source_ref=$source_ref" >> "$GITHUB_OUTPUT"
           echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
+          echo "branch_short_sha=$branch_short_sha" >> "$GITHUB_OUTPUT"
           echo "full_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
@@ -160,9 +163,11 @@ jobs:
           app_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
       - name: Create development target update pull request
+        id: dev_target_pr
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AUTOMATION_GITHUB_TOKEN != '' && secrets.AUTOMATION_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           commit-message: Update development Argo target to ${{ needs.publish-master-images.outputs.short_sha }}
           title: Update development Argo target to ${{ needs.publish-master-images.outputs.short_sha }}
           body: |
@@ -179,3 +184,23 @@ jobs:
           delete-branch: true
           add-paths: |
             deploy/infrastructure/applications/tradelab-dev.yaml
+
+      - name: Report development target pull request status
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.dev_target_pr.outcome }}" = "success" ]; then
+            echo "Development target update PR created successfully."
+            exit 0
+          fi
+
+          branch="automation/update-tradelab-dev-target-${{ needs.publish-master-images.outputs.branch_short_sha }}"
+          compare_url="https://github.com/${{ github.repository }}/compare/master...${branch}?expand=1"
+          echo "::warning title=Development target PR not created::GitHub Actions pushed branch '${branch}' but could not open the pull request automatically. Enable the repository setting 'Allow GitHub Actions to create and approve pull requests' or configure the AUTOMATION_GITHUB_TOKEN secret, then open ${compare_url}"
+          {
+            echo "## Development target update requires follow-up"
+            echo
+            echo "- branch pushed: \`${branch}\`"
+            echo "- compare URL: ${compare_url}"
+            echo "- next action: enable GitHub Actions PR creation or configure \`AUTOMATION_GITHUB_TOKEN\`"
+          } >> "$GITHUB_STEP_SUMMARY"

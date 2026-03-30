@@ -130,6 +130,7 @@ Development image policy:
 - the same Argo application pins `targetRevision` to the exact source commit that produced those images
 - the master-image workflow updates the development Argo target through a bot-authored pull request so protected-branch rules remain intact
 - if the master-image workflow was introduced after the current `master` state landed or a run was missed, operators can manually dispatch `Publish Master Images` with `source_ref=master` to backfill the immutable development images and open the matching Argo-target update PR
+- if that workflow warns that Actions could not create the PR automatically, enable `Allow GitHub Actions to create and approve pull requests` or provide `AUTOMATION_GITHUB_TOKEN`, then use the emitted compare URL to finish the development-target update
 
 ### Kubernetes production parameters
 

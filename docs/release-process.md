@@ -16,7 +16,7 @@ Recommended operator flow:
 
 1. merge reviewed work into `master`
 2. if the development publish step for the current `master` state was missed, manually dispatch `Publish Master Images` with `source_ref=master`
-3. verify that the bot-authored development-target PR was created and merged
+3. verify that the bot-authored development-target PR was created and merged, or if the workflow emitted a warning instead, enable Actions PR creation or provide `AUTOMATION_GITHUB_TOKEN` and open the compare URL it reported
 4. trigger the `Release` workflow from `master`
 5. confirm the GitHub Release and immutable images were published
 6. trigger `Promote Production` when production should move to the newest official release

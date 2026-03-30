@@ -539,7 +539,7 @@ test("keeps balances visible when the activity refresh fails after a demo buy", 
 
 test("executes a partial sell from the market detail page", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
-  await page.locator("input").nth(1).fill("50");
+  await page.getByLabel(/sell quantity/i).fill("50");
   await page.getByRole("button", { name: /run demo sell/i }).click();
 
   await expect(page.getByText(/demo sell executed for xrp\/usdt/i)).toBeVisible();
@@ -550,6 +550,7 @@ test("executes a partial sell from the market detail page", async ({ page }) => 
 test("closes the position with a max sell", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
   await page.getByRole("button", { name: /max position/i }).click();
+  await expect(page.getByLabel(/sell quantity/i)).toHaveValue("74.62");
   await page.getByRole("button", { name: /run demo sell/i }).click();
 
   await expect(page.getByText(/demo sell executed for xrp\/usdt/i)).toBeVisible();
