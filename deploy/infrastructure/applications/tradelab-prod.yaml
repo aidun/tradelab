@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/aidun/tradelab.git
-    targetRevision: v0.1.22
+    targetRevision: master
     path: deploy/kubernetes/overlays/production
     kustomize:
       images:

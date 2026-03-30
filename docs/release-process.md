@@ -52,12 +52,12 @@ TradeLab publishes two image classes:
   - `latest`
   - `v0.1.<run-number>`
 
-`tradelab-dev` should use immutable `master-<shortsha>` image tags through its Argo CD application manifest. `tradelab-prod` should use immutable official release tags or the packaged manifest artifact.
+`tradelab-dev` should use immutable `master-<shortsha>` image tags through its Argo CD application manifest. `tradelab-prod` should use immutable official release tags while rendering the current production manifests from `master`.
 
 ## Environment policy
 
 - `tradelab-dev` always follows `master`
-- `tradelab-prod` is promoted only to an official GitHub release tag
+- `tradelab-prod` is promoted only to official GitHub release image tags
 - production promotion is handled by the `Promote Production` workflow, which updates the always-present Argo CD production application to the selected or latest published release
 
 ## What a release signals
