@@ -17,8 +17,8 @@ TradeLab infrastructure now assumes this cluster shape:
 - `argocd` namespace for the GitOps control plane
 - `metallb-system` namespace for MetalLB
 - `traefik-system` namespace for Traefik
-- `tradelab-dev` namespace created and owned by the development application sync
-- `tradelab` namespace created and owned by the production application sync
+- `tradelab-dev` namespace created and owned by `platform-namespaces`
+- `tradelab` namespace created and owned by `platform-namespaces`
 
 The reserved MetalLB LAN range is:
 
@@ -68,8 +68,7 @@ The root application then manages:
 2. MetalLB
 3. Traefik
 4. `tradelab-dev`
-
-`tradelab-prod` is prepared in the repo but is added to the root application set only when the manual production-promotion workflow enables it for the first time.
+5. `tradelab-prod`
 
 ## Argo CD model
 
@@ -81,7 +80,6 @@ TradeLab uses an `App of Apps` layout.
   - `metallb`
   - `traefik`
   - `tradelab-dev`
-- prepared for later production activation:
   - `tradelab-prod`
 
 Sync behavior for platform applications:
@@ -95,7 +93,7 @@ Sync waves are used so the cluster is built in a predictable order:
 - namespaces first
 - MetalLB second
 - Traefik third
-- application namespaces are then created by the corresponding TradeLab application manifests rather than by `platform-namespaces`
+- TradeLab applications sync after the platform namespaces already exist, so namespace ownership stays with `platform-namespaces`
 
 ## Operational expectations
 
@@ -111,7 +109,7 @@ Sync waves are used so the cluster is built in a predictable order:
 
 After bootstrap, confirm:
 
-- `kubectl get ns` shows `argocd`, `metallb-system`, and `traefik-system` immediately after platform bootstrap, with `tradelab-dev` and `tradelab` appearing once their applications sync
+- `kubectl get ns` shows `argocd`, `metallb-system`, `traefik-system`, `tradelab-dev`, and `tradelab` after the platform namespace sync
 - `kubectl -n metallb-system get pods` shows a healthy controller and speakers
 - `kubectl -n traefik-system get svc` shows Traefik with `192.168.2.200`
 - `kubectl get ingressclass` includes `traefik`
@@ -119,4 +117,4 @@ After bootstrap, confirm:
 
 ## Next step
 
-Once this platform layer is healthy, the next TradeLab step is to let `tradelab-dev` follow `master`, trigger manual releases from GitHub Actions, and use the production-promotion workflow to add or advance `tradelab-prod` to an official release tag.
+Once this platform layer is healthy, the next TradeLab step is to let `tradelab-dev` follow `master`, trigger manual releases from GitHub Actions, and use the production-promotion workflow to advance `tradelab-prod` to an official release tag.
