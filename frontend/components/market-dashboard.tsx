@@ -111,10 +111,6 @@ function CandleChart({ candles }: { candles: Candle[] }) {
   );
 }
 
-function EmptyPanelState({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">{children}</div>;
-}
-
 /** MarketDashboard renders the overview and market-detail trading experience. */
 export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT" }: MarketDashboardProps) {
   const auth = useTradeLabAuth();
