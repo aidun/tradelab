@@ -6,6 +6,7 @@ type FetchScenario = {
   candleMode?: "fresh" | "stale";
   failCandles?: boolean;
   failOrder?: boolean;
+  failActivityOnRefresh?: boolean;
 };
 
 function installFetchMock(scenario: FetchScenario = {}) {
@@ -236,6 +237,11 @@ function installFetchMock(scenario: FetchScenario = {}) {
 
     if (url.includes("/api/v1/activity")) {
       record("activity");
+
+      if (scenario.failActivityOnRefresh && orderStateIndex > 0) {
+        return Promise.resolve(new Response(JSON.stringify({ error: "Failed to load activity" }), { status: 500 }));
+      }
+
       return Promise.resolve(new Response(JSON.stringify({ activity: orderResponses[orderStateIndex].activity })));
     }
 
@@ -345,6 +351,26 @@ describe("Hero", () => {
     expect(fetchCounts.portfolio).toBe(2);
     expect(fetchCounts.orders).toBe(2);
     expect(fetchCounts.activity).toBe(2);
+  });
+
+  it("keeps balances visible when activity refresh fails after a demo buy", async () => {
+    installFetchMock({ failActivityOnRefresh: true });
+
+    render(<Hero />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /run demo buy/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /run demo buy/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/demo buy executed for xrp\/usdt/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/\$10,025.00/)).toBeInTheDocument();
+    expect(screen.getByText(/failed to load activity/i)).toBeInTheDocument();
+    expect(screen.getByText(/\$9,875.00/)).toBeInTheDocument();
   });
 
   it("keeps non-chart panels visible when candle loading fails", async () => {

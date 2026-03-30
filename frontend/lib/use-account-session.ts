@@ -33,6 +33,7 @@ type CoreDataState = {
   portfolio: PortfolioSummary | null;
   orders: Order[];
   activity: ActivityLog[];
+  activityError: string | null;
   strategies: Strategy[];
   accountingMode: AccountingMode;
   isLoading: boolean;
@@ -63,6 +64,7 @@ export function useAccountSession(): CoreDataState {
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
+  const [activityError, setActivityError] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [accountingMode, setAccountingModeState] = useState<AccountingMode>("average_cost");
   const [isLoading, setIsLoading] = useState(true);
@@ -115,22 +117,66 @@ export function useAccountSession(): CoreDataState {
     }
   }, []);
 
-  async function loadCoreData(walletID: string, token?: string | null) {
-    setError(null);
+  function resolveErrorMessage(reason: unknown, fallback: string) {
+    if (reason instanceof Error && reason.message.trim() !== "") {
+      return reason.message;
+    }
 
-    const [marketList, portfolioSummary, orderHistory, activityHistory, strategyList] = await Promise.all([
+    return fallback;
+  }
+
+  async function loadCoreData(walletID: string, token?: string | null) {
+    const results = await Promise.allSettled([
       fetchMarkets(),
       fetchPortfolio(walletID, token ?? "", accountingMode),
       fetchOrders(token ?? "", { accountingMode }),
       fetchActivity(token ?? ""),
       fetchStrategies(token ?? "")
     ]);
+    const [marketList, portfolioSummary, orderHistory, activityHistory, strategyList] = results;
 
-    setMarkets(marketList);
-    setPortfolio(portfolioSummary);
-    setOrders(orderHistory);
-    setActivity(activityHistory);
-    setStrategies(strategyList);
+    const authFailure = results.find(
+      (result): result is PromiseRejectedResult =>
+        result.status === "rejected" && result.reason instanceof ApiError && result.reason.status === 401
+    );
+    if (authFailure) {
+      throw authFailure.reason;
+    }
+
+    let nextError: string | null = null;
+
+    if (marketList.status === "fulfilled") {
+      setMarkets(marketList.value);
+    } else {
+      nextError ??= resolveErrorMessage(marketList.reason, "Failed to load markets");
+    }
+
+    if (portfolioSummary.status === "fulfilled") {
+      setPortfolio(portfolioSummary.value);
+    } else {
+      nextError ??= resolveErrorMessage(portfolioSummary.reason, "Failed to load portfolio");
+    }
+
+    if (orderHistory.status === "fulfilled") {
+      setOrders(orderHistory.value);
+    } else {
+      nextError ??= resolveErrorMessage(orderHistory.reason, "Failed to load orders");
+    }
+
+    if (activityHistory.status === "fulfilled") {
+      setActivity(activityHistory.value);
+      setActivityError(null);
+    } else {
+      setActivityError(resolveErrorMessage(activityHistory.reason, "Failed to load activity"));
+    }
+
+    if (strategyList.status === "fulfilled") {
+      setStrategies(strategyList.value);
+    } else {
+      nextError ??= resolveErrorMessage(strategyList.reason, "Failed to load strategies");
+    }
+
+    setError(nextError);
   }
 
   async function bootstrapRegistered() {
@@ -325,6 +371,7 @@ export function useAccountSession(): CoreDataState {
       portfolio,
       orders,
       activity,
+      activityError,
       strategies,
       accountingMode,
       isLoading,
@@ -345,6 +392,7 @@ export function useAccountSession(): CoreDataState {
     }),
     [
       activity,
+      activityError,
       accountingMode,
       activeWalletID,
       accountModeLabel,

@@ -344,6 +344,24 @@
     },
     "reproducibility_policy": {
       "rule": "Prefer repository-tracked, reproducible fixes through code, manifests, workflows, and documentation over one-off manual cluster or environment changes."
+    },
+    "ticket_execution_policy": {
+      "rule": "Every implementation should map to a concrete GitHub issue or an explicitly documented PR slice before code changes begin."
+    },
+    "ticket_planning_policy": {
+      "rule": "Before implementation, record the intended scope, root cause, acceptance criteria, and PR grouping in the issue body or a planning comment."
+    },
+    "ticket_progress_policy": {
+      "rule": "Track ticket progress through body plus comments: the body holds stable problem and acceptance context, while comments record phase transitions for the active PR slice."
+    },
+    "ticket_progress_states": {
+      "ordered_states": [
+        "planning_started",
+        "plan_locked",
+        "implementation_started",
+        "verification_complete",
+        "merged_closed"
+      ]
     }
   },
   "configuration": {

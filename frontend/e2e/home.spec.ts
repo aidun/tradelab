@@ -508,6 +508,35 @@ test("executes a demo buy and refreshes portfolio metrics", async ({ page }) => 
   await expect(page.getByText(/\$10,025.00/)).toBeVisible();
 });
 
+test("keeps balances visible when the activity refresh fails after a demo buy", async ({ page }) => {
+  let activityRequests = 0;
+
+  await page.route("**/api/v1/activity", async (route) => {
+    activityRequests += 1;
+    if (activityRequests > 1) {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Failed to load activity" })
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ activity: portfolioState(0).activity })
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: /run demo buy/i }).click();
+
+  await expect(page.getByText(/demo buy executed for xrp\/usdt/i)).toBeVisible();
+  await expect(page.getByText(/\$10,025.00/)).toBeVisible();
+  await expect(page.getByText(/failed to load activity/i)).toBeVisible();
+});
+
 test("executes a partial sell from the market detail page", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
   await page.locator("input").nth(1).fill("50");
