@@ -64,6 +64,10 @@ func (s *Service) ListActivity(ctx context.Context, walletID string, limit int, 
 		activity = filtered
 	}
 
+	if activity == nil {
+		activity = []domain.ActivityLog{}
+	}
+
 	if s.logger != nil {
 		s.logger.Info("list_activity_history.success", "operation", "list_activity_history.success", "wallet_id", walletID, "limit", limit, "result_count", len(activity))
 	}
