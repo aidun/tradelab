@@ -9,6 +9,7 @@ type FetchScenario = {
   failCandlesAfterFirst?: boolean;
   failOrder?: boolean;
   failActivityOnRefresh?: boolean;
+  initialOrderStateIndex?: number;
 };
 
 function installFetchMock(scenario: FetchScenario = {}) {
@@ -135,7 +136,7 @@ function installFetchMock(scenario: FetchScenario = {}) {
     }
   ];
 
-  let orderStateIndex = 0;
+  let orderStateIndex = scenario.initialOrderStateIndex ?? 0;
 
   vi.spyOn(global, "fetch").mockImplementation((input, init) => {
     const url = String(input);
@@ -430,5 +431,26 @@ describe("Hero", () => {
 
     expect(screen.getByLabelText(/live market chart/i)).toBeInTheDocument();
     expect(screen.getByText(/^failed$/i)).toBeInTheDocument();
+  });
+
+  it("keeps the max-position sell control disabled until the current position is loaded", async () => {
+    installFetchMock({ initialOrderStateIndex: 1 });
+
+    render(<MarketDashboard detailOnly initialMarket="XRP/USDT" />);
+
+    const maxButton = screen.getByRole("button", { name: /max position/i });
+    expect(maxButton).toBeDisabled();
+
+    await waitFor(() => {
+      expect(screen.getByText(/open qty 108.7/i)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(maxButton).toBeEnabled();
+    });
+
+    fireEvent.click(maxButton);
+
+    expect(screen.getByLabelText(/sell quantity/i)).toHaveValue("108.7");
   });
 });
