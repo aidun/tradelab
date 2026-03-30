@@ -572,4 +572,24 @@ describe("Hero", () => {
     expect(screen.getByText(/strategy sell/i)).toBeInTheDocument();
     expect(screen.getByText(/100/i)).toBeInTheDocument();
   });
+
+  it("runs a read-only backtest from the market detail screen", async () => {
+    const fetchCounts = installFetchMock({ initialOrderStateIndex: 1 });
+
+    render(<MarketDashboard detailOnly initialMarket="XRP/USDT" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /run backtest/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /run backtest/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/backtest ready for xrp\/usdt/i)).toBeInTheDocument();
+    });
+
+    expect(fetchCounts.backtests).toBe(1);
+    expect(screen.getByText(/strategy sell/i)).toBeInTheDocument();
+    expect(screen.getByText(/100/i)).toBeInTheDocument();
+  });
 });
