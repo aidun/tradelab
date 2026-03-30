@@ -379,7 +379,7 @@ describe("Hero", () => {
     render(<Hero />);
 
     await waitFor(() => {
-      expect(screen.getByText(/failed to load candles/i)).toBeInTheDocument();
+      expect(screen.getByText(/^failed$/i)).toBeInTheDocument();
     });
 
     expect(screen.getByText(/demo buy recorded/i)).toBeInTheDocument();

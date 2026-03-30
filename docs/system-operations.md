@@ -209,6 +209,8 @@ For a release-focused view of published artifacts and release meaning, see [rele
   Usually visible as missing registered-account bootstrap, rejected Clerk bearer tokens, or an absent social-login surface when auth was expected.
 - `session security failure`
   Usually visible as missing or cleared registered app-session cookies, repeated logout loops, or guest-session refresh after an unauthorized response.
+- `user-facing API error regression`
+  In production the UI should show friendly status copy while technical backend detail stays in browser console logging and server-side logs; in development the detailed backend message may still surface in the UI.
 - `release packaging failure`
   Usually visible in GitHub Actions during image publication or manifest rendering.
 

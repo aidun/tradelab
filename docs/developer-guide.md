@@ -144,6 +144,7 @@ kubectl kustomize deploy/kubernetes/overlays/production-external-secrets
 - `frontend/lib`: API client code and shared helpers
 - `frontend/lib/tradelab-auth.tsx`: auth provider boundary for guest, mock, and Clerk-backed registered modes
 - `frontend/app/layout.tsx`: server-runtime auth config handoff so Clerk or mock auth can be switched through deployed env vars without rebuilding the frontend image
+- `frontend/lib/api.ts`: centralized API error parsing with development-vs-production message handling
 - `frontend/lib/use-account-session.ts`: guest-plus-registered account orchestration plus guest session refresh logic
 - `frontend/__tests__`: component and workflow tests
 - `frontend/scripts`: utility scripts, including documentation screenshot generation

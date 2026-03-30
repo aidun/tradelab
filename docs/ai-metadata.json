@@ -342,6 +342,9 @@
     "followup_artifact_policy": {
       "rule": "When a change affects behavior, UI, delivery, or repository process, review and update the corresponding tests, logging, documentation, workflows, and docs/ai-metadata.json."
     },
+    "ui_error_policy": {
+      "rule": "Frontend API failures should preserve detailed backend messages in development and fall back to friendly user-facing copy in production, while logging technical detail to the browser console."
+    },
     "reproducibility_policy": {
       "rule": "Prefer repository-tracked, reproducible fixes through code, manifests, workflows, and documentation over one-off manual cluster or environment changes."
     },
