@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React, { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { fetchCandles, patchStrategy, placeMarketOrder, saveStrategy, type AccountingMode, type Candle, type MarketDataMeta, type Strategy, type StrategyConfig } from "@/lib/api";
+import { fetchCandles, patchStrategy, placeMarketOrder, runBacktest, saveStrategy, type AccountingMode, type BacktestRun, type Candle, type MarketDataMeta, type Strategy, type StrategyConfig } from "@/lib/api";
 import { resolveBuildInfo } from "@/lib/build-info";
 import { AuthEntryActions, AuthStatusControls, useTradeLabAuth } from "@/lib/tradelab-auth";
 import { useAccountSession } from "@/lib/use-account-session";
@@ -38,6 +38,12 @@ function formatNumber(value: number) {
 
 function formatFeedTime(value: string) {
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date(value));
+}
+
+function isoDate(daysOffset: number) {
+  const value = new Date();
+  value.setUTCDate(value.getUTCDate() + daysOffset);
+  return value.toISOString().slice(0, 10);
 }
 
 function accountingModeLabel(mode: AccountingMode) {
@@ -105,6 +111,10 @@ function CandleChart({ candles }: { candles: Candle[] }) {
   );
 }
 
+function EmptyPanelState({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">{children}</div>;
+}
+
 /** MarketDashboard renders the overview and market-detail trading experience. */
 export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT" }: MarketDashboardProps) {
   const auth = useTradeLabAuth();
@@ -132,6 +142,11 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const [isChartRefreshing, setIsChartRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingStrategy, setIsSavingStrategy] = useState(false);
+  const [backtestStartDate, setBacktestStartDate] = useState(() => isoDate(-14));
+  const [backtestEndDate, setBacktestEndDate] = useState(() => isoDate(-1));
+  const [backtestResult, setBacktestResult] = useState<BacktestRun | null>(null);
+  const [backtestError, setBacktestError] = useState<string | null>(null);
+  const [isRunningBacktest, setIsRunningBacktest] = useState(false);
   const [strategyConfig, setStrategyConfig] = useState<StrategyConfig>({
     dipBuy: { enabled: true, dipPercent: 5, spendQuoteAmount: 100 },
     takeProfit: { enabled: true, triggerPercent: 8 },
@@ -303,6 +318,30 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
       setErrorMessage(strategyError instanceof Error ? strategyError.message : "Failed to save automation");
     } finally {
       setIsSavingStrategy(false);
+    }
+  }
+
+  async function runStrategyBacktest() {
+    clearMessages();
+    setBacktestError(null);
+    setIsRunningBacktest(true);
+
+    try {
+      const token = await activeAccessToken();
+      const result = await runBacktest({
+        marketSymbol: selectedMarket,
+        interval: selectedInterval,
+        startTime: new Date(`${backtestStartDate}T00:00:00Z`).toISOString(),
+        endTime: new Date(`${backtestEndDate}T23:59:59Z`).toISOString(),
+        config: strategyConfig,
+        token
+      });
+      setBacktestResult(result);
+      setSuccessMessage(`Backtest ready for ${selectedMarket}.`);
+    } catch (runError) {
+      setBacktestError(runError instanceof Error ? runError.message : "Backtest failed");
+    } finally {
+      setIsRunningBacktest(false);
     }
   }
 
@@ -498,6 +537,66 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
                     </div>
                   </div>
                 </div>
+              </section>
+            ) : null}
+            {detailOnly ? (
+              <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur xl:col-span-2">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Backtesting</p>
+                    <h3 className="mt-3 text-2xl font-semibold">Replay this strategy over a historical range.</h3>
+                    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">This run is read-only. It uses the current strategy settings, the selected interval, and historical candles for {selectedMarket}.</p>
+                  </div>
+                  <div className="grid min-w-[280px] gap-3 lg:w-[360px]">
+                    <label className="grid gap-2 text-sm text-[var(--muted)]" htmlFor="backtest-start-date">
+                      Start date
+                      <input id="backtest-start-date" name="backtest-start-date" type="date" value={backtestStartDate} max={backtestEndDate} onChange={(event) => setBacktestStartDate(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[rgba(110,242,211,0.28)]" />
+                    </label>
+                    <label className="grid gap-2 text-sm text-[var(--muted)]" htmlFor="backtest-end-date">
+                      End date
+                      <input id="backtest-end-date" name="backtest-end-date" type="date" value={backtestEndDate} min={backtestStartDate} onChange={(event) => setBacktestEndDate(event.target.value)} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[rgba(110,242,211,0.28)]" />
+                    </label>
+                    <button type="button" onClick={() => void runStrategyBacktest()} disabled={isRunningBacktest || !activeWalletID} className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--text)] transition hover:border-[rgba(110,242,211,0.32)] hover:bg-[rgba(12,36,55,0.72)] focus-visible:ring-2 focus-visible:ring-[rgba(110,242,211,0.28)] disabled:cursor-not-allowed disabled:opacity-60">
+                      {isRunningBacktest ? "Running backtest…" : "Run Backtest"}
+                    </button>
+                  </div>
+                </div>
+                {backtestError ? <div role="status" aria-live="polite" className="mt-5 rounded-2xl border border-[rgba(255,107,120,0.35)] bg-[rgba(255,107,120,0.08)] px-4 py-4 text-sm text-[var(--accent-hot)]">{backtestError}</div> : null}
+                {backtestResult ? (
+                  <div className="mt-5 grid gap-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"><p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Return</p><p className={`tabular-data mt-3 text-2xl font-semibold ${pnlTone(backtestResult.summary.returnPercent)}`}>{formatNumber(backtestResult.summary.returnPercent)}%</p></div>
+                      <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"><p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Trades</p><p className="tabular-data mt-3 text-2xl font-semibold">{backtestResult.summary.tradeCount}</p></div>
+                      <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"><p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Hit rate</p><p className="tabular-data mt-3 text-2xl font-semibold">{formatNumber(backtestResult.summary.hitRatePercent)}%</p></div>
+                      <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4"><p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Max drawdown</p><p className="tabular-data mt-3 text-2xl font-semibold">{formatNumber(backtestResult.summary.maxDrawdownPercent)}%</p></div>
+                    </div>
+                    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+                      <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
+                        <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Run snapshot</p>
+                        <div className="mt-4 grid gap-2 text-sm text-[var(--muted)]">
+                          <span className="tabular-data">Initial cash {formatCurrency(backtestResult.initialCash)}</span>
+                          <span className="tabular-data">Final cash {formatCurrency(backtestResult.finalCash)}</span>
+                          <span className="tabular-data">Final position value {formatCurrency(backtestResult.finalPositionValue)}</span>
+                          <span className="tabular-data">Final equity {formatCurrency(backtestResult.finalEquity)}</span>
+                          <span>Interval {backtestResult.interval}</span>
+                          <span>{backtestResult.startTime.slice(0, 10)} to {backtestResult.endTime.slice(0, 10)}</span>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
+                        <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Backtest trades</p>
+                        <div className="mt-4 grid gap-3">
+                          {backtestResult.orders.length ? backtestResult.orders.map((order) => (
+                            <div key={order.id} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.6)] px-4 py-4">
+                              <div className="flex items-center justify-between gap-3"><span className="font-semibold">{order.side === "buy" ? "Strategy Buy" : "Strategy Sell"}</span><span className="tabular-data text-sm text-[var(--muted)]">{order.createdAt.slice(0, 10)}</span></div>
+                              <p className="tabular-data mt-2 text-sm text-[var(--muted)]">{formatNumber(order.baseQuantity)} {backtestResult.baseAsset} at {formatCurrency(order.expectedPrice)}</p>
+                              {order.side === "sell" ? <p className={`tabular-data mt-2 text-sm ${pnlTone(order.realizedPnL)}`}>Realized {formatCurrency(order.realizedPnL)}</p> : null}
+                            </div>
+                          )) : <EmptyPanelState>No trades matched the current backtest settings.</EmptyPanelState>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </section>
             ) : null}
             <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">
