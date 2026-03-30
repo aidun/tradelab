@@ -1,0 +1,178 @@
+<svg width="1600" height="980" viewBox="0 0 1600 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="40" x2="1490" y2="940" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#030706"/>
+      <stop offset="0.46" stop-color="#07100D"/>
+      <stop offset="1" stop-color="#0A1612"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#0D1714"/>
+      <stop offset="1" stop-color="#09110F"/>
+    </linearGradient>
+    <linearGradient id="workspace" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0B1412"/>
+      <stop offset="1" stop-color="#08100E"/>
+    </linearGradient>
+    <linearGradient id="chartPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0C1815"/>
+      <stop offset="1" stop-color="#08110F"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#77FC18"/>
+      <stop offset="1" stop-color="#48C81A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="26" stdDeviation="32" flood-color="#000000" flood-opacity="0.36"/>
+    </filter>
+    <filter id="blurBg" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <style>
+      .display { font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; letter-spacing: -0.045em; }
+      .body { font-family: 'Segoe UI', Arial, sans-serif; }
+      .mono { font-family: 'Consolas', 'Courier New', monospace; }
+      .text { fill: #F4F7F5; }
+      .muted { fill: #98A79F; }
+      .subtle { fill: #C4CEC8; }
+      .accent { fill: #77FC18; }
+      .accent-soft { fill: #B7FF86; }
+      .warn { fill: #CD6A1A; }
+      .surface { fill: url(#panel); stroke: #1B2A25; }
+      .surface-soft { fill: #0B1513; stroke: #22332D; }
+      .workspace { fill: url(#workspace); stroke: #182621; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg)"/>
+  <circle cx="1328" cy="160" r="240" fill="#164A23" fill-opacity="0.14"/>
+  <circle cx="320" cy="860" r="280" fill="#0F2B1A" fill-opacity="0.16"/>
+  <rect x="34" y="34" width="1532" height="912" rx="42" fill="none" stroke="#13201B"/>
+
+  <text x="72" y="86" class="mono accent" font-size="15" letter-spacing="0.34em">TRADELAB V1 / UI DIRECTION / REFERENCE-ALIGNED</text>
+  <text x="72" y="126" class="display text" font-size="42">Crypto workstation direction with integrated entry flow</text>
+  <text x="72" y="156" class="body muted" font-size="18">Dark green terminal baseline, neon signal accents, compact data panels, and product-grade account access.</text>
+
+  <rect x="58" y="196" width="1484" height="720" rx="36" class="workspace" filter="url(#shadow)"/>
+
+  <rect x="82" y="220" width="112" height="672" rx="28" fill="#08110F" stroke="#182622"/>
+  <text x="110" y="274" class="display accent" font-size="28">T</text>
+  <rect x="104" y="320" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="406" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="492" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="578" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <rect x="104" y="664" width="68" height="68" rx="22" fill="#77FC18" fill-opacity="0.10" stroke="#3C6A1A"/>
+  <rect x="104" y="750" width="68" height="68" rx="22" fill="#101D19" stroke="#24342E"/>
+  <text x="138" y="360" class="mono muted" font-size="20" text-anchor="middle">M</text>
+  <text x="138" y="446" class="mono muted" font-size="20" text-anchor="middle">P</text>
+  <text x="138" y="532" class="mono muted" font-size="20" text-anchor="middle">S</text>
+  <text x="138" y="618" class="mono muted" font-size="20" text-anchor="middle">B</text>
+  <text x="138" y="704" class="mono accent" font-size="20" text-anchor="middle">A</text>
+  <text x="138" y="790" class="mono muted" font-size="20" text-anchor="middle">U</text>
+
+  <rect x="220" y="220" width="1296" height="84" rx="24" fill="#08110F" stroke="#172521"/>
+  <text x="250" y="270" class="display text" font-size="26">TradeLab</text>
+  <text x="418" y="270" class="mono muted" font-size="14">MARKETS</text>
+  <text x="520" y="270" class="mono muted" font-size="14">PORTFOLIO</text>
+  <text x="642" y="270" class="mono muted" font-size="14">AUTOMATION</text>
+  <text x="794" y="270" class="mono muted" font-size="14">BACKTESTING</text>
+  <rect x="1126" y="242" width="164" height="40" rx="18" fill="#0E1A17" stroke="#22322D"/>
+  <text x="1208" y="267" class="mono subtle" font-size="14" text-anchor="middle">XRP / USDT</text>
+  <rect x="1310" y="242" width="90" height="40" rx="18" fill="#0E1A17" stroke="#22322D"/>
+  <text x="1355" y="267" class="mono accent" font-size="14" text-anchor="middle">LIVE</text>
+  <rect x="1420" y="236" width="72" height="48" rx="20" fill="#0E1A17" stroke="#22322D"/>
+  <text x="1456" y="266" class="body text" font-size="17" text-anchor="middle">MK</text>
+
+  <rect x="220" y="328" width="824" height="236" rx="28" fill="url(#chartPanel)" stroke="#1A2B25"/>
+  <text x="254" y="372" class="mono muted" font-size="12" letter-spacing="0.22em">BALANCE OVERVIEW</text>
+  <text x="254" y="420" class="display text" font-size="48">$10,246.12</text>
+  <text x="562" y="420" class="mono accent" font-size="24">+2.84%</text>
+  <text x="254" y="450" class="body muted" font-size="17">Portfolio value, unrealized performance, and recent market motion in one surface.</text>
+  <rect x="890" y="356" width="126" height="34" rx="17" fill="#0C1815" stroke="#24362F"/>
+  <text x="953" y="378" class="body text" font-size="14" text-anchor="middle">7D</text>
+  <rect x="254" y="480" width="756" height="56" rx="20" fill="#0B1412"/>
+  <path d="M282 524 C328 510 362 472 410 484 C456 496 500 434 546 448 C592 462 634 404 682 420 C732 437 780 392 826 414 C872 436 908 430 948 398 C972 380 990 360 1010 346" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="1010" cy="346" r="7" fill="#77FC18"/>
+
+  <rect x="1066" y="328" width="450" height="236" rx="28" class="surface"/>
+  <text x="1100" y="372" class="mono muted" font-size="12" letter-spacing="0.22em">MARKET SNAPSHOT</text>
+  <text x="1100" y="416" class="display text" font-size="34">XRP / USDT</text>
+  <text x="1426" y="416" class="mono accent" font-size="30" text-anchor="end">0.7345</text>
+  <text x="1100" y="450" class="body muted" font-size="16">Fast market context with minimal noise and strong numerical hierarchy.</text>
+  <line x1="1100" y1="486" x2="1482" y2="486" stroke="#1F302A"/>
+  <text x="1100" y="526" class="mono muted" font-size="14">24H VOLUME</text>
+  <text x="1260" y="526" class="mono text" font-size="16">$38.6M</text>
+  <text x="1100" y="558" class="mono muted" font-size="14">MARKET CAP</text>
+  <text x="1260" y="558" class="mono text" font-size="16">$41.8B</text>
+  <text x="1100" y="590" class="mono muted" font-size="14">FUNDING BIAS</text>
+  <text x="1260" y="590" class="mono accent" font-size="16">Long skew</text>
+
+  <rect x="220" y="590" width="312" height="276" rx="28" class="surface"/>
+  <text x="252" y="632" class="mono muted" font-size="12" letter-spacing="0.22em">WATCHLIST</text>
+  <text x="252" y="668" class="body text" font-size="22" font-weight="700">Market board</text>
+  <line x1="252" y1="696" x2="500" y2="696" stroke="#1F302A"/>
+  <text x="252" y="734" class="mono text" font-size="15">BTC / USDT</text>
+  <text x="474" y="734" class="mono accent" font-size="15" text-anchor="end">+1.92%</text>
+  <text x="252" y="772" class="mono text" font-size="15">ETH / USDT</text>
+  <text x="474" y="772" class="mono accent" font-size="15" text-anchor="end">+3.11%</text>
+  <text x="252" y="810" class="mono text" font-size="15">XRP / USDT</text>
+  <text x="474" y="810" class="mono accent-soft" font-size="15" text-anchor="end">Selected</text>
+
+  <rect x="554" y="590" width="432" height="276" rx="28" class="surface"/>
+  <text x="586" y="632" class="mono muted" font-size="12" letter-spacing="0.22em">POSITIONS</text>
+  <text x="586" y="668" class="body text" font-size="22" font-weight="700">Open exposure</text>
+  <rect x="586" y="696" width="368" height="70" rx="18" fill="#0B1513" stroke="#22322D"/>
+  <text x="610" y="724" class="mono muted" font-size="13">XRP / USDT</text>
+  <text x="610" y="752" class="mono text" font-size="16">Qty 108.7000</text>
+  <text x="830" y="724" class="mono muted" font-size="13" text-anchor="end">Avg 0.6900</text>
+  <text x="930" y="752" class="mono accent" font-size="16" text-anchor="end">+$75.00</text>
+  <rect x="586" y="782" width="368" height="56" rx="18" fill="#0B1513" stroke="#22322D"/>
+  <text x="610" y="816" class="body subtle" font-size="15">Compact position cards with stronger trading-desk density.</text>
+
+  <rect x="1008" y="590" width="256" height="276" rx="28" class="surface"/>
+  <text x="1040" y="632" class="mono muted" font-size="12" letter-spacing="0.22em">EXECUTION</text>
+  <text x="1040" y="668" class="body text" font-size="22" font-weight="700">Place order</text>
+  <text x="1040" y="700" class="mono muted" font-size="12">SIDE</text>
+  <rect x="1040" y="714" width="92" height="36" rx="15" fill="#77FC18" fill-opacity="0.14" stroke="#3A611D"/>
+  <text x="1086" y="737" class="body accent" font-size="14" text-anchor="middle">Buy</text>
+  <rect x="1142" y="714" width="92" height="36" rx="15" fill="#0B1513" stroke="#22322D"/>
+  <text x="1188" y="737" class="body subtle" font-size="14" text-anchor="middle">Sell</text>
+  <text x="1040" y="784" class="mono muted" font-size="12">NOTIONAL</text>
+  <rect x="1040" y="798" width="192" height="42" rx="16" fill="#0B1513" stroke="#22322D"/>
+  <text x="1136" y="825" class="mono text" font-size="17" text-anchor="middle">USDT 75.00</text>
+  <rect x="1040" y="846" width="192" height="42" rx="16" fill="#77FC18"/>
+  <text x="1136" y="873" class="body" font-size="17" font-weight="700" text-anchor="middle" fill="#07110C">Place order</text>
+
+  <rect x="1286" y="590" width="230" height="276" rx="28" class="surface"/>
+  <text x="1318" y="632" class="mono muted" font-size="12" letter-spacing="0.22em">ACTIVITY</text>
+  <text x="1318" y="668" class="body text" font-size="22" font-weight="700">Recent execution</text>
+  <rect x="1318" y="696" width="166" height="28" rx="14" fill="#0C1815" stroke="#25362F"/>
+  <text x="1401" y="714" class="mono accent" font-size="13" text-anchor="middle">AUTOMATED BUY</text>
+  <text x="1318" y="756" class="body subtle" font-size="15">Dip condition filled on XRP / USDT.</text>
+  <text x="1318" y="782" class="mono muted" font-size="13">14:31:08 UTC</text>
+  <line x1="1318" y1="810" x2="1484" y2="810" stroke="#1F302A"/>
+  <text x="1318" y="842" class="body muted" font-size="14">Less explanation. More operator clarity.</text>
+
+  <g filter="url(#blurBg)" opacity="0.28">
+    <rect x="262" y="274" width="1216" height="572" rx="34" fill="#000000"/>
+  </g>
+
+  <rect x="542" y="286" width="536" height="344" rx="30" fill="#0C1714" stroke="#2A3C35" filter="url(#shadow)"/>
+  <text x="578" y="332" class="mono accent" font-size="12" letter-spacing="0.24em">ACCESS YOUR WORKSPACE</text>
+  <text x="578" y="384" class="display text" font-size="52">TradeLab</text>
+  <text x="578" y="420" class="body subtle" font-size="21">A professional paper-trading environment with optional guest access and a one-time financial boundary acknowledgement.</text>
+  <rect x="578" y="468" width="464" height="70" rx="20" fill="#77FC18"/>
+  <text x="810" y="512" class="body" font-size="22" font-weight="700" text-anchor="middle" fill="#07110C">Create account</text>
+  <rect x="578" y="554" width="226" height="56" rx="18" fill="#0B1513" stroke="#263A32"/>
+  <text x="691" y="589" class="body text" font-size="19" font-weight="600" text-anchor="middle">Log in</text>
+  <rect x="816" y="554" width="226" height="56" rx="18" fill="#0B1513" stroke="#263A32"/>
+  <text x="929" y="589" class="body subtle" font-size="19" font-weight="600" text-anchor="middle">Continue as guest</text>
+
+  <rect x="1046" y="330" width="310" height="188" rx="26" fill="#0D1815" stroke="#30473D" filter="url(#shadow)"/>
+  <text x="1076" y="366" class="mono warn" font-size="12" letter-spacing="0.20em">ONE-TIME DISCLOSURE</text>
+  <text x="1076" y="404" class="display text" font-size="26">Financial boundary</text>
+  <text x="1076" y="438" class="body subtle" font-size="16">Simulated trading only. No real funds, no custody, no brokerage execution, and no financial advice.</text>
+  <rect x="1076" y="468" width="148" height="38" rx="14" fill="#77FC18"/>
+  <text x="1150" y="492" class="body" font-size="16" font-weight="700" text-anchor="middle" fill="#07110C">Acknowledge</text>
+
+  <text x="70" y="942" class="body muted" font-size="16">Reference goal: closer to a premium crypto analytics dashboard, with access and disclosure living inside a credible trading product frame.</text>
+</svg>
