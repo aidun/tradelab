@@ -570,7 +570,7 @@ describe("Hero", () => {
 
     expect(fetchCounts.backtests).toBe(1);
     expect(screen.getByText(/strategy sell/i)).toBeInTheDocument();
-    expect(screen.getByText(/100/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/100\s*%/i).length).toBeGreaterThan(0);
   });
 
   it("runs a read-only backtest from the market detail screen", async () => {
