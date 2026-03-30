@@ -4,5 +4,6 @@ kind: Kustomization
 resources:
   - argocd.yaml
   - metallb-system.yaml
+  - tradelab-dev.yaml
   - traefik-system.yaml
   - tradelab.yaml

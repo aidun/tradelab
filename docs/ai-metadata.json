@@ -239,7 +239,7 @@
     ],
     "gitops_model": "Argo CD App of Apps",
     "namespaces": ["argocd", "metallb-system", "traefik-system", "tradelab-dev", "tradelab"],
-    "platform_namespaces": ["argocd", "metallb-system", "traefik-system"],
+    "platform_namespaces": ["argocd", "metallb-system", "traefik-system", "tradelab-dev", "tradelab"],
     "application_namespaces": ["tradelab-dev", "tradelab"],
     "metallb_address_pool": "192.168.2.200-192.168.2.220",
     "traefik_load_balancer_ip": "192.168.2.200",
