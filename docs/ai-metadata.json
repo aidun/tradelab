@@ -365,6 +365,62 @@
         "verification_complete",
         "merged_closed"
       ]
+    },
+    "ticket_priority_policy": {
+      "rule": "Open issues should carry exactly one GitHub priority label that reflects current urgency, impact, and blocking effect.",
+      "source_of_truth": "GitHub issue labels",
+      "criteria": [
+        "urgency",
+        "user or operator impact",
+        "blockers on active delivery",
+        "production or live-environment risk",
+        "dependency position in the execution queue"
+      ],
+      "hygiene_rules": [
+        "Use exactly one of priority: high, priority: medium, or priority: low on each actively tracked open issue.",
+        "Update priority labels only when the effective priority actually changes.",
+        "Remove stale priority labels before applying the current one.",
+        "Avoid ticket noise: stable priorities do not need repeated comments.",
+        "Operational incidents and live-environment regressions can outrank planned feature work."
+      ]
+    },
+    "ticket_priority_bands": {
+      "priority: high": {
+        "meaning": "Needs attention first because it breaks the live product, risks production or release behavior, or blocks the current active delivery path.",
+        "typical_examples": [
+          "live cluster outage or runtime crash",
+          "release, deployment, or Argo drift with immediate operator impact",
+          "API contract bug that breaks core user flows"
+        ]
+      },
+      "priority: medium": {
+        "meaning": "Important work with clear product or platform value, but not the most urgent active problem.",
+        "typical_examples": [
+          "next planned feature foundations",
+          "important UX or accessibility improvements",
+          "platform cleanup without immediate outage impact"
+        ]
+      },
+      "priority: low": {
+        "meaning": "Useful but deferrable work that should wait behind current incidents, core fixes, and immediate foundations.",
+        "typical_examples": [
+          "meta planning tickets",
+          "later reporting or polish slices",
+          "follow-on work that depends on higher-priority foundations"
+        ]
+      }
+    },
+    "ticket_prioritization_automation": {
+      "initiative": "Build a simple app",
+      "automation_id": "ticket-priorisierung",
+      "cadence": "hourly",
+      "rule": "The recurring prioritization pass should reassess open issues and maintain GitHub priority labels directly on the tickets.",
+      "operating_rules": [
+        "Review open issues for current relevance before reprioritizing.",
+        "Prefer label updates over repetitive status comments.",
+        "Surface the prioritized queue, rationale, cross-cutting themes, and next steps in the automation inbox item.",
+        "Persist steering decisions in docs/ai-metadata.json when the prioritization model changes."
+      ]
     }
   },
   "configuration": {
@@ -901,6 +957,9 @@
       "area: frontend",
       "area: backend",
       "area: platform",
+      "priority: high",
+      "priority: medium",
+      "priority: low",
       "status: planned",
       "status: in progress",
       "status: blocked"
