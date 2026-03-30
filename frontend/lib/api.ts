@@ -151,6 +151,7 @@ export type CandleFeed = {
   meta: MarketDataMeta;
 };
 
+/** ApiError wraps backend and transport failures with an HTTP status for UI handling. */
 export class ApiError extends Error {
   status: number;
 
@@ -191,6 +192,7 @@ async function parseApiError(response: Response, fallback: string) {
   throw new ApiError(resolveApiErrorMessage(payload.error, fallback), response.status);
 }
 
+/** resolveApiErrorMessage maps technical API failures to the current UI runtime contract. */
 export function resolveApiErrorMessage(detail: unknown, fallback: string, runtime = UI_ERROR_RUNTIME) {
   const detailMessage = typeof detail === "string" ? detail.trim() : "";
   if (runtime !== "production") {
@@ -204,6 +206,7 @@ export function resolveApiErrorMessage(detail: unknown, fallback: string, runtim
   return fallback;
 }
 
+/** createDemoSession provisions a guest trading session for the browser. */
 export async function createDemoSession(): Promise<DemoSession> {
   const response = await fetch(apiUrl("/api/v1/sessions/demo"), {
     method: "POST",
@@ -255,6 +258,7 @@ export async function fetchCandles(marketSymbol: string, interval = "1h", limit 
   };
 }
 
+/** fetchPortfolio loads the portfolio summary for the active wallet and accounting mode. */
 export async function fetchPortfolio(walletID: string, token: string, accountingMode: AccountingMode): Promise<PortfolioSummary> {
   const response = await fetch(apiUrl(`/api/v1/portfolios/${walletID}?accounting_mode=${accountingMode}`), {
     cache: "no-store",
@@ -270,6 +274,7 @@ export async function fetchPortfolio(walletID: string, token: string, accounting
   return data.portfolio;
 }
 
+/** fetchOrders loads the recent order history for the active account scope. */
 export async function fetchOrders(
   token: string,
   options?: { accountingMode?: AccountingMode; marketSymbol?: string }
@@ -295,6 +300,7 @@ export async function fetchOrders(
   return ensureArray<Order>(data.orders);
 }
 
+/** fetchActivity loads user-facing activity entries, optionally filtered to one market. */
 export async function fetchActivity(token: string, options?: { marketSymbol?: string }): Promise<ActivityLog[]> {
   const params = new URLSearchParams();
   if (options?.marketSymbol) {
@@ -314,6 +320,7 @@ export async function fetchActivity(token: string, options?: { marketSymbol?: st
   return ensureArray<ActivityLog>(data.activity);
 }
 
+/** fetchStrategies loads automation bundles for the active wallet and optional market. */
 export async function fetchStrategies(token: string, marketSymbol?: string): Promise<Strategy[]> {
   const params = new URLSearchParams();
   if (marketSymbol) {
@@ -388,6 +395,7 @@ export async function patchStrategy(input: {
   return data.strategy;
 }
 
+/** placeMarketOrder submits a buy or sell order through the backend trading API. */
 export async function placeMarketOrder(input: {
   side: "buy" | "sell";
   marketSymbol: string;

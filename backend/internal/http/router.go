@@ -19,6 +19,7 @@ import (
 	strategyservice "github.com/aidun/tradelab/backend/internal/service/strategy"
 )
 
+// MarketLister provides the public market catalogue used by the HTTP layer.
 type MarketLister interface {
 	List(ctx context.Context) ([]domain.Market, error)
 }
@@ -27,6 +28,7 @@ type MarketCandlesLister interface {
 	ListCandles(ctx context.Context, marketSymbol string, interval string, limit int) (domain.CandleFeed, error)
 }
 
+// OrderPlacer executes validated market orders on behalf of the HTTP handlers.
 type OrderPlacer interface {
 	PlaceMarketOrder(ctx context.Context, input orderservice.PlaceMarketOrderInput) (domain.Order, error)
 }
@@ -43,6 +45,7 @@ type ActivityHistoryLister interface {
 	ListActivity(ctx context.Context, walletID string, limit int, marketSymbol string) ([]domain.ActivityLog, error)
 }
 
+// StrategyManager exposes strategy listing and mutation operations to the router.
 type StrategyManager interface {
 	ListStrategies(ctx context.Context, walletID string, marketSymbol string) ([]domain.Strategy, error)
 	UpsertStrategy(ctx context.Context, input strategyservice.UpsertStrategyInput) (domain.Strategy, error)
@@ -64,6 +67,7 @@ type RegisteredAccountManager interface {
 
 const registeredSessionCookieName = "tradelab_app_session"
 
+// NewRouter wires the TradeLab HTTP API and its authentication boundaries.
 func NewRouter(markets MarketLister, marketCandles MarketCandlesLister, orders OrderPlacer, portfolios PortfolioGetter, orderHistory OrderHistoryLister, activityHistory ActivityHistoryLister, strategies StrategyManager, sessions DemoSessionManager, registeredAccounts RegisteredAccountManager, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 

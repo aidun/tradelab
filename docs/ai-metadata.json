@@ -93,6 +93,8 @@
     "live_trading": false,
     "maintenance_expectations": [
       "Keep tests aligned with behavior changes.",
+      "Preserve or intentionally raise the enforced backend and frontend coverage floors when testable behavior changes.",
+      "Keep the curated source-code documentation check aligned with important exported/public surfaces when those interfaces change.",
       "Adjust structured logging when backend control flow changes.",
       "Update documentation and docs/ai-metadata.json when repository structure, onboarding, workflows, or infrastructure bootstrap materially change.",
       "Update GitHub Actions when quality gates, delivery behavior, or infrastructure validation need to evolve."
@@ -137,8 +139,29 @@
       "Backend container build",
       "Frontend container build",
       "Kubernetes manifests",
-      "Metadata validation"
+      "Metadata validation",
+      "Source-code documentation quality"
     ],
+    "coverage_thresholds": {
+      "backend_total_statements_min": 40,
+      "frontend_components_and_lib": {
+        "statements_min": 45,
+        "lines_min": 45,
+        "functions_min": 50,
+        "branches_min": 50
+      }
+    },
+    "source_code_documentation_gate": {
+      "type": "curated exported-surface check",
+      "script": "scripts/check-source-docs.mjs",
+      "focus": [
+        "backend configuration and domain contracts",
+        "backend HTTP router interfaces",
+        "frontend dashboard entrypoints",
+        "frontend auth/session orchestration",
+        "frontend API client surface"
+      ]
+    },
     "github_actions_sequence": [
       {
         "workflow": "CI",
@@ -151,7 +174,8 @@
           "Backend container build",
           "Frontend container build",
           "Kubernetes manifests",
-          "Metadata validation"
+          "Metadata validation",
+          "Source-code documentation quality"
         ]
       },
       {

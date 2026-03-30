@@ -6,6 +6,7 @@ type MetricCardProps = {
   trend: string;
 };
 
+/** MetricCard renders one compact portfolio metric in the overview header. */
 export function MetricCard({ label, value, trend }: MetricCardProps) {
   return (
     <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">

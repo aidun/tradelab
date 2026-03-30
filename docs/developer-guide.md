@@ -188,6 +188,17 @@ The CI workflow runs these jobs in parallel:
 - `Frontend container build`
 - `Kubernetes manifests`
 - `Metadata validation`
+- `Source-code documentation quality`
+
+The quality gates now also enforce:
+
+- backend total statement coverage must stay at or above `40%`
+- frontend unit-test coverage for `components/*` and `lib/*` must stay at or above:
+  - `45%` statements
+  - `45%` lines
+  - `50%` functions
+  - `50%` branches
+- curated source-code documentation checks for key exported backend and frontend surfaces
 
 ### Auto Merge PR
 
@@ -277,6 +288,7 @@ When making changes, consult the `artifact_groups` and `change_management` secti
 - market-data behavior now includes bounded stale fallback semantics
 - backend request and service flow now emits structured JSON logs through `log/slog`
 - frontend quality gates now include Playwright coverage for core dashboard journeys
+- CI now enforces baseline coverage floors and a curated source-code documentation check
 - Phase 4 adds a global accounting-mode UI and a dedicated `/markets/[symbol]` route for the focused trading flow
 - Phase 5 adds a strategy bundle per `wallet + market` with in-process evaluation and strategy-specific order/activity visibility
 - release-ready Kubernetes output should use immutable release tags, not rely on `latest`

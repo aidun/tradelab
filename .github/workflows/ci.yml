@@ -20,9 +20,13 @@ jobs:
         with:
           go-version-file: backend/go.mod
 
-      - name: Run backend tests
+      - name: Run backend tests with coverage
         working-directory: backend
-        run: go test ./...
+        run: go test ./... -coverprofile=coverage.out
+
+      - name: Enforce backend coverage floor
+        working-directory: backend
+        run: go run ./cmd/coveragecheck -file coverage.out -min 40
 
   frontend-test:
     name: Frontend unit tests
@@ -45,9 +49,9 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Run frontend unit tests
+      - name: Run frontend unit tests with coverage
         working-directory: frontend
-        run: npm run test
+        run: npm run test:coverage
 
   frontend-build:
     name: Frontend build
@@ -179,3 +183,19 @@ jobs:
 
       - name: Validate AI metadata JSON
         run: node -e "JSON.parse(require('fs').readFileSync('docs/ai-metadata.json','utf8'));"
+
+  source-docs-validation:
+    name: Source-code documentation quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate source-code documentation
+        run: node scripts/check-source-docs.mjs

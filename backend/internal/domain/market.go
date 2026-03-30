@@ -2,6 +2,7 @@ package domain
 
 import "time"
 
+// Market describes a tradable symbol and its execution constraints.
 type Market struct {
 	ID          string  `json:"id"`
 	Symbol      string  `json:"symbol"`
@@ -28,6 +29,7 @@ type MarketDataMeta struct {
 	GeneratedAt time.Time `json:"generated_at"`
 }
 
+// CandleFeed bundles chart candles with metadata about feed freshness.
 type CandleFeed struct {
 	Candles []Candle
 	Meta    MarketDataMeta

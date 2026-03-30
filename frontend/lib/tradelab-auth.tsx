@@ -44,6 +44,7 @@ const TradeLabAuthContext = createContext<TradeLabAuthContextValue>({
   signOut: async () => undefined
 });
 
+/** TradeLabAuthProvider selects the active auth runtime and exposes it to the app shell. */
 export function TradeLabAuthProvider({
   children,
   config
@@ -66,10 +67,12 @@ export function TradeLabAuthProvider({
   return <FallbackAuthProvider>{children}</FallbackAuthProvider>;
 }
 
+/** useTradeLabAuth returns the active auth runtime contract for the UI. */
 export function useTradeLabAuth() {
   return useContext(TradeLabAuthContext);
 }
 
+/** AuthEntryActions renders the visible sign-in and sign-up entrypoints. */
 export function AuthEntryActions() {
   const auth = useTradeLabAuth();
 
@@ -124,6 +127,7 @@ export function AuthEntryActions() {
   return null;
 }
 
+/** AuthStatusControls renders the signed-in logout affordance. */
 export function AuthStatusControls() {
   const auth = useTradeLabAuth();
 

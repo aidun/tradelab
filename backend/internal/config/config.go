@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Config collects the backend runtime settings needed to boot the API process.
 type Config struct {
 	HTTPAddress           string
 	DatabaseURL           string
@@ -16,6 +17,7 @@ type Config struct {
 	StrategyEngineTick    time.Duration
 }
 
+// Load resolves the runtime configuration from the environment with local-safe defaults.
 func Load() Config {
 	return Config{
 		HTTPAddress:           getEnv("HTTP_ADDRESS", ":8080"),
