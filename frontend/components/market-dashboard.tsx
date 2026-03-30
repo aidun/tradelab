@@ -94,7 +94,7 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
   const auth = useTradeLabAuth();
   const buildInfo = resolveBuildInfo();
   const {
-    guestSession, registeredAccount, markets, portfolio, orders, activity, strategies, accountingMode, isLoading, isUpgrading,
+    guestSession, registeredAccount, markets, portfolio, orders, activity, activityError, strategies, accountingMode, isLoading, isUpgrading,
     showUpgradePrompt, error, success, activeWalletID, accountModeLabel, shouldShowAuthValuePrompt,
     clearMessages, setErrorMessage, setSuccessMessage, setAccountingMode, refreshCoreData, upgradeGuestSession, activeAccessToken
   } = useAccountSession();
@@ -431,12 +431,13 @@ export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT"
             <section className="rounded-[32px] border border-[var(--line)] bg-[var(--surface)] p-5 backdrop-blur">
               <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.28em] text-[var(--muted)]">{detailOnly ? "Selected market activity" : "Activity log"}</p>
               <div className="mt-5 grid gap-3">
+                {activityError ? <div className="rounded-2xl border border-[rgba(255,107,120,0.35)] bg-[rgba(255,107,120,0.08)] px-4 py-4 text-sm text-[var(--accent-hot)]">{activityError}</div> : null}
                 {visibleActivity.length ? visibleActivity.map((item) => (
                   <div key={item.id} className="rounded-2xl border border-[var(--line)] bg-[rgba(7,17,31,0.45)] px-4 py-4">
                     <div className="flex items-center justify-between gap-4"><span className="text-lg font-semibold">{item.title}</span><span className="text-sm uppercase text-[var(--accent-hot)]">{item.logType}</span></div>
                     <p className="mt-2 text-sm text-[var(--muted)]">{item.message}</p>
                   </div>
-                )) : <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">Activity will populate as soon as trades are executed for this scope.</div>}
+                )) : activityError ? null : <div className="rounded-2xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--muted)]">Activity will populate as soon as trades are executed for this scope.</div>}
               </div>
             </section>
           </div>

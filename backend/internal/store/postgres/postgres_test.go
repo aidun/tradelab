@@ -275,3 +275,45 @@ func TestListByWalletCastsStrategyIDToText(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
+
+func TestListActivityByWalletQualifiesJoinedColumns(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	repo := NewPortfolioRepository(db)
+	rows := sqlmock.NewRows([]string{
+		"id", "wallet_id", "market_symbol", "log_type", "title", "message", "created_at",
+	}).AddRow(
+		"log-1", "wallet-1", "XRP/USDT", "trade", "Demo buy recorded", "Bought 10 XRP.", time.Date(2026, 3, 30, 8, 15, 0, 0, time.UTC),
+	)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT activity_logs.id, activity_logs.wallet_id, COALESCE(order_markets.symbol, strategy_markets.symbol, ''), activity_logs.log_type, activity_logs.title, activity_logs.message, activity_logs.created_at
+		FROM activity_logs
+		LEFT JOIN orders ON orders.id = activity_logs.order_id
+		LEFT JOIN markets order_markets ON order_markets.id = orders.market_id
+		LEFT JOIN strategies ON strategies.id = activity_logs.strategy_id
+		LEFT JOIN markets strategy_markets ON strategy_markets.id = strategies.market_id
+		WHERE activity_logs.wallet_id = $1
+		ORDER BY activity_logs.created_at DESC
+		LIMIT $2
+	`)).WithArgs("wallet-1", 10).WillReturnRows(rows)
+
+	activity, err := repo.ListActivityByWallet(context.Background(), "wallet-1", 10)
+	if err != nil {
+		t.Fatalf("list activity by wallet: %v", err)
+	}
+	if len(activity) != 1 {
+		t.Fatalf("expected one activity log, got %d", len(activity))
+	}
+	if activity[0].Title != "Demo buy recorded" {
+		t.Fatalf("expected activity title to round-trip, got %q", activity[0].Title)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}

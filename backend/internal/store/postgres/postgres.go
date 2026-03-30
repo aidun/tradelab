@@ -744,8 +744,8 @@ func (r *PortfolioRepository) ListActivityByWallet(ctx context.Context, walletID
 		LEFT JOIN markets order_markets ON order_markets.id = orders.market_id
 		LEFT JOIN strategies ON strategies.id = activity_logs.strategy_id
 		LEFT JOIN markets strategy_markets ON strategy_markets.id = strategies.market_id
-		WHERE wallet_id = $1
-		ORDER BY created_at DESC
+		WHERE activity_logs.wallet_id = $1
+		ORDER BY activity_logs.created_at DESC
 	`
 
 	var rows *sql.Rows
