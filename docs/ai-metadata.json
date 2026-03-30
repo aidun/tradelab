@@ -394,6 +394,40 @@
         "merged_closed"
       ]
     },
+    "ticket_type_policy": {
+      "rule": "Every actively tracked open issue should carry exactly one GitHub `type:` label that describes the primary nature of the work.",
+      "source_of_truth": "GitHub issue labels",
+      "allowed_types": [
+        "type: planning",
+        "type: feature",
+        "type: bug",
+        "type: documentation",
+        "type: test",
+        "type: security",
+        "type: ops",
+        "type: refactor",
+        "type: review",
+        "type: research"
+      ],
+      "usage_guidance": {
+        "type: planning": "Umbrella issues, product-definition work, sequencing, or scoped PR-slice planning.",
+        "type: feature": "New user-facing or system-facing functionality.",
+        "type: bug": "Broken behavior, regression, or runtime defect.",
+        "type: documentation": "README, user, product, or technical documentation work.",
+        "type: test": "Coverage, E2E, test cleanup, or test-infrastructure work.",
+        "type: security": "Security audit, hardening, auth/session protection, or abuse-resistance work.",
+        "type: ops": "CI/CD, release, GitOps, cluster, or operational workflow work.",
+        "type: refactor": "Structural improvement without intended behavior change.",
+        "type: review": "Human readability, documentation quality, or maintainability review work.",
+        "type: research": "Investigation or spike work meant to answer a question before implementation."
+      },
+      "hygiene_rules": [
+        "Use exactly one allowed `type:` label on each actively tracked open issue.",
+        "Change the `type:` label only when the dominant work category actually changes.",
+        "Use `type:` labels alongside area, priority, phase, and release labels such as `v1`.",
+        "Do not leave multi-step implementation tickets unlabeled by type."
+      ]
+    },
     "ticket_priority_policy": {
       "rule": "Open issues should carry exactly one GitHub priority label that reflects current urgency, impact, and blocking effect.",
       "source_of_truth": "GitHub issue labels",
@@ -978,19 +1012,24 @@
       "trading-sandbox"
     ],
     "recommended_labels": [
+      "v1",
+      "epic",
+      "type: planning",
       "type: feature",
       "type: bug",
-      "type: docs",
+      "type: documentation",
+      "type: test",
       "type: security",
+      "type: ops",
+      "type: refactor",
+      "type: review",
+      "type: research",
       "area: frontend",
       "area: backend",
       "area: platform",
       "priority: high",
       "priority: medium",
-      "priority: low",
-      "status: planned",
-      "status: in progress",
-      "status: blocked"
+      "priority: low"
     ]
   }
 }

@@ -21,14 +21,19 @@ This checklist captures GitHub repository settings and public presentation detai
 - create a consistent label taxonomy:
   - `type: feature`
   - `type: bug`
-  - `type: docs`
+  - `type: documentation`
+  - `type: test`
   - `type: security`
+  - `type: ops`
+  - `type: refactor`
+  - `type: review`
+  - `type: research`
+  - `type: planning`
   - `area: frontend`
   - `area: backend`
   - `area: platform`
-  - `status: planned`
-  - `status: in progress`
-  - `status: blocked`
+- keep exactly one `type:` label on each actively tracked open issue
+- use the `v1` label on all work that is part of the TradeLab v1 release umbrella under issue `#147`
 - create milestones for major product phases if public planning is desired
 - optionally create a public GitHub Project with:
   - `Backlog`
