@@ -59,8 +59,8 @@
     "structured backend request and service logging",
     "PR-first CI validation",
     "automatic master-image publication for development after merges to master",
-    "manual GitHub release execution from master",
-    "manual production promotion to the latest official release tag",
+    "manual GitHub release execution from master with matching release-branch publication",
+    "manual production promotion to the latest official release branch and tag pair",
     "k3s platform bootstrap with Argo CD app-of-apps",
     "repo-managed MetalLB and Traefik platform synchronization",
     "immutable release manifest rendering"
@@ -213,7 +213,8 @@
           "Verify backend and Verify frontend",
           "Build backend binaries, Build frontend artifact, Publish backend image, and Publish frontend image",
           "Package Kubernetes manifests",
-          "Create GitHub release"
+          "Create GitHub release",
+          "Publish matching release/<tag> branch"
         ]
       },
       {
@@ -222,7 +223,7 @@
         "conditions": [
           "requested release tag exists as an official GitHub release or the latest release is resolved automatically"
         ],
-        "action": "Update the always-present production Argo CD application on master to the selected official release image tags"
+        "action": "Update the always-present production Argo CD application on master to the selected official release branch plus matching image tags"
       }
     ],
     "observability": [
@@ -271,7 +272,7 @@
       ],
       "environment_revision_policy": {
         "development": "track the latest merged master commit through an Argo application manifest committed on master, with Publish Master Images either creating the update PR automatically or surfacing a compare URL when repository policy blocks Actions PR creation",
-        "production": "track a promoted official release tag"
+        "production": "track a promoted official release branch plus matching immutable release image tags"
       }
     }
   },
