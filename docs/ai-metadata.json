@@ -368,8 +368,14 @@
     "change_set_completion_policy": {
       "rule": "Completed change sets should be pushed promptly and attached to an updated or newly created pull request."
     },
+    "feature_branch_execution_policy": {
+      "rule": "Until the active TradeLab v1 release umbrella in GitHub issue #147 is complete, implementation work should default to feature branches and remain there until the concrete tracked slice is finished."
+    },
     "followup_artifact_policy": {
       "rule": "When a change affects behavior, UI, delivery, or repository process, review and update the corresponding tests, logging, documentation, workflows, and docs/ai-metadata.json."
+    },
+    "docs_only_rule_change_fastpath": {
+      "rule": "Process-rule updates that modify only documentation files and docs/ai-metadata.json may be pushed directly without waiting on CI, provided they do not change executable code, workflows, manifests, or product behavior."
     },
     "ui_error_policy": {
       "rule": "Frontend API failures should preserve detailed backend messages in development and fall back to friendly user-facing copy in production, while logging technical detail to the browser console."

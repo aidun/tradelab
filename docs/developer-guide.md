@@ -167,6 +167,8 @@ TradeLab currently follows a PR-first workflow:
 - `master` is the integration branch for development and release preparation
 - official releases are triggered manually from GitHub Actions
 - production promotion is a separate manual workflow that moves Argo CD to an official `release/<tag>` branch plus matching release image tags
+- until the active TradeLab v1 release umbrella in issue `#147` is complete, implementation work should default to feature branches and stay there until the concrete tracked slice is done
+- rule-only process updates that touch documentation files and `docs/ai-metadata.json` only may be pushed directly without waiting on CI, as long as they do not change executable code, workflows, manifests, or product behavior
 
 ## GitHub Actions flow
 
