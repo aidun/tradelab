@@ -175,8 +175,9 @@ It:
 
 1. resolves the selected or latest GitHub release tag
 2. updates [tradelab-prod.yaml](../deploy/infrastructure/applications/tradelab-prod.yaml)
-3. ensures the production application is part of the Argo CD root kustomization
-4. commits the promotion change back to `master`
+3. commits the promotion change back to `master`
+
+`tradelab-prod` is always part of the Argo CD root application set. Production promotion only moves its target release; it does not create the application for the first time.
 
 This means the effective repository delivery path is:
 

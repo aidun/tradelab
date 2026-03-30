@@ -218,7 +218,7 @@
         "conditions": [
           "requested release tag exists as an official GitHub release or the latest release is resolved automatically"
         ],
-        "action": "Update the production Argo CD application to the selected official release tag on master"
+        "action": "Update the always-present production Argo CD application to the selected official release tag on master"
       }
     ],
     "observability": [
@@ -261,10 +261,8 @@
         "deploy/infrastructure/applications/metallb.yaml",
         "deploy/infrastructure/applications/traefik.yaml"
       ],
-    "managed_by_root": [
-        "deploy/infrastructure/applications/tradelab-dev.yaml"
-      ],
-      "prepared_next_step": [
+      "managed_by_root": [
+        "deploy/infrastructure/applications/tradelab-dev.yaml",
         "deploy/infrastructure/applications/tradelab-prod.yaml"
       ],
       "environment_revision_policy": {

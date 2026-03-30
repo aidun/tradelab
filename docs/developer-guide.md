@@ -224,6 +224,8 @@ The production promotion workflow is also manual.
 
 It resolves the requested or latest official GitHub release and updates the production Argo CD application to that release tag.
 
+`tradelab-prod` stays in the Argo root application set at all times. The manual workflow only advances its release target.
+
 ### Publish Master Images
 
 Every merge to `master` builds and publishes backend and frontend development images with both:

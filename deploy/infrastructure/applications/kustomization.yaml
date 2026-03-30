@@ -6,3 +6,4 @@ resources:
   - metallb.yaml
   - traefik.yaml
   - tradelab-dev.yaml
+  - tradelab-prod.yaml
