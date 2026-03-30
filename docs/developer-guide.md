@@ -263,6 +263,24 @@ When making changes:
 - reference the relevant issue in the PR where possible
 - prefer updating existing docs over creating redundant parallel explanations
 
+## Issue taxonomy
+
+Open implementation and planning work should use a consistent GitHub issue type taxonomy.
+
+- use exactly one `type:` label on each actively tracked open issue
+- keep `type: planning` for umbrella issues, product-definition work, and scoped PR-slice planning
+- use `type: feature` for new user-facing or system-facing functionality
+- use `type: bug` for broken behavior, regressions, and runtime defects
+- use `type: documentation` for README, user, product, and technical documentation work
+- use `type: test` for coverage, E2E, test cleanup, and test-infrastructure work
+- use `type: security` for audits, hardening, auth/session risk reduction, and abuse-resistance work
+- use `type: ops` for CI/CD, release, GitOps, cluster, and operational workflow work
+- use `type: refactor` for structure and maintainability improvements without intended behavior change
+- use `type: review` for human code-review, maintainability-audit, or documentation-quality review passes
+- use `type: research` for investigations and spikes that are meant to answer a question before implementation
+
+This issue type should be used alongside, not instead of, the existing area, priority, phase, and release labels such as `v1`.
+
 ## Documentation expectations
 
 - the root README is for repository landing-page readers
