@@ -58,7 +58,7 @@ TradeLab publishes two image classes:
 
 - `tradelab-dev` always follows `master`
 - `tradelab-prod` is promoted only to an official GitHub release tag
-- production promotion is handled by the `Promote Production` workflow, which updates the Argo CD production application to the selected or latest published release
+- production promotion is handled by the `Promote Production` workflow, which updates the always-present Argo CD production application to the selected or latest published release
 
 ## What a release signals
 

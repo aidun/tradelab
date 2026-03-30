@@ -90,17 +90,11 @@ jobs:
 
           prod_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-          kustomization = Path("deploy/infrastructure/applications/kustomization.yaml")
-          kustomization_text = kustomization.read_text(encoding="utf-8")
-          if "  - tradelab-prod.yaml\n" not in kustomization_text:
-            kustomization_text += "  - tradelab-prod.yaml\n"
-          kustomization.write_text(kustomization_text, encoding="utf-8")
-
       - name: Commit promotion change
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add deploy/infrastructure/applications/tradelab-prod.yaml deploy/infrastructure/applications/kustomization.yaml
+          git add deploy/infrastructure/applications/tradelab-prod.yaml
           if git diff --cached --quiet; then
             echo "Production already points at the requested release tag."
             exit 0
