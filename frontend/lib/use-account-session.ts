@@ -21,9 +21,12 @@ import {
   type RegisteredAccount,
   type Strategy
 } from "@/lib/api";
+import {
+  clearStoredDemoSession,
+  readStoredDemoSession,
+  storeDemoSession
+} from "@/lib/demo-session-storage";
 import { useTradeLabAuth } from "@/lib/tradelab-auth";
-
-const DEMO_SESSION_STORAGE_KEY = "tradelab.demo-session";
 const ACCOUNTING_MODE_STORAGE_KEY = "tradelab.accounting-mode";
 
 type CoreDataState = {
@@ -89,27 +92,18 @@ export function useAccountSession(options?: UseAccountSessionOptions): CoreDataS
       throw new Error("Demo session can only be created in the browser");
     }
 
-    const cachedValue = window.sessionStorage.getItem(DEMO_SESSION_STORAGE_KEY);
-    if (cachedValue) {
-      try {
-        const cachedSession = JSON.parse(cachedValue) as DemoSession;
-        if (new Date(cachedSession.expiresAt).getTime() > Date.now()) {
-          return cachedSession;
-        }
-      } catch {
-        window.sessionStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
-      }
+    const cachedSession = readStoredDemoSession();
+    if (cachedSession) {
+      return cachedSession;
     }
 
     const nextSession = await createDemoSession();
-    window.sessionStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify(nextSession));
+    storeDemoSession(nextSession);
     return nextSession;
   }
 
   function clearGuestSession() {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
-    }
+    clearStoredDemoSession();
     setGuestSession(null);
   }
 
