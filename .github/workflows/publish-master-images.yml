@@ -84,7 +84,6 @@ jobs:
             NEXT_PUBLIC_BUILD_COMMIT=${{ steps.meta.outputs.full_sha }}
             NEXT_PUBLIC_BASE_PATH=/tradelab-dev
             NEXT_PUBLIC_API_BASE_URL=/tradelab-dev
-            NEXT_PUBLIC_AUTH_MOCK_MODE=true
           tags: |
             ghcr.io/aidun/tradelab-frontend:master
             ghcr.io/aidun/tradelab-frontend:master-${{ steps.meta.outputs.short_sha }}

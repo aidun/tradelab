@@ -5,7 +5,8 @@ namespace: tradelab-dev
 
 resources:
   - ../../base
-  - ingress-entrypoint.yaml
+  - ingress-frontend-entrypoint.yaml
+  - ingress-backend-entrypoint.yaml
   - middleware-strip-prefix.yaml
 
 images:
@@ -15,6 +16,6 @@ images:
     newTag: master
 
 patches:
-  - path: patch-ingress.yaml
+  - path: patch-ingress-delete.yaml
   - path: patch-backend-configmap.yaml
   - path: patch-frontend-configmap.yaml

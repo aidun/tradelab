@@ -5,11 +5,13 @@ namespace: tradelab
 
 resources:
   - ../../base
-  - ingress-entrypoint.yaml
+  - ingress-frontend-entrypoint.yaml
+  - ingress-backend-entrypoint.yaml
   - middleware-strip-prefix.yaml
 
 patches:
   - path: patch-backend-deployment.yaml
   - path: patch-frontend-deployment.yaml
-  - path: patch-ingress.yaml
+  - path: patch-frontend-configmap.yaml
+  - path: patch-ingress-delete.yaml
   - path: patch-postgres-persistent-volume-claim.yaml

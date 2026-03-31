@@ -566,6 +566,8 @@ test.beforeEach(async ({ page }) => {
 
 async function continueAsGuest(page: Page) {
   await page.getByRole("button", { name: /continue as guest/i }).click();
+  await expect(page.getByRole("heading", { name: /financial boundary/i })).toBeVisible();
+  await page.getByRole("button", { name: /acknowledge and continue/i }).click();
 }
 
 test("creates a demo session and renders the dashboard", async ({ page }) => {

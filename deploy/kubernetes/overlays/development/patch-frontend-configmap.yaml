@@ -4,3 +4,5 @@ metadata:
   name: tradelab-frontend-config
 data:
   NEXT_PUBLIC_AUTH_MOCK_MODE: "true"
+  NEXT_PUBLIC_BASE_PATH: "/tradelab-dev"
+  NEXT_PUBLIC_API_BASE_URL: "/tradelab-dev"
