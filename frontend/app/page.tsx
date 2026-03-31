@@ -1,6 +1,6 @@
 import React from "react";
-import { Hero } from "@/components/hero";
+import { TradeLabAppShell } from "@/components/tradelab-app-shell";
 
 export default function HomePage() {
-  return <Hero />;
+  return <TradeLabAppShell requestedPath="/" />;
 }

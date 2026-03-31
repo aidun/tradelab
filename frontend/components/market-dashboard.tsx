@@ -11,6 +11,7 @@ import { useAccountSession } from "@/lib/use-account-session";
 type MarketDashboardProps = {
   detailOnly?: boolean;
   initialMarket?: string;
+  autoStartGuest?: boolean;
 };
 
 type BacktestReportEntry = {
@@ -146,14 +147,18 @@ function BacktestEquityChart({ points }: { points: BacktestRun["equityCurve"] })
   );
 }
 /** MarketDashboard renders the overview and market-detail trading experience. */
-export function MarketDashboard({ detailOnly = false, initialMarket = "XRP/USDT" }: MarketDashboardProps) {
+export function MarketDashboard({
+  detailOnly = false,
+  initialMarket = "XRP/USDT",
+  autoStartGuest = true
+}: MarketDashboardProps) {
   const auth = useTradeLabAuth();
   const buildInfo = resolveBuildInfo();
   const {
     guestSession, registeredAccount, markets, portfolio, orders, activity, activityError, strategies, accountingMode, isLoading, isUpgrading,
     showUpgradePrompt, error, success, activeWalletID, accountModeLabel, shouldShowAuthValuePrompt,
     clearMessages, setErrorMessage, setSuccessMessage, setAccountingMode, refreshCoreData, upgradeGuestSession, activeAccessToken
-  } = useAccountSession();
+  } = useAccountSession({ autoStartGuest });
   const availableStrategies = strategies ?? [];
   const [selectedMarket, setSelectedMarket] = useState(initialMarket);
   const [selectedInterval, setSelectedInterval] = useState("1h");

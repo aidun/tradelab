@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 function portfolioState(index: number) {
   const states = [
@@ -564,17 +564,23 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+async function continueAsGuest(page: Page) {
+  await page.getByRole("button", { name: /continue as guest/i }).click();
+}
+
 test("creates a demo session and renders the dashboard", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: /demo execution/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /access your trading workspace/i })).toBeVisible();
+  await continueAsGuest(page);
   await expect(page.getByText("XRP/USDT").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /run demo buy/i })).toBeVisible();
 });
 
 test("opens the dedicated market detail page", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: /open market detail/i }).click();
+  await page.goto("/markets/XRP%2FUSDT");
+  await expect(page.getByRole("heading", { name: /access your trading workspace/i })).toBeVisible();
+  await continueAsGuest(page);
 
   await expect(page).toHaveURL(/\/markets\/XRP%2FUSDT|\/markets\/XRP\/USDT/);
   await expect(page.getByText(/focused trading screen/i)).toBeVisible();
@@ -623,6 +629,7 @@ test("refreshes chart data from the market-detail header", async ({ page }) => {
   });
 
   await page.goto("/markets/XRP%2FUSDT");
+  await continueAsGuest(page);
   await expect(page.getByRole("button", { name: /refresh chart/i })).toBeVisible();
   await expect.poll(() => candleRequests).toBe(1);
 
@@ -633,6 +640,7 @@ test("refreshes chart data from the market-detail header", async ({ page }) => {
 
 test("executes a demo buy and refreshes portfolio metrics", async ({ page }) => {
   await page.goto("/");
+  await continueAsGuest(page);
   await page.getByRole("button", { name: /run demo buy/i }).click();
 
   await expect(page.getByText(/demo buy executed for xrp\/usdt/i)).toBeVisible();
@@ -661,6 +669,7 @@ test("keeps balances visible when the activity refresh fails after a demo buy", 
   });
 
   await page.goto("/");
+  await continueAsGuest(page);
   await page.getByRole("button", { name: /run demo buy/i }).click();
 
   await expect(page.getByText(/demo buy executed for xrp\/usdt/i)).toBeVisible();
@@ -670,6 +679,7 @@ test("keeps balances visible when the activity refresh fails after a demo buy", 
 
 test("executes a partial sell from the market detail page", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
+  await continueAsGuest(page);
   await page.getByLabel(/sell quantity/i).fill("50");
   await page.getByRole("button", { name: /run demo sell/i }).click();
 
@@ -680,6 +690,7 @@ test("executes a partial sell from the market detail page", async ({ page }) => 
 
 test("closes the position with a max sell", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
+  await continueAsGuest(page);
   await expect(page.getByText(/open qty 74.62/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /max position/i })).toBeEnabled();
   await page.getByRole("button", { name: /max position/i }).click();
@@ -692,6 +703,7 @@ test("closes the position with a max sell", async ({ page }) => {
 
 test("switches accounting modes globally", async ({ page }) => {
   await page.goto("/");
+  await continueAsGuest(page);
   await page.getByRole("button", { name: "FIFO" }).click();
 
   await expect(page.getByText(/fifo/i).first()).toBeVisible();
@@ -699,6 +711,7 @@ test("switches accounting modes globally", async ({ page }) => {
 
 test("configures and activates a dip-buy strategy", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
+  await continueAsGuest(page);
   await page.getByRole("button", { name: /activate/i }).click();
 
   await expect(page.getByText(/automation activated for xrp\/usdt/i)).toBeVisible();
@@ -708,6 +721,7 @@ test("configures and activates a dip-buy strategy", async ({ page }) => {
 
 test("executes a strategy-driven take-profit sell after activation", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
+  await continueAsGuest(page);
   await page.getByRole("button", { name: /activate/i }).click();
   await page.getByRole("button", { name: /activate/i }).click();
 
@@ -717,6 +731,7 @@ test("executes a strategy-driven take-profit sell after activation", async ({ pa
 
 test("pauses an active strategy without executing a new trade", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
+  await continueAsGuest(page);
   await page.getByRole("button", { name: /activate/i }).click();
   await page.getByRole("button", { name: /pause/i }).click();
 
@@ -726,6 +741,7 @@ test("pauses an active strategy without executing a new trade", async ({ page })
 
 test("runs a read-only backtest from the market detail page", async ({ page }) => {
   await page.goto("/markets/XRP%2FUSDT");
+  await continueAsGuest(page);
   await page.getByRole("button", { name: /run backtest/i }).click();
 
   await expect(page.getByText(/backtest ready for xrp\/usdt/i)).toBeVisible();

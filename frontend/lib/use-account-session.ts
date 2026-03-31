@@ -48,16 +48,22 @@ type CoreDataState = {
   setErrorMessage: (message: string | null) => void;
   setSuccessMessage: (message: string | null) => void;
   setAccountingMode: (mode: AccountingMode) => void;
+  startGuestSession: () => Promise<{ walletID: string; token: string | null }>;
   refreshCoreData: () => Promise<{ walletID: string; token: string | null } | null>;
   upgradeGuestSession: (preserveGuestData: boolean) => Promise<void>;
   activeAccessToken: () => Promise<string | null>;
 };
 
+type UseAccountSessionOptions = {
+  autoStartGuest?: boolean;
+};
+
 /** useAccountSession orchestrates guest and registered account state plus dashboard data loading. */
-export function useAccountSession(): CoreDataState {
+export function useAccountSession(options?: UseAccountSessionOptions): CoreDataState {
   const auth = useTradeLabAuth();
   const previousAuthStatus = useRef(auth.status);
   const hasHydratedAccountingMode = useRef(false);
+  const autoStartGuest = options?.autoStartGuest ?? true;
 
   const [guestSession, setGuestSession] = useState<DemoSession | null>(null);
   const [registeredAccount, setRegisteredAccount] = useState<RegisteredAccount | null>(null);
@@ -218,7 +224,7 @@ export function useAccountSession(): CoreDataState {
 
         // Signed-out users should always fall back to a guest session, but only once the
         // registered account state has been cleared so we do not create competing identities.
-        if (auth.status === "signed_out" && !registeredAccount && !guestSession) {
+        if (autoStartGuest && auth.status === "signed_out" && !registeredAccount && !guestSession) {
           await activateGuestExperience();
         }
       };
@@ -245,7 +251,7 @@ export function useAccountSession(): CoreDataState {
     return () => {
       cancelled = true;
     };
-  }, [auth.status, guestSession, registeredAccount]);
+  }, [auth.status, autoStartGuest, guestSession, registeredAccount]);
 
   useEffect(() => {
     if (!activeWalletID) {
@@ -306,6 +312,18 @@ export function useAccountSession(): CoreDataState {
     }
 
     return null;
+  }
+
+  async function startGuestSession() {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      return await activateGuestExperience();
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function upgradeGuestSession(preserveGuestData: boolean) {
@@ -387,6 +405,7 @@ export function useAccountSession(): CoreDataState {
       setErrorMessage: setError,
       setSuccessMessage: setSuccess,
       setAccountingMode,
+      startGuestSession,
       refreshCoreData,
       upgradeGuestSession,
       activeAccessToken
@@ -405,6 +424,7 @@ export function useAccountSession(): CoreDataState {
       orders,
       portfolio,
       registeredAccount,
+      startGuestSession,
       strategies,
       shouldShowAuthValuePrompt,
       showUpgradePrompt,
