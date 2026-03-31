@@ -370,6 +370,12 @@ describe("Hero", () => {
     await waitFor(() => {
       expect(window.sessionStorage.getItem("tradelab.demo-session")).toBeTruthy();
     });
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: /financial boundary/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /acknowledge and continue/i }));
   }
 
   it("renders the market dashboard with API-backed content", async () => {
