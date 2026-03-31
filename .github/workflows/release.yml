@@ -107,6 +107,8 @@ jobs:
           NEXT_PUBLIC_BUILD_RELEASE: ${{ needs.release-metadata.outputs.tag }}
           NEXT_PUBLIC_BUILD_BRANCH: ${{ needs.release-metadata.outputs.branch_name }}
           NEXT_PUBLIC_BUILD_COMMIT: ${{ needs.release-metadata.outputs.source_commit }}
+          NEXT_PUBLIC_BASE_PATH: /tradelab
+          NEXT_PUBLIC_API_BASE_URL: /tradelab
         run: npm run build
 
   build-backend:
@@ -178,6 +180,12 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_BUILD_RELEASE: ${{ needs.release-metadata.outputs.tag }}
+          NEXT_PUBLIC_BUILD_BRANCH: ${{ needs.release-metadata.outputs.branch_name }}
+          NEXT_PUBLIC_BUILD_COMMIT: ${{ needs.release-metadata.outputs.source_commit }}
+          NEXT_PUBLIC_BASE_PATH: /tradelab
+          NEXT_PUBLIC_API_BASE_URL: /tradelab
         run: npm run build
 
       - name: Package frontend standalone output
@@ -256,6 +264,8 @@ jobs:
             NEXT_PUBLIC_BUILD_RELEASE=${{ needs.release-metadata.outputs.tag }}
             NEXT_PUBLIC_BUILD_BRANCH=${{ needs.release-metadata.outputs.branch_name }}
             NEXT_PUBLIC_BUILD_COMMIT=${{ needs.release-metadata.outputs.source_commit }}
+            NEXT_PUBLIC_BASE_PATH=/tradelab
+            NEXT_PUBLIC_API_BASE_URL=/tradelab
           tags: |
             ghcr.io/aidun/tradelab-frontend:latest
             ghcr.io/aidun/tradelab-frontend:${{ needs.release-metadata.outputs.tag }}
