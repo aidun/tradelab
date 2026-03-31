@@ -1,6 +1,6 @@
 import React from "react";
 
-import { MarketDashboard } from "@/components/market-dashboard";
+import { TradeLabAppShell } from "@/components/tradelab-app-shell";
 
 type MarketDetailPageProps = {
   params: Promise<{
@@ -10,5 +10,12 @@ type MarketDetailPageProps = {
 
 export default async function MarketDetailPage({ params }: MarketDetailPageProps) {
   const resolvedParams = await params;
-  return <MarketDashboard detailOnly initialMarket={decodeURIComponent(resolvedParams.symbol)} />;
+  const decodedSymbol = decodeURIComponent(resolvedParams.symbol);
+  return (
+    <TradeLabAppShell
+      detailOnly
+      initialMarket={decodedSymbol}
+      requestedPath={`/markets/${encodeURIComponent(decodedSymbol)}`}
+    />
+  );
 }

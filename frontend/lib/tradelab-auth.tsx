@@ -127,6 +127,61 @@ export function AuthEntryActions() {
   return null;
 }
 
+/** AuthGateActions renders the first-run account entry actions for the app shell. */
+export function AuthGateActions() {
+  const auth = useTradeLabAuth();
+
+  if (!auth.available || auth.status === "signed_in") {
+    return null;
+  }
+
+  if (auth.provider === "mock") {
+    return (
+      <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={() => auth.signInWithProvider("google")}
+          className="focus-ring rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[#04111a] transition hover:brightness-105"
+        >
+          Create account with Google
+        </button>
+        <button
+          type="button"
+          onClick={() => auth.signInWithProvider("apple")}
+          className="focus-ring rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--text)] transition hover:border-[var(--accent)]"
+        >
+          Log in with Apple
+        </button>
+      </div>
+    );
+  }
+
+  if (auth.provider === "clerk") {
+    return (
+      <div className="grid gap-3">
+        <SignUpButton mode="modal">
+          <button
+            type="button"
+            className="focus-ring rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[#04111a] transition hover:brightness-105"
+          >
+            Create account
+          </button>
+        </SignUpButton>
+        <SignInButton mode="modal">
+          <button
+            type="button"
+            className="focus-ring rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-medium text-[var(--text)] transition hover:border-[var(--accent)]"
+          >
+            Log in
+          </button>
+        </SignInButton>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 /** AuthStatusControls renders the signed-in logout affordance. */
 export function AuthStatusControls() {
   const auth = useTradeLabAuth();

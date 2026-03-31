@@ -360,12 +360,26 @@ describe("Hero", () => {
     vi.restoreAllMocks();
   });
 
+  async function continueAsGuest() {
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /continue as guest/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /continue as guest/i }));
+
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem("tradelab.demo-session")).toBeTruthy();
+    });
+  }
+
   it("renders the market dashboard with API-backed content", async () => {
     installFetchMock();
 
     render(<Hero />);
 
-    expect(screen.getByRole("heading", { name: /demo execution with/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /access your trading workspace/i })).toBeInTheDocument();
+
+    await continueAsGuest();
 
     await waitFor(() => {
       expect(screen.getAllByText(/xrp\/usdt/i)[0]).toBeInTheDocument();
@@ -386,6 +400,10 @@ describe("Hero", () => {
     installFetchMock();
 
     render(<Hero />);
+
+    expect(window.sessionStorage.getItem("tradelab.demo-session")).toBeNull();
+
+    await continueAsGuest();
 
     await waitFor(() => {
       expect(window.sessionStorage.getItem("tradelab.demo-session")).toBeTruthy();
@@ -424,6 +442,8 @@ describe("Hero", () => {
 
     render(<Hero />);
 
+    await continueAsGuest();
+
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /run demo buy/i })).toBeEnabled();
     });
@@ -447,6 +467,8 @@ describe("Hero", () => {
 
     render(<Hero />);
 
+    await continueAsGuest();
+
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /run demo buy/i })).toBeEnabled();
     });
@@ -467,6 +489,8 @@ describe("Hero", () => {
 
     render(<Hero />);
 
+    await continueAsGuest();
+
     await waitFor(() => {
       expect(screen.getByText(/^failed$/i)).toBeInTheDocument();
     });
@@ -479,6 +503,8 @@ describe("Hero", () => {
     installFetchMock({ nullActivity: true, nullStrategies: true, nullOrders: true });
 
     render(<Hero />);
+
+    await continueAsGuest();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /run demo buy/i })).toBeEnabled();
@@ -493,6 +519,8 @@ describe("Hero", () => {
     installFetchMock({ candleMode: "stale" });
 
     render(<Hero />);
+
+    await continueAsGuest();
 
     await waitFor(() => {
       expect(screen.getByText(/feed stale fallback/i)).toBeInTheDocument();
